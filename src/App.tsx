@@ -1,6 +1,11 @@
 import React, { Suspense, lazy, useMemo, useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
+import { UserMenu } from './components/auth/UserMenu';
+import { ShareView } from './components/ShareView';
+import { ShareDialog } from './components/ShareDialog';
+import { useAuthStore } from './store/authStore';
+import { useCloudSync } from './hooks/useCloudSync';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider } from './components/ToastProvider';
 import { CollectionSidebar } from './components/CollectionSidebar';
@@ -12,7 +17,7 @@ import { Badge } from './components/ui/badge';
 import { ConfirmationDialog } from './components/ui/confirmation-dialog';
 import { PerformanceDebugDialog } from './components/performance/PerformanceDebugDialog';
 import { AnalysisReportDialog } from './components/AnalysisReportDialog';
-import { BarChart2, Sun, Moon, Trash2, HelpCircle, Menu, Palette, Zap } from 'lucide-react';
+import { BarChart2, Sun, Moon, Trash2, HelpCircle, Menu, Palette, Share2 } from 'lucide-react';
 import { useAiErrorNotifications } from './hooks/useAiErrorNotifications';
 import { useCataloguePersistence } from './hooks/useCataloguePersistence';
 import { useTheme } from './hooks/useTheme';
@@ -43,9 +48,27 @@ const queryClient = new QueryClient({
 
 type Tab = 'ingestion' | 'triage' | 'export';
 
+/** Détecte si l'URL est une page de partage (#/share/TOKEN) */
+function getShareToken(): string | null {
+  const hash = typeof window !== 'undefined' ? window.location.hash : '';
+  const match = hash.match(/^#\/share\/([a-f0-9]+)$/);
+  return match ? match[1] : null;
+}
+
 function App() {
   useAiErrorNotifications();
+  useCloudSync();
   const { lastSavedAt } = useCataloguePersistence();
+
+  // Init auth store (subscribe to Supabase session)
+  const initAuth = useAuthStore((s) => s._init);
+  useEffect(() => { return initAuth(); }, [initAuth]);
+
+  // Share page routing (hash-based, no React Router needed)
+  const [shareToken] = useState<string | null>(getShareToken);
+  if (shareToken) {
+    return <ShareView token={shareToken} />;
+  }
 
   const { theme, toggleTheme } = useTheme();
   const { accentId, setAccentId, options: accentOptions } = useAccentColor();
@@ -55,6 +78,7 @@ function App() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [autoFlowOpen, setAutoFlowOpen] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
   // Raccourci global '?' pour la cheat sheet — fonctionne depuis n'importe quel onglet
   useEffect(() => {
@@ -422,6 +446,17 @@ function App() {
                     <HelpCircle className="w-4 h-4" />
                   </Button>
 
+                  {/* Partager */}
+                  {photos.length > 0 && (
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0"
+                      onClick={() => setShareDialogOpen(true)} title="Partager avec un client">
+                      <Share2 className="w-4 h-4" />
+                    </Button>
+                  )}
+
+                  {/* User menu / cloud */}
+                  <UserMenu />
+
                   <PerformanceDebugDialog />
 
                   {/* Undo */}
@@ -562,6 +597,7 @@ function App() {
         </div>
         <ToastProvider />
         <Onboarding />
+        <ShareDialog open={shareDialogOpen} onClose={() => setShareDialogOpen(false)} />
         <AnalysisReportDialog open={reportOpen} onOpenChange={setReportOpen} />
         <KeyboardShortcutsHelp open={helpOpen} onOpenChange={setHelpOpen} />
         <ConfirmationDialog

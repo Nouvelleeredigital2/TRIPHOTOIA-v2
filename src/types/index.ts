@@ -118,6 +118,7 @@ export interface RetouchPreset {
 export interface Photo {
   id: string;
   file: File;
+  fileHash?: string;
   previewUrl: string;
   analysis: PhotoAnalysis | null;
   name?: string;

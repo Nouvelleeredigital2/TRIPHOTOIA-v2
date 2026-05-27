@@ -56,6 +56,7 @@ function IngestionTab() {
         return {
           id: `${file.name}-${file.lastModified}-${file.size}`,
           file,
+          fileHash,  // niveau Photo — clé cross-device pour le cloud
           previewUrl: URL.createObjectURL(file),
           analysis: {
             fileHash, // Add the cryptographic hash immediately

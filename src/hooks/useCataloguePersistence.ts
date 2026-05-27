@@ -1,0 +1,126 @@
+import { useEffect, useRef, useState } from 'react';
+import { usePhotoStore } from '../store/photoStore';
+import {
+  saveFullCatalogue,
+  loadFullCatalogue,
+  CatalogueState,
+} from '../lib/catalogue-persistence';
+import { lshRebuildFromEntries } from '../store/photoStore';
+
+const DEBOUNCE_MS = 2000;
+
+/**
+ * Monte une fois au démarrage de l'app.
+ * - Restaure le catalogue complet depuis IDB.
+ * - Auto-sauvegarde debounce 2s à chaque mutation significative du store.
+ * Returns: lastSavedAt (Date | null) — timestamp of the last successful save.
+ */
+export function useCataloguePersistence(): { lastSavedAt: Date | null } {
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const saveTimerRef = useRef<number | null>(null);
+  const isRestoredRef = useRef(false);
+
+  const store = usePhotoStore();
+
+  // Restauration initiale
+  useEffect(() => {
+    if (isRestoredRef.current) return;
+    isRestoredRef.current = true;
+
+    loadFullCatalogue().then((saved) => {
+      if (!saved || saved.photos.length === 0) return;
+
+      const currentPhotos = usePhotoStore.getState().photos;
+      if (currentPhotos.length > 0) return; // L'utilisateur a déjà chargé des photos
+
+      const {
+        addPhotos,
+        setDuplicateGroups,
+        updateUserTags,
+        setActiveCollection,
+        setPhotoNote,
+      } = usePhotoStore.getState();
+
+      addPhotos(saved.photos);
+
+      if (saved.duplicateGroups.length > 0) {
+        setDuplicateGroups(saved.duplicateGroups);
+      }
+
+      Object.entries(saved.userTags).forEach(([photoId, tags]) => {
+        updateUserTags(photoId, tags);
+      });
+
+      if (saved.activeCollectionId) {
+        setActiveCollection(saved.activeCollectionId);
+      }
+
+      // Restaurer les notes
+      Object.entries(saved.photoNotes).forEach(([photoId, note]) => {
+        setPhotoNote(photoId, note);
+      });
+
+      // Rebuild rejectedPhotoIds from photo analysis (persisted in analysis.isRejected)
+      const rejectedIds = new Set(
+        saved.photos
+          .filter((p) => p.analysis?.isRejected === true)
+          .map((p) => p.id),
+      );
+      if (rejectedIds.size > 0) {
+        usePhotoStore.setState((s) => ({ ...s, rejectedPhotoIds: rejectedIds }));
+      }
+
+      // Réalimenter le LSH depuis les photos restaurées
+      lshRebuildFromEntries(
+        saved.photos
+          .filter((p) => p.analysis?.perceptualHash)
+          .map((p) => ({ id: p.id, hash: p.analysis!.perceptualHash! })),
+      );
+    }).catch((err) => {
+      console.warn('[useCataloguePersistence] restauration échouée:', err);
+    });
+  }, []);
+
+  // Auto-sauvegarde debounce sur les mutations du store
+  useEffect(() => {
+    if (!isRestoredRef.current) return;
+    if (store.photos.length === 0) return;
+
+    if (saveTimerRef.current !== null) {
+      window.clearTimeout(saveTimerRef.current);
+    }
+
+    saveTimerRef.current = window.setTimeout(() => {
+      const state = usePhotoStore.getState();
+      const payload: CatalogueState = {
+        photos: state.photos,
+        collections: state.collections,
+        collectionOrder: state.collectionOrder,
+        activeCollectionId: state.activeCollectionId,
+        duplicateGroups: state.duplicateGroups,
+        userTags: state.userTags,
+        photoNotes: state.photoNotes,
+      };
+      saveFullCatalogue(payload)
+        .then(() => setLastSavedAt(new Date()))
+        .catch((err) => {
+          console.warn('[useCataloguePersistence] sauvegarde échouée:', err);
+        });
+    }, DEBOUNCE_MS);
+
+    return () => {
+      if (saveTimerRef.current !== null) {
+        window.clearTimeout(saveTimerRef.current);
+      }
+    };
+  }, [
+    store.photos,
+    store.duplicateGroups,
+    store.userTags,
+    store.collections,
+    store.collectionOrder,
+    store.activeCollectionId,
+  ]);
+
+  return { lastSavedAt };
+}

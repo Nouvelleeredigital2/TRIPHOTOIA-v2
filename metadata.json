@@ -1,0 +1,5 @@
+{
+  "name": "Assistant de Tri Photo IA",
+  "description": "Une application intelligente de tri de photos qui utilise l'IA pour vous aider à trier, filtrer et étiqueter vos images. Elle identifie les photos floues, trouve les doublons, détecte les yeux ouverts et suggère des étiquettes pertinentes, optimisant ainsi votre flux de travail d'organisation de photos.",
+  "requestFramePermissions": []
+}

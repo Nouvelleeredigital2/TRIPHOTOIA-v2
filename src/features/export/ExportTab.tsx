@@ -1,0 +1,716 @@
+import React, { useState, useMemo, useCallback, useRef } from 'react';
+import { motion } from 'framer-motion';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { usePhotoStore } from '../../store/photoStore';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
+import { formatFileSize } from '../../lib/utils';
+import { Photo } from '../../types';
+import toast from 'react-hot-toast';
+import {
+  exportPhotosAsZip,
+  exportPhotosToDirectory,
+  supportsDirectoryExport,
+  downloadBlob,
+  generateZipFileName,
+  WatermarkPosition,
+} from '../../lib/export-utils';
+import {
+  loadPresets,
+  createPreset,
+  deletePreset,
+  updatePreset,
+  ExportPreset,
+} from '../../lib/export-presets';
+import { BookmarkPlus, Trash2, Download } from 'lucide-react';
+import { ExportFilterBar } from './components/ExportFilterBar';
+import { RenamePanel } from './components/RenamePanel';
+
+// ── Schema ────────────────────────────────────────────────────────────────────
+
+const exportSchema = z.object({
+  format: z.enum(['original', 'jpeg', 'png', 'webp']),
+  quality: z.number().min(1).max(100),
+  maxWidth: z.number().min(100).max(8000).optional(),
+  maxHeight: z.number().min(100).max(8000).optional(),
+  includeRejected: z.boolean(),
+  includeDuplicates: z.boolean(),
+  // Rename
+  renamePattern: z.string(),
+  // Filter mode
+  filterMode: z.enum(['all', 'picks-only', 'min-rating']),
+  minRating: z.number().min(1).max(5),
+  // Watermark
+  watermarkEnabled: z.boolean(),
+  watermarkText: z.string(),
+  watermarkPosition: z.enum([
+    'bottom-left', 'bottom-center', 'bottom-right',
+    'top-left', 'top-center', 'top-right',
+  ]),
+  watermarkSize: z.number().min(10).max(200),
+  watermarkOpacity: z.number().min(1).max(100),
+  watermarkColor: z.string(),
+});
+
+export type ExportFormData = z.infer<typeof exportSchema>;
+
+const fsaAvailable = supportsDirectoryExport();
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+function ExportTab() {
+  const duplicateGroups = usePhotoStore((state) => state.duplicateGroups);
+  const rejectedPhotoIds = usePhotoStore((state) => state.rejectedPhotoIds);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+
+  // ── Presets state (handlers defined after form below) ────────────────────
+  const [presets, setPresets] = useState<ExportPreset[]>(() => loadPresets());
+  const [selectedPresetId, setSelectedPresetId] = useState<string>('');
+  const [savePresetName, setSavePresetName] = useState('');
+  const [showSaveInput, setShowSaveInput] = useState(false);
+  const saveInputRef = useRef<HTMLInputElement>(null);
+  const refreshPresets = useCallback(() => setPresets(loadPresets()), []);
+
+  const collections = usePhotoStore((state) => state.collections);
+  const activeCollectionId = usePhotoStore((state) => state.activeCollectionId);
+  const allPhotos = usePhotoStore((state) => state.photos);
+
+  const activeCollection = useMemo(
+    () => collections[activeCollectionId],
+    [collections, activeCollectionId]
+  );
+
+  const activePhotos = useMemo(() => {
+    if (!activeCollection) return allPhotos;
+    const photoMap = new Map(allPhotos.map((p) => [p.id, p]));
+    return activeCollection.photoIds
+      .map((id) => photoMap.get(id))
+      .filter((p): p is Photo => Boolean(p));
+  }, [activeCollection, allPhotos]);
+
+  const form = useForm<ExportFormData>({
+    defaultValues: {
+      format: 'original',
+      quality: 90,
+      maxWidth: 1920,
+      maxHeight: 1080,
+      includeRejected: false,
+      includeDuplicates: false,
+      renamePattern: '',
+      filterMode: 'all',
+      minRating: 3,
+      watermarkEnabled: false,
+      watermarkText: '© Mon Studio',
+      watermarkPosition: 'bottom-right',
+      watermarkSize: 28,
+      watermarkOpacity: 70,
+      watermarkColor: '#ffffff',
+    },
+  });
+
+  // ── Preset handlers (after form so no TDZ) ──────────────────────────────
+  const handleLoadPreset = useCallback((id: string) => {
+    const preset = presets.find((p) => p.id === id);
+    if (!preset) return;
+    form.reset(preset.data);
+    setSelectedPresetId(id);
+    toast.success(`Preset "${preset.name}" chargé`);
+  }, [presets, form]);
+
+  const handleSavePreset = useCallback(() => {
+    const name = savePresetName.trim() || 'Preset';
+    if (selectedPresetId && presets.some((p) => p.id === selectedPresetId)) {
+      updatePreset(selectedPresetId, form.getValues());
+      refreshPresets();
+      toast.success(`Preset "${name}" mis à jour`);
+    } else {
+      const created = createPreset(name, form.getValues());
+      refreshPresets();
+      setSelectedPresetId(created.id);
+      toast.success(`Preset "${created.name}" sauvegardé`);
+    }
+    setSavePresetName('');
+    setShowSaveInput(false);
+  }, [savePresetName, selectedPresetId, presets, form, refreshPresets]);
+
+  const handleDeletePreset = useCallback(() => {
+    if (!selectedPresetId) return;
+    const preset = presets.find((p) => p.id === selectedPresetId);
+    deletePreset(selectedPresetId);
+    refreshPresets();
+    setSelectedPresetId('');
+    toast.success(`Preset "${preset?.name ?? ''}" supprimé`);
+  }, [selectedPresetId, presets, refreshPresets]);
+
+  const {
+    includeRejected,
+    includeDuplicates,
+    qualityValue,
+    filterMode,
+    watermarkEnabled,
+    watermarkOpacity,
+    watermarkSize,
+    format,
+  } = {
+    includeRejected: form.watch('includeRejected'),
+    includeDuplicates: form.watch('includeDuplicates'),
+    qualityValue: form.watch('quality'),
+    filterMode: form.watch('filterMode'),
+    watermarkEnabled: form.watch('watermarkEnabled'),
+    watermarkOpacity: form.watch('watermarkOpacity'),
+    watermarkSize: form.watch('watermarkSize'),
+    format: form.watch('format'),
+  };
+
+  // ── Build photo list ──────────────────────────────────────────────────────
+
+  const buildPhotosToExport = (data: ExportFormData): Photo[] => {
+    const analyzedPhotos = activePhotos.filter((p) => p.analysis && !p.analysis.error);
+    const activePhotoIds = new Set(analyzedPhotos.map((p) => p.id));
+    const duplicatePhotoIds = new Set(
+      duplicateGroups
+        .filter((g) => g.photos.some((p) => activePhotoIds.has(p.id)))
+        .flatMap((g) => g.photos.map((p) => p.id))
+    );
+
+    return analyzedPhotos.filter((photo) => {
+      if ((rejectedPhotoIds.has(photo.id) || photo.analysis?.isRejected) && !data.includeRejected) return false;
+      if (duplicatePhotoIds.has(photo.id) && !data.includeDuplicates) return false;
+      if (data.filterMode === 'picks-only' && !photo.analysis?.isPick) return false;
+      if (data.filterMode === 'min-rating' && (photo.analysis?.rating ?? 0) < data.minRating) return false;
+      return true;
+    });
+  };
+
+  // ── Export stats (reactive) ───────────────────────────────────────────────
+
+  const minRatingWatch = form.watch('minRating');
+  const filterModeWatch = form.watch('filterMode');
+
+  const exportStats = useMemo(() => {
+    const analyzedPhotos = activePhotos.filter((p) => p.analysis && !p.analysis.error);
+    const activePhotoIds = new Set(analyzedPhotos.map((p) => p.id));
+    const duplicatePhotoIds = new Set(
+      duplicateGroups
+        .filter((g) => g.photos.some((p) => activePhotoIds.has(p.id)))
+        .flatMap((g) => g.photos.map((p) => p.id))
+    );
+
+    const photos = analyzedPhotos.filter((photo) => {
+      if (rejectedPhotoIds.has(photo.id) && !includeRejected) return false;
+      if (duplicatePhotoIds.has(photo.id) && !includeDuplicates) return false;
+      if (filterModeWatch === 'picks-only' && !photo.analysis?.isPick) return false;
+      if (filterModeWatch === 'min-rating' && (photo.analysis?.rating ?? 0) < minRatingWatch) return false;
+      return true;
+    });
+
+    const totalSize = photos.reduce((sum, p) => sum + p.file.size, 0);
+    const duplicatesCount = duplicateGroups.filter((g) =>
+      g.photos.some((p) => activePhotoIds.has(p.id))
+    ).length;
+    const rejectedCount = photos.filter((p) => rejectedPhotoIds.has(p.id) || p.analysis?.isRejected).length;
+
+    return { count: photos.length, totalSize, duplicates: duplicatesCount, rejected: rejectedCount };
+  }, [activePhotos, duplicateGroups, rejectedPhotoIds, includeRejected, includeDuplicates, filterModeWatch, minRatingWatch]);
+
+  // ── Handle submit ─────────────────────────────────────────────────────────
+
+  const handleExport = async (data: ExportFormData) => {
+    const photosToExport = buildPhotosToExport(data);
+    if (photosToExport.length === 0) {
+      toast.error('Aucune photo à exporter');
+      return;
+    }
+
+    setIsExporting(true);
+    setExportProgress(0);
+
+    const options = {
+      format: data.format,
+      quality: data.quality,
+      maxWidth: data.maxWidth,
+      maxHeight: data.maxHeight,
+      renamePattern: data.renamePattern || undefined,
+      watermark: data.watermarkEnabled && data.watermarkText.trim()
+        ? {
+            text: data.watermarkText,
+            position: data.watermarkPosition as WatermarkPosition,
+            size: data.watermarkSize,
+            opacity: data.watermarkOpacity,
+            color: data.watermarkColor,
+          }
+        : undefined,
+    };
+
+    try {
+      if (fsaAvailable) {
+        await exportPhotosToDirectory(photosToExport, options, (p) => setExportProgress(p));
+        toast.success(`Export terminé ! ${photosToExport.length} photos écrites dans le dossier.`);
+      } else {
+        const zipBlob = await exportPhotosAsZip(photosToExport, options, (p) => setExportProgress(p));
+        const fileName = generateZipFileName(activeCollection?.name);
+        downloadBlob(zipBlob, fileName);
+        toast.success(`Export terminé ! ${photosToExport.length} photos exportées.`);
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      toast.error("Erreur lors de l'export");
+      console.error('Export error:', error);
+    } finally {
+      setIsExporting(false);
+      setExportProgress(0);
+    }
+  };
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-6"
+    >
+      <div className="text-center space-y-2">
+        <h2 className="text-3xl font-bold">Exportation</h2>
+        <p className="text-muted-foreground">Configurez et exportez vos photos triées</p>
+      </div>
+
+      {/* ── Presets d'export ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Presets d&apos;export</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Sélecteur */}
+            <select
+              value={selectedPresetId}
+              onChange={(e) => {
+                if (e.target.value) handleLoadPreset(e.target.value);
+                else setSelectedPresetId('');
+              }}
+              className="flex-1 min-w-[160px] h-9 rounded-lg border border-border/60 bg-background text-sm px-2 text-foreground"
+            >
+              <option value="">— Sélectionner un preset —</option>
+              {presets.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+
+            {/* Bouton sauvegarder */}
+            {!showSaveInput ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => {
+                  setShowSaveInput(true);
+                  setTimeout(() => saveInputRef.current?.focus(), 50);
+                }}
+                title="Sauvegarder la configuration actuelle comme preset"
+              >
+                <BookmarkPlus className="w-4 h-4" />
+                Sauvegarder
+              </Button>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <input
+                  ref={saveInputRef}
+                  type="text"
+                  value={savePresetName}
+                  onChange={(e) => setSavePresetName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSavePreset();
+                    if (e.key === 'Escape') { setShowSaveInput(false); setSavePresetName(''); }
+                  }}
+                  placeholder="Nom du preset"
+                  className="h-9 rounded-lg border border-border/60 bg-background text-sm px-2 w-44 outline-none focus:ring-1 focus:ring-primary/50"
+                />
+                <Button type="button" size="sm" onClick={handleSavePreset}>
+                  OK
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { setShowSaveInput(false); setSavePresetName(''); }}
+                >
+                  ✕
+                </Button>
+              </div>
+            )}
+
+            {/* Supprimer */}
+            {selectedPresetId && !showSaveInput && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                onClick={handleDeletePreset}
+                title="Supprimer ce preset"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+
+          {presets.length === 0 && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Aucun preset. Configurez l&apos;export puis cliquez &quot;Sauvegarder&quot; pour créer un preset réutilisable.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* ── Stats ── */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Statistiques d&apos;export</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <div className="text-2xl font-bold">{exportStats.count}</div>
+                <div className="text-sm text-muted-foreground">Photos à exporter</div>
+              </div>
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <div className="text-2xl font-bold">{formatFileSize(exportStats.totalSize)}</div>
+                <div className="text-sm text-muted-foreground">Taille totale</div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span>Groupes de doublons :</span>
+                <Badge variant="outline">{exportStats.duplicates}</Badge>
+              </div>
+              <div className="flex justify-between">
+                <span>Photos rejetées :</span>
+                <Badge variant="outline">{exportStats.rejected}</Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ── Base config ── */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Configuration d&apos;export</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={form.handleSubmit(handleExport)} className="space-y-4" id="export-form">
+
+              {/* Format */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="export-format">Format de sortie</label>
+                <select
+                  id="export-format"
+                  {...form.register('format')}
+                  className="w-full p-2 border rounded-md bg-background"
+                >
+                  <option value="original">Original</option>
+                  <option value="jpeg">JPEG</option>
+                  <option value="png">PNG</option>
+                  <option value="webp">WebP</option>
+                </select>
+              </div>
+
+              {/* Quality */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="export-quality">
+                  Qualité : {qualityValue}%
+                </label>
+                <input
+                  id="export-quality"
+                  type="range"
+                  min="1"
+                  max="100"
+                  {...form.register('quality', { valueAsNumber: true })}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Dimensions */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="export-max-width">Largeur max (px)</label>
+                  <input
+                    id="export-max-width"
+                    type="number"
+                    min="100"
+                    max="8000"
+                    {...form.register('maxWidth', { valueAsNumber: true })}
+                    className="w-full p-2 border rounded-md bg-background"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="export-max-height">Hauteur max (px)</label>
+                  <input
+                    id="export-max-height"
+                    type="number"
+                    min="100"
+                    max="8000"
+                    {...form.register('maxHeight', { valueAsNumber: true })}
+                    className="w-full p-2 border rounded-md bg-background"
+                  />
+                </div>
+              </div>
+
+              {/* Include toggles */}
+              <div className="space-y-2">
+                <label className="flex items-center gap-2" htmlFor="export-include-rejected">
+                  <input
+                    id="export-include-rejected"
+                    type="checkbox"
+                    {...form.register('includeRejected')}
+                    className="rounded"
+                  />
+                  <span className="text-sm">Inclure les photos rejetées</span>
+                </label>
+                <label className="flex items-center gap-2" htmlFor="export-include-duplicates">
+                  <input
+                    id="export-include-duplicates"
+                    type="checkbox"
+                    {...form.register('includeDuplicates')}
+                    className="rounded"
+                  />
+                  <span className="text-sm">Inclure les doublons</span>
+                </label>
+              </div>
+
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* ── Filter mode ── */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Filtre de sélection</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Pill presets — sélection rapide */}
+            <ExportFilterBar
+              mode={filterMode}
+              minRating={minRatingWatch}
+              includeRejected={includeRejected}
+              count={exportStats.count}
+              onModeChange={(mode, minRating) => {
+                form.setValue('filterMode', mode);
+                if (minRating !== undefined) form.setValue('minRating', minRating);
+              }}
+              onIncludeRejectedChange={(val) => form.setValue('includeRejected', val)}
+            />
+
+            {/* Radio buttons détaillés (toujours visibles) */}
+            <div className="border-t border-border/50 pt-3 space-y-2">
+              {(
+                [
+                  { value: 'all', label: 'Toutes les photos analysées' },
+                  { value: 'picks-only', label: 'Picks uniquement 🎯' },
+                  { value: 'min-rating', label: 'Note minimale ★' },
+                ] as const
+              ).map(({ value, label }) => (
+                <label key={value} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    value={value}
+                    {...form.register('filterMode')}
+                    className="rounded"
+                  />
+                  <span className="text-sm">{label}</span>
+                </label>
+              ))}
+            </div>
+
+            {filterMode === 'min-rating' && (
+              <div className="pl-5 flex items-center gap-3">
+                <span className="text-sm text-muted-foreground">Note min :</span>
+                {[1, 2, 3, 4, 5].map((r) => (
+                  <label key={r} className="flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="radio"
+                      value={r}
+                      {...form.register('minRating', { valueAsNumber: true })}
+                    />
+                    <span className="text-sm">{r}★</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ── Rename pattern ── */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Renommage des fichiers</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <RenamePanel
+              pattern={form.watch('renamePattern')}
+              photos={activePhotos.filter((p) => p.analysis && !p.analysis.error).slice(0, 3)}
+              onPatternChange={(v) => form.setValue('renamePattern', v)}
+            />
+          </CardContent>
+        </Card>
+
+      </div>
+
+      {/* ── Watermark ── */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Filigrane (watermark)</CardTitle>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                {...form.register('watermarkEnabled')}
+                className="rounded"
+              />
+              <span className="text-sm font-medium">Activer</span>
+            </label>
+          </div>
+        </CardHeader>
+        {watermarkEnabled && (
+          <CardContent className="space-y-4">
+            {format === 'original' && (
+              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded p-2">
+                ⚠️ Le filigrane encode l&apos;image — elle sera re-encodée en JPEG même si le format est &quot;Original&quot;.
+              </p>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Text */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="wm-text">Texte</label>
+                <input
+                  id="wm-text"
+                  type="text"
+                  placeholder="© Mon Studio"
+                  {...form.register('watermarkText')}
+                  className="w-full p-2 border rounded-md bg-background text-sm"
+                />
+              </div>
+
+              {/* Position */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="wm-position">Position</label>
+                <select
+                  id="wm-position"
+                  {...form.register('watermarkPosition')}
+                  className="w-full p-2 border rounded-md bg-background text-sm"
+                >
+                  <option value="bottom-left">Bas — gauche</option>
+                  <option value="bottom-center">Bas — centre</option>
+                  <option value="bottom-right">Bas — droite</option>
+                  <option value="top-left">Haut — gauche</option>
+                  <option value="top-center">Haut — centre</option>
+                  <option value="top-right">Haut — droite</option>
+                </select>
+              </div>
+
+              {/* Size */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="wm-size">
+                  Taille : {watermarkSize}px
+                </label>
+                <input
+                  id="wm-size"
+                  type="range"
+                  min="10"
+                  max="200"
+                  {...form.register('watermarkSize', { valueAsNumber: true })}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Opacity */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="wm-opacity">
+                  Opacité : {watermarkOpacity}%
+                </label>
+                <input
+                  id="wm-opacity"
+                  type="range"
+                  min="1"
+                  max="100"
+                  {...form.register('watermarkOpacity', { valueAsNumber: true })}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Color */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="wm-color">Couleur</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="wm-color"
+                    type="color"
+                    {...form.register('watermarkColor')}
+                    className="h-10 w-16 cursor-pointer rounded border bg-background p-1"
+                  />
+                  <span className="text-xs text-muted-foreground font-mono">
+                    {form.watch('watermarkColor')}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* ── Submit ── */}
+      <div className="flex justify-end gap-3">
+        {!fsaAvailable && (
+          <p className="text-xs text-muted-foreground self-center">
+            Votre navigateur ne supporte pas le sélecteur de dossier — l&apos;export sera téléchargé en ZIP.
+          </p>
+        )}
+        <Button
+          form="export-form"
+          type="submit"
+          disabled={isExporting || exportStats.count === 0}
+          className="min-w-[220px]"
+        >
+          {isExporting
+            ? `Export en cours… ${exportProgress}%`
+            : fsaAvailable
+              ? 'Choisir le dossier et exporter'
+              : 'Exporter en ZIP'}
+        </Button>
+      </div>
+
+      {/* ── Progress bar ── */}
+      {isExporting && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Progression de l&apos;export</span>
+                <span>{exportProgress}%</span>
+              </div>
+              <div className="w-full bg-secondary rounded-full h-2">
+                <motion.div
+                  className="bg-primary h-2 rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${exportProgress}%` }}
+                  transition={{ duration: 0.3 }}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </motion.div>
+  );
+}
+
+export default ExportTab;

@@ -488,7 +488,7 @@ export class ImageProcessor {
     for (let y = 1; y < height - 1; y++) {
       for (let x = 1; x < width - 1; x++) {
         let laplacianValue = 0;
-        
+
         for (let ky = 0; ky < 3; ky++) {
           for (let kx = 0; kx < 3; kx++) {
             const pixelIndex = ((y + ky - 1) * width + (x + kx - 1)) * 4;

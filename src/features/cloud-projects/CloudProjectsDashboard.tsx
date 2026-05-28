@@ -1,9 +1,10 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CalendarDays, FolderKanban, Plus, RefreshCw } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { createCloudProject, fetchCloudProjects, type CloudProjectSummary } from './cloudProjects';
+import { useCloudProjectStore } from '../../store/cloudProjectStore';
 
 interface CloudProjectsDashboardProps {
   userId: string;
@@ -12,7 +13,8 @@ interface CloudProjectsDashboardProps {
 export function CloudProjectsDashboard({ userId }: CloudProjectsDashboardProps) {
   const queryClient = useQueryClient();
   const [projectName, setProjectName] = useState('');
-  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  const activeCloudProject = useCloudProjectStore((state) => state.activeProject);
+  const setActiveCloudProject = useCloudProjectStore((state) => state.setActiveProject);
 
   const projectsQuery = useQuery({
     queryKey: ['cloud-projects', userId],
@@ -27,14 +29,29 @@ export function CloudProjectsDashboard({ userId }: CloudProjectsDashboardProps) 
         ...current.filter((item) => item.id !== project.id),
       ]);
       setProjectName('');
-      setActiveProjectId(project.id);
+      setActiveCloudProject({
+        id: project.id,
+        organizationId: project.organization_id,
+        name: project.name,
+      });
     },
   });
 
   const projects = projectsQuery.data ?? [];
+
+  useEffect(() => {
+    if (activeCloudProject || projects.length === 0) return;
+    const firstProject = projects[0];
+    setActiveCloudProject({
+      id: firstProject.id,
+      organizationId: firstProject.organization_id,
+      name: firstProject.name,
+    });
+  }, [activeCloudProject, projects, setActiveCloudProject]);
+
   const activeProject = useMemo(() => {
-    return projects.find((project) => project.id === activeProjectId) ?? projects[0] ?? null;
-  }, [activeProjectId, projects]);
+    return projects.find((project) => project.id === activeCloudProject?.id) ?? projects[0] ?? null;
+  }, [activeCloudProject?.id, projects]);
 
   const handleCreateProject = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -89,7 +106,11 @@ export function CloudProjectsDashboard({ userId }: CloudProjectsDashboardProps) 
               <button
                 key={project.id}
                 type="button"
-                onClick={() => setActiveProjectId(project.id)}
+                onClick={() => setActiveCloudProject({
+                  id: project.id,
+                  organizationId: project.organization_id,
+                  name: project.name,
+                })}
                 className={`w-full rounded-lg border px-4 py-3 text-left transition-colors ${
                   selected
                     ? 'border-primary/50 bg-primary/10'

@@ -20,12 +20,14 @@ import { ConfirmationDialog } from '../../components/ui/confirmation-dialog';
 import { PhotoDetailPanel } from '../../components/PhotoDetailPanel';
 import { AnimatePresence } from 'framer-motion';
 import { CullingView } from '../../components/CullingView';
+import {
+  isFavoritePhoto,
+  isReviewPhoto,
+  TriageFilterType,
+  TriageSortKey,
+} from './triageFilters';
 
-type FilterType = 'all' | 'duplicates' | 'rejected' | 'selected' | 'blurry' | 'picks' | `color:${ColorLabel}` | `stars:${number}`;
-
-type SortKey = 'default' | 'rating-desc' | 'rating-asc' | 'sharpness-desc' | 'name-asc' | 'name-desc' | 'size-desc';
-
-const SORT_LABELS: Record<SortKey, string> = {
+const SORT_LABELS: Record<TriageSortKey, string> = {
   'default':        'Par défaut',
   'rating-desc':    'Note ↓',
   'rating-asc':     'Note ↑',
@@ -35,7 +37,11 @@ const SORT_LABELS: Record<SortKey, string> = {
   'size-desc':      'Poids ↓',
 };
 
-function TriageTab() {
+interface TriageTabProps {
+  onOpenAutoFlow?: (photoIds?: string[]) => void;
+}
+
+function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
   const duplicateGroups = usePhotoStore((state) => state.duplicateGroups);
   const selectedPhotoId = usePhotoStore((state) => state.selectedPhotoId);
   const rejectedPhotoIds = usePhotoStore((state) => state.rejectedPhotoIds);
@@ -115,9 +121,9 @@ function TriageTab() {
     await startRetouchSession(photoIds);
   };
 
-  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [activeFilter, setActiveFilter] = useState<TriageFilterType>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortKey, setSortKey] = useState<SortKey>('default');
+  const [sortKey, setSortKey] = useState<TriageSortKey>('default');
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
   const [singleDeleteConfirmOpen, setSingleDeleteConfirmOpen] = useState(false);
@@ -223,7 +229,7 @@ function TriageTab() {
 
   // Copier / coller métadonnées
   const handleCopyMeta = useCallback(() => {
-    const photo = filteredPhotos.find((p) => p.id === selectedPhotoId);
+    const photo = activePhotos.find((p) => p.id === selectedPhotoId);
     if (!photo?.analysis) { toast.error('Aucune photo sélectionnée'); return; }
     const { rating, isPick, isRejected, colorLabel } = photo.analysis;
     setMetaClipboard({ rating, isPick, isRejected, colorLabel: colorLabel ?? null });
@@ -233,7 +239,7 @@ function TriageTab() {
     if (isRejected) parts.push('Rejeté');
     if (colorLabel) parts.push(colorLabel);
     toast.success(`Copié : ${parts.length ? parts.join(' · ') : 'aucune métadonnée'}`);
-  }, [filteredPhotos, selectedPhotoId]);
+  }, [activePhotos, selectedPhotoId]);
 
   const handlePasteMeta = useCallback(() => {
     if (!metaClipboard) { toast.error('Presse-papier vide — copiez d\'abord (Ctrl+Shift+C)'); return; }
@@ -317,6 +323,10 @@ function TriageTab() {
       result = analyzedPhotos.filter((photo) => photo.analysis?.isBlurry === true);
     } else if (activeFilter === 'picks') {
       result = analyzedPhotos.filter((photo) => photo.analysis?.isPick === true);
+    } else if (activeFilter === 'favorites') {
+      result = analyzedPhotos.filter(isFavoritePhoto);
+    } else if (activeFilter === 'review') {
+      result = analyzedPhotos.filter((photo) => isReviewPhoto(photo, rejectedPhotoIds));
     } else if (activeFilter === 'rejected') {
       result = analyzedPhotos.filter((photo) => photo.analysis?.isRejected === true || rejectedPhotoIds.has(photo.id));
     } else if (activeFilter === 'selected') {
@@ -414,7 +424,7 @@ function TriageTab() {
       const selectedPhotos = Array.from(developmentSelection)
         .map(id => filteredPhotos.find(p => p.id === id))
         .filter((p): p is Photo => p !== undefined);
-      
+
       if (selectedPhotos.length >= 2) {
         setComparisonPhotos([selectedPhotos[0], selectedPhotos[1]]);
         setComparisonOpen(true);
@@ -512,6 +522,8 @@ function TriageTab() {
   const stats = useMemo(() => {
     const analyzedPhotos = activePhotos.filter((p) => p.analysis && !p.analysis.error);
     const picksPhotos = analyzedPhotos.filter((p) => p.analysis?.isPick === true);
+    const favoritesPhotos = analyzedPhotos.filter(isFavoritePhoto);
+    const reviewPhotos = analyzedPhotos.filter((p) => isReviewPhoto(p, rejectedPhotoIds));
     const rejectedPhotos = analyzedPhotos.filter((p) => p.analysis?.isRejected === true || rejectedPhotoIds.has(p.id));
     const colorCounts = Object.fromEntries(
       COLOR_LABEL_KEYS.map((c) => [c, analyzedPhotos.filter((p) => p.analysis?.colorLabel === c).length])
@@ -522,6 +534,8 @@ function TriageTab() {
       duplicates: duplicateGroups.length,
       blurry: analyzedPhotos.filter((p) => p.analysis?.isBlurry === true).length,
       picks: picksPhotos.length,
+      favorites: favoritesPhotos.length,
+      review: reviewPhotos.length,
       rejected: rejectedPhotos.length,
       selected: selectedPhotoId ? 1 : 0,
       colorCounts,
@@ -575,12 +589,14 @@ function TriageTab() {
               duplicateGroups={stats.duplicates}
               blurryCount={stats.blurry}
               picksCount={stats.picks}
+              favoritesCount={stats.favorites}
+              reviewCount={stats.review}
               rejectedCount={stats.rejected}
               selectedCount={stats.selected}
               colorCounts={stats.colorCounts}
               activeFilter={activeFilter}
               searchTerm={searchTerm}
-              onFilterChange={(f) => setActiveFilter(f as FilterType)}
+              onFilterChange={(f) => setActiveFilter(f as TriageFilterType)}
               onSearchChange={setSearchTerm}
             />
           </div>
@@ -588,11 +604,11 @@ function TriageTab() {
           <div className="shrink-0 pt-1">
             <select
               value={sortKey}
-              onChange={(e) => setSortKey(e.target.value as SortKey)}
+              onChange={(e) => setSortKey(e.target.value as TriageSortKey)}
               className="h-8 rounded-lg border border-border/60 bg-background text-xs px-2 text-foreground cursor-pointer"
               title="Trier les photos"
             >
-              {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => (
+              {(Object.keys(SORT_LABELS) as TriageSortKey[]).map((k) => (
                 <option key={k} value={k}>{SORT_LABELS[k]}</option>
               ))}
             </select>
@@ -646,6 +662,20 @@ function TriageTab() {
           >
             Développer les photos sélectionnées
           </Button>
+          {onOpenAutoFlow && (
+            <Button
+              onClick={() => onOpenAutoFlow(filteredPhotos.map((photo) => photo.id))}
+              disabled={filteredPhotos.length === 0}
+              className="gap-2 bg-amber-600 hover:bg-amber-700 text-white"
+              title="Ouvrir AutoFlow avec les photos actuellement visibles"
+            >
+              <Zap className="w-4 h-4" />
+              AutoFlow filtre
+              <Badge variant="secondary" className="h-5 px-1.5 text-xs">
+                {filteredPhotos.length}
+              </Badge>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -813,6 +843,3 @@ function TriageTab() {
 }
 
 export default TriageTab;
-
-
-

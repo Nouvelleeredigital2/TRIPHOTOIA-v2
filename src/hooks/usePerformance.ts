@@ -18,9 +18,9 @@ export function usePerformance() {
   const endTiming = useCallback(() => {
     if (performanceRef.current) {
       performanceRef.current.endTime = performance.now();
-      performanceRef.current.duration = 
+      performanceRef.current.duration =
         performanceRef.current.endTime - performanceRef.current.startTime;
-      
+
       console.log(`Performance: ${performanceRef.current.duration.toFixed(2)}ms`);
       return performanceRef.current.duration;
     }

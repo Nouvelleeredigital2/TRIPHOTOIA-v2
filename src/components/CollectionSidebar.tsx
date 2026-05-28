@@ -141,9 +141,9 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
             )}
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
+                <Button
+                  size="sm"
+                  variant="ghost"
                   className="h-7 w-7 p-0"
                   onClick={() => {
                     setNewCollectionName(`Collection ${collectionOrder.length + 1}`);
@@ -268,8 +268,8 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
                     className={`
                       group relative flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer
                       transition-all duration-200
-                      ${isActive 
-                        ? 'bg-primary/10 text-primary font-medium' 
+                      ${isActive
+                        ? 'bg-primary/10 text-primary font-medium'
                         : 'hover:bg-muted text-foreground'
                       }
                     `}
@@ -278,7 +278,7 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
                     onMouseLeave={() => setHoveredCollection(null)}
                   >
                     {/* Icon */}
-                    <Folder 
+                    <Folder
                       className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`}
                     />
 
@@ -288,8 +288,8 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
                     </span>
 
                     {/* Badge */}
-                    <Badge 
-                      variant={isActive ? "default" : "secondary"} 
+                    <Badge
+                      variant={isActive ? "default" : "secondary"}
                       className="text-xs font-semibold h-5 min-w-[28px] flex items-center justify-center"
                     >
                       {photoCount}

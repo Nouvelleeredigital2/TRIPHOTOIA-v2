@@ -368,12 +368,13 @@ export interface AutoFlowDashboardProps {
   onStartSwipe: () => void;
   onGrid: (cls: AfClass) => void;
   onDupCompare: () => void;
+  onExportPicks?: () => void;
   onClose: () => void;
   onPhotoOpen?: (id: string) => void;
 }
 
 export const AutoFlowDashboard: React.FC<AutoFlowDashboardProps> = ({
-  photos, onStartSwipe, onGrid, onDupCompare, onClose, onPhotoOpen,
+  photos, onStartSwipe, onGrid, onDupCompare, onExportPicks, onClose, onPhotoOpen,
 }) => {
   const keeps   = photos.filter((p) => p.cls === 'keep');
   const reviews = photos.filter((p) => p.cls === 'review');
@@ -442,7 +443,24 @@ export const AutoFlowDashboard: React.FC<AutoFlowDashboardProps> = ({
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {/* ⬇ Bouton ZIP dans la topbar aussi */}
           {keeps.length > 0 && (
-            <DownloadZipButton picks={keeps} />
+            onExportPicks ? (
+              <button onClick={onExportPicks} style={{
+                padding: '8px 14px', borderRadius: 9, fontSize: 12, fontWeight: 700,
+                cursor: 'pointer', outline: 'none',
+                background: 'linear-gradient(135deg, rgba(134,239,172,0.16), rgba(52,211,153,0.08))',
+                border: '1px solid rgba(134,239,172,0.35)',
+                color: 'var(--af-pick)',
+                display: 'flex', alignItems: 'center', gap: 8,
+              }}>
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                </svg>
+                Exporter les picks
+              </button>
+            ) : (
+              <DownloadZipButton picks={keeps} />
+            )
           )}
           <button onClick={onClose} style={{
             padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600,
@@ -491,13 +509,40 @@ export const AutoFlowDashboard: React.FC<AutoFlowDashboardProps> = ({
           colRgb="16,185,129" confidence={91} photos={keeps}
           primary={() => onGrid('keep')}
           primaryLabel="Voir les picks"
-          extra={<DownloadZipButton picks={keeps} />}
+          extra={onExportPicks ? (
+            <button
+              onClick={keeps.length > 0 ? onExportPicks : undefined}
+              disabled={keeps.length === 0}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                padding: '10px 0', borderRadius: 9, fontSize: 13, fontWeight: 700,
+                cursor: keeps.length > 0 ? 'pointer' : 'not-allowed',
+                outline: 'none', transition: 'all 0.15s',
+                background: keeps.length > 0
+                  ? 'linear-gradient(135deg, rgba(134,239,172,0.15), rgba(52,211,153,0.08))'
+                  : 'rgba(255,255,255,0.02)',
+                border: keeps.length > 0
+                  ? '1px solid rgba(134,239,172,0.35)'
+                  : '1px solid rgba(255,255,255,0.05)',
+                color: keeps.length > 0 ? 'var(--af-pick)' : '#333',
+                opacity: keeps.length > 0 ? 1 : 0.4,
+              }}
+            >
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+              </svg>
+              Exporter les picks ({keeps.length})
+            </button>
+          ) : (
+            <DownloadZipButton picks={keeps} />
+          )}
         />
         <PileCard
           icon="swipe" title="À Revoir" count={reviews.length}
           colRgb="245,158,11" timeEst={timeEst} photos={reviews}
-          primary={reviews.length > 0 ? onStartSwipe : null}
-          primaryLabel="Mode Swipe →"
+          primary={photos.length > 0 ? onStartSwipe : null}
+          primaryLabel={reviews.length > 0 ? 'Mode Swipe ->' : 'Reviser tout ->'}
           secondary={() => onGrid('review')}
           secondaryLabel="Grille"
         />

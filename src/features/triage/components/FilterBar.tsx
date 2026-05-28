@@ -14,6 +14,8 @@ interface FilterBarProps {
   selectedCount: number;
   blurryCount: number;
   picksCount: number;
+  favoritesCount: number;
+  reviewCount: number;
   colorCounts: Record<ColorLabel, number>;
   activeFilter: FilterType;
   searchTerm: string;
@@ -30,6 +32,8 @@ export function FilterBar({
   selectedCount,
   blurryCount,
   picksCount,
+  favoritesCount,
+  reviewCount,
   colorCounts,
   activeFilter,
   searchTerm,
@@ -95,6 +99,8 @@ export function FilterBar({
       {/* Ligne 2 : Filtres principaux */}
       <div className="flex flex-wrap gap-1.5">
         {btn('all', 'Toutes', totalPhotos)}
+        {btn('favorites', 'Favorites', favoritesCount)}
+        {btn('review', 'A revoir', reviewCount)}
         {btn('picks', '🎯 Picks', picksCount)}
 
         {/* Filtre ≥N★ avec popover */}

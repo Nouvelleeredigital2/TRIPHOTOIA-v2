@@ -27,7 +27,7 @@ export function AnalysisMetrics() {
   }, [activeCollection, allPhotos]);
 
   const photosWithAnalysis = activePhotos.filter((photo) => photo.analysis && !photo.analysis.error);
-  
+
   if (photosWithAnalysis.length === 0) {
     return null;
   }
@@ -112,8 +112,8 @@ export function AnalysisMetrics() {
               <span className="text-sm">Très nettes</span>
               <div className="flex items-center gap-2">
                 <div className="w-20 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-green-600 h-2 rounded-full" 
+                  <div
+                    className="bg-green-600 h-2 rounded-full"
                     style={{ width: `${(sharpnessDistribution.verySharp / photosWithAnalysis.length) * 100}%` }}
                   />
                 </div>
@@ -124,8 +124,8 @@ export function AnalysisMetrics() {
               <span className="text-sm">Nettes</span>
               <div className="flex items-center gap-2">
                 <div className="w-20 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full" 
+                  <div
+                    className="bg-blue-600 h-2 rounded-full"
                     style={{ width: `${(sharpnessDistribution.sharp / photosWithAnalysis.length) * 100}%` }}
                   />
                 </div>
@@ -136,8 +136,8 @@ export function AnalysisMetrics() {
               <span className="text-sm">Moyennement nettes</span>
               <div className="flex items-center gap-2">
                 <div className="w-20 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-yellow-600 h-2 rounded-full" 
+                  <div
+                    className="bg-yellow-600 h-2 rounded-full"
                     style={{ width: `${(sharpnessDistribution.moderate / photosWithAnalysis.length) * 100}%` }}
                   />
                 </div>
@@ -148,8 +148,8 @@ export function AnalysisMetrics() {
               <span className="text-sm">Floues</span>
               <div className="flex items-center gap-2">
                 <div className="w-20 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-red-600 h-2 rounded-full" 
+                  <div
+                    className="bg-red-600 h-2 rounded-full"
                     style={{ width: `${(sharpnessDistribution.blurry / photosWithAnalysis.length) * 100}%` }}
                   />
                 </div>
@@ -170,11 +170,11 @@ export function AnalysisMetrics() {
                   tagCounts[tag] = (tagCounts[tag] || 0) + 1;
                 });
               });
-              
+
               const sortedTags = Object.entries(tagCounts)
                 .sort(([,a], [,b]) => b - a)
                 .slice(0, 10);
-              
+
               return sortedTags.map(([tag, count]) => (
                 <Badge key={tag} variant="outline" className="text-xs">
                   {tag} ({count})

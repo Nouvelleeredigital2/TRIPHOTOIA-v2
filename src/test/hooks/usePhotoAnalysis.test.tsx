@@ -1,5 +1,5 @@
 import React from 'react';
-import { describe, it, beforeEach, afterEach, expect, vi } from 'vitest';
+import { describe, it, beforeEach, afterEach, expect, vi, type Mock } from 'vitest';
 import { render } from '@testing-library/react';
 import { act, waitFor } from '@testing-library/react';
 
@@ -48,9 +48,9 @@ describe('usePhotoAnalysis integration', () => {
     usePhotoStore.getState().clearAll();
     useAiErrorStore.getState().clearAll();
 
-    (persistence.loadAnalysisState as vi.Mock).mockResolvedValue({ photos: [], queue: [] });
-    (persistence.saveAnalysisState as vi.Mock).mockResolvedValue(undefined);
-    (persistence.clearAnalysisState as vi.Mock).mockResolvedValue(undefined);
+    (persistence.loadAnalysisState as Mock).mockResolvedValue({ photos: [], queue: [] });
+    (persistence.saveAnalysisState as Mock).mockResolvedValue(undefined);
+    (persistence.clearAnalysisState as Mock).mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -66,7 +66,7 @@ describe('usePhotoAnalysis integration', () => {
   });
 
   it('stops processing and clears persistence when stopProcessing is triggered', async () => {
-    (analyzePhotosBatch as vi.Mock).mockResolvedValue([{ tags: ['ok'] }]);
+    (analyzePhotosBatch as Mock).mockResolvedValue([{ tags: ['ok'] }]);
 
     const photo = createMockPhoto();
     const { addPhotos, addToAnalysisQueue, setIsProcessing } = usePhotoStore.getState();
@@ -109,7 +109,7 @@ describe('usePhotoAnalysis integration', () => {
 
     const photo = createMockPhoto({ id: 'photo-error' });
 
-    (analyzePhotosBatch as vi.Mock).mockResolvedValue([null]);
+    (analyzePhotosBatch as Mock).mockResolvedValue([null]);
 
     act(() => {
       usePhotoStore.getState().addPhotos([photo]);
@@ -139,7 +139,7 @@ describe('usePhotoAnalysis integration', () => {
       .errors.find((error) => error.photoId === photo.id && error.status !== 'resolved');
     expect(warningError?.severity).toBe('warning');
 
-    (analyzePhotosBatch as vi.Mock).mockResolvedValue([{ tags: ['retry'] }]);
+    (analyzePhotosBatch as Mock).mockResolvedValue([{ tags: ['retry'] }]);
 
     act(() => {
       usePhotoStore.getState().addToAnalysisQueue([photo.id]);

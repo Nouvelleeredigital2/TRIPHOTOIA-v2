@@ -75,7 +75,10 @@ export function SelectTrigger({ children, className = '' }: React.PropsWithChild
   );
 }
 
-export function SelectContent({ children }: React.PropsWithChildren) {
+export function SelectContent({
+  children,
+  className = '',
+}: React.PropsWithChildren<{ className?: string }>) {
   const ctx = useContext(SelectContext);
   const menuRef = useRef<HTMLDivElement>(null);
   if (!ctx) return null;
@@ -85,7 +88,7 @@ export function SelectContent({ children }: React.PropsWithChildren) {
   return (
     <div className="relative z-50">
       <div
-        className="absolute mt-2 w-56 rounded-md border bg-card shadow-lg p-1 max-h-64 overflow-auto"
+        className={`absolute mt-2 w-56 rounded-md border bg-card shadow-lg p-1 max-h-64 overflow-auto ${className}`}
         ref={menuRef}
         role="listbox"
       >

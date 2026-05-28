@@ -66,9 +66,6 @@ function App() {
 
   // Share page routing (hash-based, no React Router needed)
   const [shareToken] = useState<string | null>(getShareToken);
-  if (shareToken) {
-    return <ShareView token={shareToken} />;
-  }
 
   const { theme, toggleTheme } = useTheme();
   const { accentId, setAccentId, options: accentOptions } = useAccentColor();
@@ -78,6 +75,7 @@ function App() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [autoFlowOpen, setAutoFlowOpen] = useState(false);
+  const [autoFlowPhotoIds, setAutoFlowPhotoIds] = useState<string[] | null>(null);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
   // Raccourci global '?' pour la cheat sheet — fonctionne depuis n'importe quel onglet
@@ -172,15 +170,15 @@ function App() {
       variant={activeTab === tab ? 'default' : 'ghost'}
       onClick={() => setActiveTab(tab)}
       className={`relative flex-1 font-medium transition-all ${
-        activeTab === tab 
-          ? 'bg-background shadow-sm' 
+        activeTab === tab
+          ? 'bg-background shadow-sm'
           : 'hover:bg-background/50'
       }`}
     >
       {label}
       {badge !== undefined && badge > 0 && (
-        <Badge 
-          variant="secondary" 
+        <Badge
+          variant="secondary"
           className="ml-2 text-xs font-semibold min-w-[24px] h-5 flex items-center justify-center"
         >
           {badge}
@@ -194,7 +192,7 @@ function App() {
       case 'ingestion':
         return <IngestionTab />;
       case 'triage':
-        return <TriageTab />;
+        return <TriageTab onOpenAutoFlow={openAutoFlow} />;
       case 'export':
         return <ExportTab />;
       default:
@@ -211,6 +209,18 @@ function App() {
     [photos, duplicateGroups]
   );
   const analyzedCount = photos.filter((p) => p.analysis && !p.analysis.error).length;
+
+  const openAutoFlow = (photoIds?: string[]) => {
+    setAutoFlowPhotoIds(photoIds && photoIds.length > 0 ? photoIds : null);
+    setAutoFlowOpen(true);
+  };
+
+  const openExportFromAutoFlow = () => {
+    usePhotoStore.getState().setPendingExportFilterMode('picks-only');
+    setAutoFlowOpen(false);
+    setAutoFlowPhotoIds(null);
+    setActiveTab('export');
+  };
 
   /** Apply an AutoFlow mutation back to the store */
   const handleAfMutation = (id: string, changes: Partial<AfPhoto>) => {
@@ -237,6 +247,10 @@ function App() {
       rejected: analyzed.filter((p) => p.analysis!.isRejected).length,
     };
   }, [photos]);
+
+  if (shareToken) {
+    return <ShareView token={shareToken} />;
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -388,7 +402,7 @@ function App() {
                   {/* ⚡ AutoFlow CTA */}
                   {analyzedCount > 0 && (
                     <button
-                      onClick={() => setAutoFlowOpen(true)}
+                      onClick={() => openAutoFlow()}
                       title="Ouvrir AutoFlow v2"
                       style={{
                         display: 'flex', alignItems: 'center', gap: 6,
@@ -626,8 +640,13 @@ function App() {
         {autoFlowOpen && (
           <AutoFlowMode
             photos={afPhotos}
+            initialPhotoIds={autoFlowPhotoIds ?? undefined}
             onMutation={handleAfMutation}
-            onClose={() => setAutoFlowOpen(false)}
+            onExportPicks={openExportFromAutoFlow}
+            onClose={() => {
+              setAutoFlowOpen(false);
+              setAutoFlowPhotoIds(null);
+            }}
           />
         )}
       </ErrorBoundary>
@@ -636,10 +655,6 @@ function App() {
 }
 
 export default App;
-
-
-
-
 
 
 

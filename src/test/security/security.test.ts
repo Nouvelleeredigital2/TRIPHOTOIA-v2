@@ -53,8 +53,9 @@ describe('Security Tests', () => {
   it('should handle extremely large files', () => {
     const { addPhotos } = usePhotoStore.getState();
 
-    // Create a file with maximum size
-    const largeFile = new File(['x'.repeat(100 * 1024 * 1024)], 'large.jpg', { type: 'image/jpeg' });
+    // Declare a very large file without allocating 100 MB in the test process.
+    const largeFile = new File([''], 'large.jpg', { type: 'image/jpeg' });
+    Object.defineProperty(largeFile, 'size', { value: 100 * 1024 * 1024 });
     const largePhoto: Photo = {
       id: 'large-photo',
       file: largeFile,

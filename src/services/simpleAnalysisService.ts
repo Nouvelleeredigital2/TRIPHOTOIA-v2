@@ -8,17 +8,17 @@ import { PhotoAnalysis } from '../../types';
 export const simpleAnalysisService = {
   analyzePhotosBatch: async (files: File[]): Promise<PhotoAnalysis[]> => {
     console.log(`???? Analyse d'images de ${files.length} photo(s)...`);
-    
+
     const results: PhotoAnalysis[] = [];
-    
+
     for (const file of files) {
       try {
         console.log(`???? Analyse de ${file.name}...`);
-        
+
         // Analyse r??elle de l'image avec Canvas
         const analysis = await analyzeImageWithCanvas(file);
         results.push(analysis);
-        
+
         console.log(`??? ${file.name} analys??e`);
       } catch (error) {
         console.error(`??? Erreur pour ${file.name}:`, error);
@@ -27,7 +27,7 @@ export const simpleAnalysisService = {
         });
       }
     }
-    
+
     console.log(`??? Analyse d'images termin??e: ${results.length} r??sultat(s)`);
     return results;
   }
@@ -83,19 +83,19 @@ async function analyzeImageWithCanvas(file: File): Promise<PhotoAnalysis> {
 function analyzeImageData(data: Uint8ClampedArray, width: number, height: number, file: File): PhotoAnalysis {
   // 1. D??tection de flou avec Laplacian
   const blurAnalysis = detectBlur(data, width, height);
-  
+
   // 2. G??n??ration du hash perceptuel pour les doublons
   const perceptualHash = generatePerceptualHash(data, width, height);
-  
+
   // 3. Analyse des couleurs
   const colorAnalysis = analyzeColors(data, width, height);
-  
+
   // 4. D??tection d'yeux (simplifi??e)
   const hasOpenEyes = detectEyes(data, width, height);
-  
+
   // 5. G??n??ration de tags
   const tags = generateTags(file, blurAnalysis, colorAnalysis);
-  
+
   return {
     isBlurry: blurAnalysis.isBlurry,
     sharpnessScore: blurAnalysis.sharpnessScore,
@@ -112,29 +112,29 @@ function analyzeImageData(data: Uint8ClampedArray, width: number, height: number
 
 function detectBlur(data: Uint8ClampedArray, width: number, height: number): { isBlurry: boolean; sharpnessScore: number } {
   // Utiliser plusieurs m??thodes pour une d??tection plus pr??cise
-  
+
   // 1. Variance Laplacian (d??tection de contours)
   const laplacianVariance = calculateLaplacianVariance(data, width, height);
-  
+
   // 2. Gradient Sobel (d??tection de bords)
   const sobelVariance = calculateSobelVariance(data, width, height);
-  
+
   // 3. Analyse de fr??quence (FFT simplifi??)
   const frequencyScore = calculateFrequencyScore(data, width, height);
-  
+
   // Combiner les scores de mani??re ??quilibr??e
   const combinedScore = (laplacianVariance + sobelVariance + frequencyScore) / 3;
-  
+
   // Normaliser le score (0-1)
   const sharpnessScore = Math.min(Math.max(combinedScore, 0), 1);
-  
+
   // Calculer un seuil dynamique bas?? sur la distribution des scores
   const imageSize = width * height;
-  
+
   // Seuil bas?? sur la variance de l'image (plus l'image a de d??tails, plus le seuil doit ??tre ??lev??)
   const imageVariance = calculateImageVariance(data, width, height);
   const dynamicThreshold = imageVariance * 0.5; // Seuil proportionnel ?? la variance
-  
+
   const isBlurry = sharpnessScore < dynamicThreshold;
 
   return { isBlurry, sharpnessScore };
@@ -154,7 +154,7 @@ function calculateLaplacianVariance(data: Uint8ClampedArray, width: number, heig
   for (let y = 1; y < height - 1; y++) {
     for (let x = 1; x < width - 1; x++) {
       let laplacianValue = 0;
-      
+
       for (let ky = 0; ky < 3; ky++) {
         for (let kx = 0; kx < 3; kx++) {
           const pixelIndex = ((y + ky - 1) * width + (x + kx - 1)) * 4;
@@ -171,7 +171,7 @@ function calculateLaplacianVariance(data: Uint8ClampedArray, width: number, heig
 
   const mean = laplacianSum / count;
   const variance = (laplacianSumSquared / count) - (mean * mean);
-  
+
   return Math.min(variance / 10000, 1.0); // Normalis?? bas?? sur la variance maximale th??orique
 }
 
@@ -195,7 +195,7 @@ function calculateSobelVariance(data: Uint8ClampedArray, width: number, height: 
   for (let y = 1; y < height - 1; y++) {
     for (let x = 1; x < width - 1; x++) {
       let gx = 0, gy = 0;
-      
+
       for (let ky = 0; ky < 3; ky++) {
         for (let kx = 0; kx < 3; kx++) {
           const pixelIndex = ((y + ky - 1) * width + (x + kx - 1)) * 4;
@@ -214,7 +214,7 @@ function calculateSobelVariance(data: Uint8ClampedArray, width: number, height: 
 
   const mean = sobelSum / count;
   const variance = (sobelSumSquared / count) - (mean * mean);
-  
+
   return Math.min(variance / 5000, 1.0); // Normalis?? bas?? sur la variance maximale th??orique
 }
 
@@ -228,11 +228,11 @@ function calculateFrequencyScore(data: Uint8ClampedArray, width: number, height:
     for (let x = 2; x < width - 2; x += 2) {
       const centerIndex = (y * width + x) * 4;
       const centerGray = getGrayValue(data, centerIndex);
-      
+
       // Calculer la diff??rence avec les voisins
       let neighborSum = 0;
       let neighborCount = 0;
-      
+
       for (let dy = -2; dy <= 2; dy += 2) {
         for (let dx = -2; dx <= 2; dx += 2) {
           if (dy === 0 && dx === 0) continue;
@@ -243,7 +243,7 @@ function calculateFrequencyScore(data: Uint8ClampedArray, width: number, height:
           }
         }
       }
-      
+
       if (neighborCount > 0) {
         const avgNeighbor = neighborSum / neighborCount;
         const difference = Math.abs(centerGray - avgNeighbor);
@@ -273,10 +273,10 @@ function calculateImageVariance(data: Uint8ClampedArray, width: number, height: 
   }
 
   if (count === 0) return 0;
-  
+
   const mean = sum / count;
   const variance = (sumSquared / count) - (mean * mean);
-  
+
   return Math.min(variance / (255 * 255), 1.0); // Normalis??
 }
 
@@ -301,7 +301,7 @@ function generatePerceptualHash(data: Uint8ClampedArray, width: number, height: 
   // Redimensionner ?? 8x8 pour le hash
   const hashSize = 8;
   const resizedData = resizeImageData(data, width, height, hashSize, hashSize);
-  
+
   // Calculer la moyenne
   let sum = 0;
   for (let i = 0; i < resizedData.length; i += 4) {
@@ -384,19 +384,19 @@ function detectEyes(data: Uint8ClampedArray, width: number, height: number): boo
       for (let x = zone.startX; x < zone.endX; x++) {
         const pixelIndex = (y * width + x) * 4;
         const gray = getGrayValue(data, pixelIndex);
-        
+
         // Pixels sombres (yeux) - seuil bas?? sur la luminosit?? moyenne
         const avgBrightness = calculateAverageBrightness(data, width, height);
         if (gray < avgBrightness * 0.6) {
           darkPixels++;
         }
-        
+
         // D??tection de contours (bords des yeux)
         if (y > 0 && x > 0) {
           const topPixel = getGrayValue(data, ((y - 1) * width + x) * 4);
           const leftPixel = getGrayValue(data, (y * width + (x - 1)) * 4);
           const gradient = Math.abs(gray - topPixel) + Math.abs(gray - leftPixel);
-          
+
           // Seuil de contour bas?? sur la variance de l'image
           const imageVariance = calculateImageVariance(data, width, height);
           const edgeThreshold = imageVariance * 100;
@@ -404,7 +404,7 @@ function detectEyes(data: Uint8ClampedArray, width: number, height: number): boo
             edgePixels++;
           }
         }
-        
+
         totalPixels++;
       }
     }
@@ -412,7 +412,7 @@ function detectEyes(data: Uint8ClampedArray, width: number, height: number): boo
     if (totalPixels > 0) {
       const darkRatio = darkPixels / totalPixels;
       const edgeRatio = edgePixels / totalPixels;
-      
+
       // Score combin?? : pixels sombres + contours (??quilibr??)
       const zoneScore = (darkRatio + edgeRatio) / 2;
       totalEyeScore += zoneScore;
@@ -421,11 +421,11 @@ function detectEyes(data: Uint8ClampedArray, width: number, height: number): boo
 
   // Moyenne des zones
   const avgEyeScore = totalEyeScore / zones.length;
-  
+
   // Seuil dynamique bas?? sur la luminosit?? moyenne de la zone des yeux
   let eyeZoneBrightness = 0;
   let eyeZoneCount = 0;
-  
+
   for (let y = 0; y < eyeRegionHeight; y++) {
     for (let x = 0; x < width; x++) {
       const pixelIndex = (y * width + x) * 4;
@@ -434,9 +434,9 @@ function detectEyes(data: Uint8ClampedArray, width: number, height: number): boo
       eyeZoneCount++;
     }
   }
-  
+
   const avgEyeZoneBrightness = eyeZoneCount > 0 ? eyeZoneBrightness / eyeZoneCount : 128;
-  
+
   // Plus la zone est sombre, plus on s'attend ?? des yeux
   const dynamicThreshold = (255 - avgEyeZoneBrightness) / 255 * 0.2;
 
@@ -522,11 +522,11 @@ function generateTags(file: File, blurAnalysis: { isBlurry: boolean; sharpnessSc
 
   // Tags bas??s sur la qualit?? technique (valeurs r??elles)
   const qualityThreshold = 0.5; // Seuil bas?? sur la qualit?? moyenne
-  if (blurAnalysis.sharpnessScore > qualityThreshold + 0.2 && 
-      colorAnalysis.contrast > qualityThreshold + 0.2 && 
+  if (blurAnalysis.sharpnessScore > qualityThreshold + 0.2 &&
+      colorAnalysis.contrast > qualityThreshold + 0.2 &&
       colorAnalysis.saturation > qualityThreshold + 0.2) {
     tags.push('haute-qualit??', 'high-quality');
-  } else if (blurAnalysis.sharpnessScore < qualityThreshold - 0.3 || 
+  } else if (blurAnalysis.sharpnessScore < qualityThreshold - 0.3 ||
              colorAnalysis.contrast < qualityThreshold - 0.3) {
     tags.push('qualit??-moyenne', 'medium-quality');
   }

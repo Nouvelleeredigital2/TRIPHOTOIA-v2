@@ -45,7 +45,7 @@ const PRESETS = [
 export function AutoRatingPanel() {
   const [selectedPreset, setSelectedPreset] = useState<'strict' | 'balanced' | 'generous' | 'quality'>('balanced');
   const [isProcessing, setIsProcessing] = useState(false);
-  
+
   const photos = usePhotoStore((state) => state.photos);
   const autoRateAllPhotos = usePhotoStore((state) => state.autoRateAllPhotos);
 
@@ -59,10 +59,10 @@ export function AutoRatingPanel() {
     }
 
     setIsProcessing(true);
-    
+
     try {
       autoRateAllPhotos(selectedPreset);
-      
+
       // Calculer distribution
       const dist = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
       analyzedPhotos.forEach(p => {
@@ -106,7 +106,7 @@ export function AutoRatingPanel() {
           <div>
             <p className="font-medium">Comment ça marche ?</p>
             <p className="text-muted-foreground text-xs mt-1">
-              L'IA analyse la netteté (40%), la composition (30%), les yeux ouverts (15%) 
+              L'IA analyse la netteté (40%), la composition (30%), les yeux ouverts (15%)
               et le besoin de retouche (15%) pour attribuer automatiquement une note de 0 à 5 étoiles.
             </p>
           </div>

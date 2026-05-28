@@ -57,7 +57,7 @@ export function ComparisonView({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const handleSelectWinner = (side: 'A' | 'B') => {
     const { photoA: pA, photoB: pB } = handlersRef.current;
@@ -83,12 +83,12 @@ export function ComparisonView({
 
   const renderPhotoSide = (photo: Photo, side: 'A' | 'B') => {
     const isSelected = selectedSide === side;
-    
+
     return (
       <div className="relative flex-1 flex flex-col items-center justify-center p-8">
         {/* Label */}
         <div className="absolute top-4 left-4">
-          <Badge 
+          <Badge
             variant={isSelected ? 'default' : 'secondary'}
             className={`text-lg font-bold ${isSelected ? 'bg-green-600' : ''}`}
           >
@@ -108,7 +108,7 @@ export function ComparisonView({
             alt={photo.file.name}
             className="max-w-full max-h-[70vh] object-contain rounded-lg"
           />
-          
+
           {isSelected && (
             <motion.div
               initial={{ scale: 0 }}
@@ -123,7 +123,7 @@ export function ComparisonView({
         {/* Infos */}
         <div className="mt-4 space-y-2 text-center">
           <div className="text-white font-medium">{photo.file.name}</div>
-          
+
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <StarRating
               rating={photo.analysis?.rating || 0}
@@ -210,10 +210,10 @@ export function ComparisonView({
         {/* Grille de comparaison */}
         <div className="absolute inset-0 flex pt-20 pb-8">
           {renderPhotoSide(photoA, 'A')}
-          
+
           {/* Séparateur */}
           <div className="w-px bg-white/20" />
-          
+
           {renderPhotoSide(photoB, 'B')}
         </div>
 

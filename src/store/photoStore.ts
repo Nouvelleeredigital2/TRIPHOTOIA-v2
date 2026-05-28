@@ -121,6 +121,8 @@ const collectionsState = loadCollectionsState();
 
 const RETOUCH_HISTORY_LIMIT = 50;
 
+export type ExportFilterMode = 'all' | 'picks-only' | 'favorites-only' | 'min-rating';
+
 const cloneRetouchOptions = (options: RetouchOptions): RetouchOptions => ({ ...options });
 
 const getDefaultRetouchOptions = (): RetouchOptions => createDefaultRetouchOptions();
@@ -194,6 +196,7 @@ interface PhotoState {
 
   // UI state
   activeTab: 'ingestion' | 'triage' | 'development' | 'export';
+  pendingExportFilterMode: ExportFilterMode | null;
   selectedPhotoId: string | null;
   userTags: Record<string, string[]>;
   bestPhotoOverrides: Record<string, string>;
@@ -243,6 +246,7 @@ interface PhotoState {
   setProcessedCount: (count: number) => void;
   incrementProcessedCount: (increment: number) => void;
   setActiveTab: (tab: 'ingestion' | 'triage' | 'development' | 'export') => void;
+  setPendingExportFilterMode: (mode: ExportFilterMode | null) => void;
   setSelectedPhotoId: (id: string | null) => void;
   updatePhotoAnalysis: (photoId: string, analysis: Partial<PhotoAnalysis>) => void;
   updateUserTags: (photoId: string, tags: string[]) => void;
@@ -380,6 +384,7 @@ export const usePhotoStore = create<PhotoState>()(
         stopProcessing: false,
         processedCount: 0,
         activeTab: 'ingestion',
+        pendingExportFilterMode: null,
         selectedPhotoId: null,
         userTags: {},
         photoNotes: {},
@@ -710,6 +715,11 @@ export const usePhotoStore = create<PhotoState>()(
             state.activeTab = tab;
           }),
 
+        setPendingExportFilterMode: (mode) =>
+          set((state) => {
+            state.pendingExportFilterMode = mode;
+          }),
+
         setSelectedPhotoId: (id) =>
           set((state) => {
             state.selectedPhotoId = id;
@@ -921,14 +931,14 @@ export const usePhotoStore = create<PhotoState>()(
         applyAiSuggestions: async (photoId) => {
           const state = get();
           const photo = state.photos.find(p => p.id === photoId);
-          
+
           if (!photo?.analysis?.suggestedRetouch) {
             console.warn('❌ Aucune suggestion IA disponible pour cette photo');
             return;
           }
 
           const { brightness, contrast, saturation } = photo.analysis.suggestedRetouch;
-          
+
           // Convertir les suggestions (0.8-1.2) en valeurs RetouchOptions (-100 à +100)
           const exposureValue = Math.round((brightness - 1) * 100);
           const contrastValue = Math.round((contrast - 1) * 100);
@@ -1063,7 +1073,7 @@ export const usePhotoStore = create<PhotoState>()(
               else if (sharpness > 0.4) normalizedSharpness = 0.6;
               else if (sharpness > 0.3) normalizedSharpness = 0.4;
               else normalizedSharpness = 0.2;
-              
+
               score += normalizedSharpness * 0.4;
               totalWeight += 0.4;
             }
@@ -1082,8 +1092,8 @@ export const usePhotoStore = create<PhotoState>()(
             if (photo.analysis.suggestedRetouch) {
               const { brightness, contrast, saturation } = photo.analysis.suggestedRetouch;
               const deviation = (
-                Math.abs(brightness - 1) + 
-                Math.abs(contrast - 1) + 
+                Math.abs(brightness - 1) +
+                Math.abs(contrast - 1) +
                 Math.abs(saturation - 1)
               ) / 3;
               const retouchScore = Math.max(0, 1 - (deviation * 3));
@@ -1107,7 +1117,7 @@ export const usePhotoStore = create<PhotoState>()(
         autoRateAllPhotos: (preset = 'balanced') =>
           set((state) => {
             const photos = state.photos.filter(p => p.analysis && !p.analysis.error);
-            
+
             if (photos.length === 0) {
               console.warn('⚠️ Aucune photo analysée à noter');
               return;
@@ -1117,31 +1127,31 @@ export const usePhotoStore = create<PhotoState>()(
             const calculatePhotoScore = (photo: Photo): number => {
               const analysis = photo.analysis;
               if (!analysis || analysis.error) return 0;
-              
+
               let score = 0;
               let count = 0;
-              
+
               if (analysis.sharpnessScore !== undefined) {
                 score += analysis.sharpnessScore;
                 count++;
               }
-              
+
               if (analysis.hasOpenEyes !== undefined) {
                 score += analysis.hasOpenEyes ? 1 : 0.3;
                 count++;
               }
-              
+
               if (analysis.suggestedRetouch) {
                 const { brightness, contrast, saturation } = analysis.suggestedRetouch;
                 const deviation = (
-                  Math.abs(brightness - 1) + 
-                  Math.abs(contrast - 1) + 
+                  Math.abs(brightness - 1) +
+                  Math.abs(contrast - 1) +
                   Math.abs(saturation - 1)
                 ) / 3;
                 score += Math.max(0, 1 - deviation * 2);
                 count++;
               }
-              
+
               return count > 0 ? score / count : 0;
             };
 
@@ -1199,7 +1209,7 @@ export const usePhotoStore = create<PhotoState>()(
             }
 
             console.log(`🤖 Auto-rating: ${photos.length} photos notées (preset: ${preset})`);
-            
+
             // Afficher distribution
             const dist = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
             photos.forEach(p => {

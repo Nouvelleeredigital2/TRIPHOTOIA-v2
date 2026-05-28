@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vi, beforeEach } from 'vitest';
 
 // Mock the store
-const mockStore = {
+export const mockStore = {
   // ── State ─────────────────────────────────────────────────────────────────
   photos: [],
   analysisQueue: [],
@@ -13,6 +13,7 @@ const mockStore = {
   stopProcessing: false,
   processedCount: 0,
   activeTab: 'ingestion' as 'ingestion' | 'triage' | 'export',
+  pendingExportFilterMode: null as 'all' | 'picks-only' | 'favorites-only' | 'min-rating' | null,
   selectedPhotoId: null,
   userTags: {},
   bestPhotoOverrides: {},
@@ -48,6 +49,9 @@ const mockStore = {
   incrementProcessedCount: vi.fn(),
   setActiveTab: vi.fn((tab: 'ingestion' | 'triage' | 'export') => {
     mockStore.activeTab = tab;
+  }),
+  setPendingExportFilterMode: vi.fn((mode: 'all' | 'picks-only' | 'favorites-only' | 'min-rating' | null) => {
+    mockStore.pendingExportFilterMode = mode;
   }),
   setSelectedPhotoId: vi.fn(),
   updatePhotoAnalysis: vi.fn((id: string, analysis: any) => {
@@ -105,6 +109,7 @@ beforeEach(() => {
   mockStore.isProcessing = false;
   mockStore.processedCount = 0;
   mockStore.activeTab = 'ingestion';
+  mockStore.pendingExportFilterMode = null;
 });
 
 // usePhotoStore.getState() is called in App.tsx for imperative mutations
@@ -145,7 +150,12 @@ vi.mock('../features/ingestion/IngestionTab', () => ({
 }));
 
 vi.mock('../features/triage/TriageTab', () => ({
-  default: () => <div>Triage Tab</div>,
+  default: ({ onOpenAutoFlow }: { onOpenAutoFlow?: (photoIds?: string[]) => void }) => (
+    <div>
+      Triage Tab
+      <button onClick={() => onOpenAutoFlow?.(['visible-1'])}>Open filtered AutoFlow</button>
+    </div>
+  ),
 }));
 
 vi.mock('../features/export/ExportTab', () => ({

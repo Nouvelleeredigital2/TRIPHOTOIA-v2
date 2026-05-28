@@ -145,7 +145,7 @@ export const RetouchPanel: React.FC<RetouchPanelProps> = ({
         {/* Contrôles de retouche */}
         <div className="space-y-4">
           <h4 className="text-sm font-medium">Ajustements</h4>
-          
+
           {/* Luminosité */}
           <div className="space-y-2">
             <div className="flex justify-between">

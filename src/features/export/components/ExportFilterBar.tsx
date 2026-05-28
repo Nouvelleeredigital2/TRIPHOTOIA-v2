@@ -1,6 +1,7 @@
 import React from 'react';
+import { ExportFilterMode } from '../exportSelection';
 
-export type FilterMode = 'all' | 'picks-only' | 'min-rating';
+export type FilterMode = ExportFilterMode;
 
 interface FilterPreset {
   label: string;
@@ -10,6 +11,7 @@ interface FilterPreset {
 
 const PRESETS: FilterPreset[] = [
   { label: 'Tout',      mode: 'all' },
+  { label: 'Favorites', mode: 'favorites-only' },
   { label: '🎯 Picks',  mode: 'picks-only' },
   { label: '≥ 3★',     mode: 'min-rating', minRating: 3 },
   { label: '≥ 4★',     mode: 'min-rating', minRating: 4 },

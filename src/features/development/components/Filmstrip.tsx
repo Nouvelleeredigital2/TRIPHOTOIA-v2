@@ -110,7 +110,7 @@ export const Filmstrip: React.FC<FilmstripProps> = ({
               key={photo.id}
               data-index={virtualRow.index}
               ref={rowVirtualizer.measureElement}
-              className="absolute left-0 w-full" 
+              className="absolute left-0 w-full"
               style={{
                 transform: `translateY(${virtualRow.start}px)`,
                 paddingBottom: '0.75rem',

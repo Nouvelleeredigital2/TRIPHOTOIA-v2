@@ -27,7 +27,7 @@
     --input: 0 0% 96%;
     --ring: 262 83% 58%;
     --radius: 0.75rem;
-    
+
     /* Couleurs sémantiques */
     --success: 142 76% 45%;
     --success-foreground: 0 0% 100%;
@@ -60,7 +60,7 @@
     --border: 0 0% 20%;
     --input: 0 0% 15%;
     --ring: 262 83% 65%;
-    
+
     /* Couleurs sémantiques mode sombre */
     --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;

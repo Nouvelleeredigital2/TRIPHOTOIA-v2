@@ -113,7 +113,7 @@ export const PhotoAnalysisCard: React.FC<PhotoAnalysisCardProps> = ({
               </Badge>
             </div>
             <p className="text-sm text-yellow-700 mt-1">
-              Variance: {blurAnalysis.details.variance.toFixed(2)} | 
+              Variance: {blurAnalysis.details.variance.toFixed(2)} |
               Netteté: {blurAnalysis.details.sharpness.toFixed(2)}
             </p>
           </div>

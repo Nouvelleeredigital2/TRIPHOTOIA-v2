@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -27,6 +27,7 @@ import {
 import { BookmarkPlus, Trash2, Download } from 'lucide-react';
 import { ExportFilterBar } from './components/ExportFilterBar';
 import { RenamePanel } from './components/RenamePanel';
+import { buildDuplicatePhotoIds, buildPhotosToExport } from './exportSelection';
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
@@ -40,7 +41,7 @@ const exportSchema = z.object({
   // Rename
   renamePattern: z.string(),
   // Filter mode
-  filterMode: z.enum(['all', 'picks-only', 'min-rating']),
+  filterMode: z.enum(['all', 'picks-only', 'favorites-only', 'min-rating']),
   minRating: z.number().min(1).max(5),
   // Watermark
   watermarkEnabled: z.boolean(),
@@ -63,6 +64,8 @@ const fsaAvailable = supportsDirectoryExport();
 function ExportTab() {
   const duplicateGroups = usePhotoStore((state) => state.duplicateGroups);
   const rejectedPhotoIds = usePhotoStore((state) => state.rejectedPhotoIds);
+  const pendingExportFilterMode = usePhotoStore((state) => state.pendingExportFilterMode);
+  const setPendingExportFilterMode = usePhotoStore((state) => state.setPendingExportFilterMode);
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
 
@@ -110,6 +113,12 @@ function ExportTab() {
       watermarkColor: '#ffffff',
     },
   });
+
+  useEffect(() => {
+    if (!pendingExportFilterMode) return;
+    form.setValue('filterMode', pendingExportFilterMode, { shouldDirty: true });
+    setPendingExportFilterMode(null);
+  }, [form, pendingExportFilterMode, setPendingExportFilterMode]);
 
   // ── Preset handlers (after form so no TDZ) ──────────────────────────────
   const handleLoadPreset = useCallback((id: string) => {
@@ -167,21 +176,17 @@ function ExportTab() {
 
   // ── Build photo list ──────────────────────────────────────────────────────
 
-  const buildPhotosToExport = (data: ExportFormData): Photo[] => {
-    const analyzedPhotos = activePhotos.filter((p) => p.analysis && !p.analysis.error);
-    const activePhotoIds = new Set(analyzedPhotos.map((p) => p.id));
-    const duplicatePhotoIds = new Set(
-      duplicateGroups
-        .filter((g) => g.photos.some((p) => activePhotoIds.has(p.id)))
-        .flatMap((g) => g.photos.map((p) => p.id))
-    );
-
-    return analyzedPhotos.filter((photo) => {
-      if ((rejectedPhotoIds.has(photo.id) || photo.analysis?.isRejected) && !data.includeRejected) return false;
-      if (duplicatePhotoIds.has(photo.id) && !data.includeDuplicates) return false;
-      if (data.filterMode === 'picks-only' && !photo.analysis?.isPick) return false;
-      if (data.filterMode === 'min-rating' && (photo.analysis?.rating ?? 0) < data.minRating) return false;
-      return true;
+  const buildPhotosToExportFromForm = (data: ExportFormData): Photo[] => {
+    return buildPhotosToExport({
+      photos: activePhotos,
+      duplicateGroups,
+      rejectedPhotoIds,
+      options: {
+        includeRejected: data.includeRejected,
+        includeDuplicates: data.includeDuplicates,
+        filterMode: data.filterMode,
+        minRating: data.minRating,
+      },
     });
   };
 
@@ -192,24 +197,22 @@ function ExportTab() {
 
   const exportStats = useMemo(() => {
     const analyzedPhotos = activePhotos.filter((p) => p.analysis && !p.analysis.error);
-    const activePhotoIds = new Set(analyzedPhotos.map((p) => p.id));
-    const duplicatePhotoIds = new Set(
-      duplicateGroups
-        .filter((g) => g.photos.some((p) => activePhotoIds.has(p.id)))
-        .flatMap((g) => g.photos.map((p) => p.id))
-    );
-
-    const photos = analyzedPhotos.filter((photo) => {
-      if (rejectedPhotoIds.has(photo.id) && !includeRejected) return false;
-      if (duplicatePhotoIds.has(photo.id) && !includeDuplicates) return false;
-      if (filterModeWatch === 'picks-only' && !photo.analysis?.isPick) return false;
-      if (filterModeWatch === 'min-rating' && (photo.analysis?.rating ?? 0) < minRatingWatch) return false;
-      return true;
+    const photos = buildPhotosToExport({
+      photos: activePhotos,
+      duplicateGroups,
+      rejectedPhotoIds,
+      options: {
+        includeRejected,
+        includeDuplicates,
+        filterMode: filterModeWatch,
+        minRating: minRatingWatch,
+      },
     });
 
     const totalSize = photos.reduce((sum, p) => sum + p.file.size, 0);
+    const duplicatePhotoIds = buildDuplicatePhotoIds(analyzedPhotos, duplicateGroups);
     const duplicatesCount = duplicateGroups.filter((g) =>
-      g.photos.some((p) => activePhotoIds.has(p.id))
+      g.photos.some((p) => duplicatePhotoIds.has(p.id))
     ).length;
     const rejectedCount = photos.filter((p) => rejectedPhotoIds.has(p.id) || p.analysis?.isRejected).length;
 
@@ -219,7 +222,7 @@ function ExportTab() {
   // ── Handle submit ─────────────────────────────────────────────────────────
 
   const handleExport = async (data: ExportFormData) => {
-    const photosToExport = buildPhotosToExport(data);
+    const photosToExport = buildPhotosToExportFromForm(data);
     if (photosToExport.length === 0) {
       toast.error('Aucune photo à exporter');
       return;
@@ -515,6 +518,7 @@ function ExportTab() {
                 [
                   { value: 'all', label: 'Toutes les photos analysées' },
                   { value: 'picks-only', label: 'Picks uniquement 🎯' },
+                  { value: 'favorites-only', label: 'Favorites uniquement' },
                   { value: 'min-rating', label: 'Note minimale ★' },
                 ] as const
               ).map(({ value, label }) => (

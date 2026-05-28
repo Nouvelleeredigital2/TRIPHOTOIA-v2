@@ -55,13 +55,13 @@ export function FullscreenViewer({
   const hasNext     = currentIndex < photos.length - 1;
   const hasPrevious = currentIndex > 0;
 
-  // Réinitialiser zoom + pan à chaque changement de photo
+  // Réinitialiser zoom + pan �  chaque changement de photo
   useEffect(() => {
     setZoom(1);
     setPan({ x: 0, y: 0 });
   }, [photo.id]);
 
-  // Réinitialiser pan si zoom redescend à 1
+  // Réinitialiser pan si zoom redescend �  1
   useEffect(() => {
     if (zoom <= 1) setPan({ x: 0, y: 0 });
   }, [zoom]);
@@ -225,7 +225,7 @@ export function FullscreenViewer({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open]);
 
   if (!open) return null;
 
@@ -373,7 +373,7 @@ export function FullscreenViewer({
                         showCount
                       />
                     </div>
-                    
+
                     <div className="flex gap-2">
                       <Button
                         size="sm"
@@ -386,7 +386,7 @@ export function FullscreenViewer({
                       >
                         {photo.analysis?.isPick ? '🎯 Pick' : 'P - Pick'}
                       </Button>
-                      
+
                       <Button
                         size="sm"
                         variant={photo.analysis?.isRejected ? 'destructive' : 'outline'}

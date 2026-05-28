@@ -65,10 +65,10 @@ export class WorkerAnalysisService {
             { type: 'module' }
           );
         }
-        
+
         worker.onmessage = this.handleWorkerMessage.bind(this);
         worker.onerror = this.handleWorkerError.bind(this);
-        
+
         this.workers.push(worker);
       } catch (error) {
         console.warn('Impossible de cr??er un Web Worker, utilisation du mode synchrone:', error);
@@ -102,7 +102,7 @@ export class WorkerAnalysisService {
         compositionScore: payload.result.compositionScore,
         suggestedRetouch: payload.result.suggestedRetouch,
       };
-      
+
       task.resolve(photoAnalysis);
     } else if (type === 'ANALYSIS_ERROR') {
       task.reject(new Error(payload.error || 'Erreur d\'analyse'));
@@ -143,10 +143,10 @@ export class WorkerAnalysisService {
         new URL('../workers/simpleImageWorker.ts', import.meta.url),
         { type: 'module' }
       );
-      
+
       newWorker.onmessage = this.handleWorkerMessage.bind(this);
       newWorker.onerror = this.handleWorkerError.bind(this);
-      
+
       this.workers.push(newWorker);
     } catch (error) {
       console.error('Impossible de red??marrer le worker:', error);
@@ -263,7 +263,7 @@ export class WorkerAnalysisService {
 
       const results = await Promise.all(promises);
       console.log(`??? Analyse termin??e pour ${results.length} photo(s)`);
-      
+
       return results;
     } catch (error) {
       console.error('Erreur lors de l\'analyse avec Web Workers:', error);

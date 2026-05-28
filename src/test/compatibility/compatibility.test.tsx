@@ -8,21 +8,21 @@ describe('Compatibility Tests', () => {
     // Test mobile viewport
     Object.defineProperty(window, 'innerWidth', { value: 375 });
     Object.defineProperty(window, 'innerHeight', { value: 667 });
-    
+
     render(<App />);
     expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
-    
+
     // Test tablet viewport
     Object.defineProperty(window, 'innerWidth', { value: 768 });
     Object.defineProperty(window, 'innerHeight', { value: 1024 });
-    
+
     render(<App />);
     expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
-    
+
     // Test desktop viewport
     Object.defineProperty(window, 'innerWidth', { value: 1920 });
     Object.defineProperty(window, 'innerHeight', { value: 1080 });
-    
+
     render(<App />);
     expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
   });
@@ -68,7 +68,7 @@ describe('Compatibility Tests', () => {
 
   it('should work with different time zones', () => {
     const timeZones = ['America/New_York', 'Europe/London', 'Asia/Tokyo', 'Australia/Sydney'];
-    
+
     timeZones.forEach(timeZone => {
       const originalDateTimeFormat = Intl.DateTimeFormat;
       const spy = vi.spyOn(Intl, 'DateTimeFormat').mockImplementation((locales, options) => {
@@ -113,10 +113,10 @@ describe('Compatibility Tests', () => {
         dispatchEvent: vi.fn(),
       })),
     });
-    
+
     render(<App />);
     expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
-    
+
     // Test with high contrast
     Object.defineProperty(window, 'matchMedia', {
       value: vi.fn().mockImplementation(query => ({
@@ -130,7 +130,7 @@ describe('Compatibility Tests', () => {
         dispatchEvent: vi.fn(),
       })),
     });
-    
+
     render(<App />);
     expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
   });
@@ -165,14 +165,14 @@ describe('Compatibility Tests', () => {
 
   it('should work with different connection types', () => {
     const connectionTypes = ['slow-2g', '2g', '3g', '4g', '5g'];
-    
+
     connectionTypes.forEach(connectionType => {
       // Mock connection type
       Object.defineProperty(navigator, 'connection', {
         value: { effectiveType: connectionType },
         writable: true,
       });
-      
+
       render(<App />);
       expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
     });

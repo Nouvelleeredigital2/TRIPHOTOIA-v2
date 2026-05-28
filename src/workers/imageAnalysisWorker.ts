@@ -18,7 +18,7 @@ class WorkerImageProcessor {
     try {
       const image = await this.loadImage(file);
       const imageData = this.getImageData(image);
-      
+
       return {
         isBlurry: this.analyzeBlur(imageData).isBlurry,
         sharpnessScore: this.analyzeBlur(imageData).sharpnessScore,
@@ -82,7 +82,7 @@ class WorkerImageProcessor {
     for (let y = 1; y < height - 1; y++) {
       for (let x = 1; x < width - 1; x++) {
         let laplacianValue = 0;
-        
+
         for (let ky = 0; ky < 3; ky++) {
           for (let kx = 0; kx < 3; kx++) {
             const pixelIndex = ((y + ky - 1) * width + (x + kx - 1)) * 4;
@@ -124,7 +124,7 @@ class WorkerImageProcessor {
       for (let x = 0; x < width; x++) {
         const pixelIndex = (y * width + x) * 4;
         const gray = this.getGrayValue(data, pixelIndex);
-        
+
         if (gray < 100) {
           darkPixels++;
         }
@@ -160,7 +160,7 @@ class WorkerImageProcessor {
   private generatePerceptualHash(imageData: ImageData): string {
     const { data, width, height } = imageData;
     const resized = this.resizeImage(data, width, height, 8, 8);
-    
+
     let sum = 0;
     for (let i = 0; i < resized.length; i += 4) {
       sum += this.getGrayValue(resized, i);
@@ -224,7 +224,7 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
   if (type === 'ANALYZE_IMAGE') {
     try {
       const result = await imageProcessor.analyzeImage(payload.file);
-      
+
       const response: WorkerResponse = {
         type: 'ANALYSIS_COMPLETE',
         payload: {
@@ -232,7 +232,7 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
           result
         }
       };
-      
+
       self.postMessage(response);
     } catch (error) {
       const response: WorkerResponse = {
@@ -242,7 +242,7 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
           error: error instanceof Error ? error.message : 'Erreur inconnue'
         }
       };
-      
+
       self.postMessage(response);
     }
   }

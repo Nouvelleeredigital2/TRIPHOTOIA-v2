@@ -27,7 +27,7 @@ export function CollectionManager() {
   const collectionOrder = usePhotoStore((state) => state.collectionOrder);
   const activeCollectionId = usePhotoStore((state) => state.activeCollectionId);
   const activeCollection = usePhotoStore((state) => state.collections[activeCollectionId]);
-  
+
   const createCollection = usePhotoStore((state) => state.createCollection);
   const renameCollection = usePhotoStore((state) => state.renameCollection);
   const deleteCollection = usePhotoStore((state) => state.deleteCollection);
@@ -68,7 +68,7 @@ export function CollectionManager() {
     }
 
     if (existingNames.has(trimmed.toLowerCase())) {
-      setCreationMessage('Une collection porte déjà ce nom.');
+      setCreationMessage('Une collection porte déj�  ce nom.');
       return;
     }
 
@@ -77,7 +77,7 @@ export function CollectionManager() {
     setNewCollectionName('');
     setIsCreateDialogOpen(false);
     setCreationMessage('');
-    toast.success(`Collection « ${createdCollection?.name ?? trimmed} » créée`);
+    toast.success(`Collection «� ${createdCollection?.name ?? trimmed}� » créée`);
   };
 
   const handleRenameCollection = () => {
@@ -88,12 +88,12 @@ export function CollectionManager() {
     }
 
     if (existingNames.has(trimmed.toLowerCase()) && collections[renameCollectionId]?.name.toLowerCase() !== trimmed.toLowerCase()) {
-      setRenameMessage('Une autre collection utilise déjà ce nom.');
+      setRenameMessage('Une autre collection utilise déj�  ce nom.');
       return;
     }
 
     renameCollection(renameCollectionId, trimmed);
-    toast.success(`Collection renommée en « ${trimmed} »`);
+    toast.success(`Collection renommée en «� ${trimmed}� »`);
     setRenameCollectionName('');
     setRenameCollectionId('');
     setRenameMessage('');
@@ -202,7 +202,7 @@ export function CollectionManager() {
                 </Badge>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                Ajoutez instantanément les photos actuellement sélectionnées à la nouvelle collection.
+                Ajoutez instantanément les photos actuellement sélectionnées �  la nouvelle collection.
               </p>
               <div className="mt-3 flex items-center gap-2">
                 <Checkbox

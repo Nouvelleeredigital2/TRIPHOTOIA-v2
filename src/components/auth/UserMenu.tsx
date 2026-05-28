@@ -1,9 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Cloud, CloudOff, RefreshCw, LogOut, User, BarChart2 } from 'lucide-react';
+import { Cloud, CloudOff, RefreshCw, LogOut, User, BarChart2, FolderKanban } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { isSupabaseConfigured } from '../../lib/supabase';
 import { AuthModal } from './AuthModal';
 import { AnalyticsDashboard } from '../AnalyticsDashboard';
+import { CloudProjectsDashboard } from '../../features/cloud-projects/CloudProjectsDashboard';
+import { useCloudProjectStore } from '../../store/cloudProjectStore';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog';
 
 const SYNC_ICONS = {
   idle:    { icon: Cloud,      color: 'text-muted-foreground', title: 'Sync cloud' },
@@ -15,9 +24,11 @@ const SYNC_ICONS = {
 
 export function UserMenu() {
   const { user, syncStatus, signOut, loading } = useAuthStore();
+  const activeCloudProject = useCloudProjectStore((state) => state.activeProject);
   const [authOpen, setAuthOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
+  const [projectsOpen, setProjectsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Fermer le menu en cliquant à l'extérieur
@@ -81,13 +92,21 @@ export function UserMenu() {
                 <User className="w-3.5 h-3.5 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground truncate">{user.email}</span>
               </div>
-              <div className="mt-1 text-[10px] text-muted-foreground/60 flex items-center gap-1">
-                <Cloud className="w-3 h-3" />
-                {SYNC_ICONS[syncStatus].title}
+          <div className="mt-1 text-[10px] text-muted-foreground/60 flex items-center gap-1">
+            <Cloud className="w-3 h-3" />
+                {activeCloudProject ? activeCloudProject.name : SYNC_ICONS[syncStatus].title}
               </div>
             </div>
 
             {/* Analytics */}
+            <button
+              onClick={() => { setMenuOpen(false); setProjectsOpen(true); }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-muted transition-colors text-left"
+            >
+              <FolderKanban className="w-3.5 h-3.5 text-muted-foreground" />
+              Projets cloud
+            </button>
+
             <button
               onClick={() => { setMenuOpen(false); setAnalyticsOpen(true); }}
               className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-muted transition-colors text-left"
@@ -108,6 +127,17 @@ export function UserMenu() {
         )}
       </div>
 
+      <Dialog open={projectsOpen} onOpenChange={setProjectsOpen}>
+        <DialogContent className="max-w-5xl">
+          <DialogHeader>
+            <DialogTitle>Projets cloud</DialogTitle>
+            <DialogDescription>
+              Créez ou rouvrez un projet Supabase sans quitter le mode local.
+            </DialogDescription>
+          </DialogHeader>
+          <CloudProjectsDashboard userId={user.id} />
+        </DialogContent>
+      </Dialog>
       <AnalyticsDashboard open={analyticsOpen} onClose={() => setAnalyticsOpen(false)} />
     </>
   );

@@ -64,7 +64,9 @@ export function PhotoCard({
 }: PhotoCardProps) {
   const hasAnalysis = photo.analysis && !photo.analysis.error;
   const analysis = photo.analysis;
-  
+  const isFavorite = analysis?.isPick === true && (analysis.rating ?? 0) >= 5;
+  const needsReview = hasAnalysis && !analysis?.isPick && !analysis?.isRejected && !isRejected;
+
   const setPhotoRating = usePhotoStore((state) => state.setPhotoRating);
   const togglePhotoPick = usePhotoStore((state) => state.togglePhotoPick);
   const togglePhotoReject = usePhotoStore((state) => state.togglePhotoReject);
@@ -77,7 +79,7 @@ export function PhotoCard({
       exit={{ opacity: 0, scale: 0.9 }}
       transition={{ duration: 0.2 }}
       draggable={draggable}
-      onDragStart={onDragStart}
+      onDragStartCapture={onDragStart}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
@@ -132,7 +134,7 @@ export function PhotoCard({
           <div className="absolute top-2 left-2 flex flex-col gap-1">
             {/* Notation par étoiles */}
             {hasAnalysis && (
-              <div 
+              <div
                 className="bg-black/60 backdrop-blur-sm rounded-md px-2 py-1"
                 onClick={(e) => e.stopPropagation()}
               >
@@ -143,31 +145,43 @@ export function PhotoCard({
                 />
               </div>
             )}
-            
+
             {isBestInGroup && (
               <Badge variant="default" className="text-xs bg-green-600 text-white border-green-700">
                 Meilleure
               </Badge>
             )}
-            
-            {analysis?.isPick && (
+
+            {isFavorite && (
+              <Badge className="text-xs bg-violet-600 text-white border-violet-700">
+                Favorite
+              </Badge>
+            )}
+
+            {analysis?.isPick && !isFavorite && (
               <Badge className="text-xs bg-green-600 text-white border-green-700">
                 🎯 Pick
               </Badge>
             )}
-            
+
+            {needsReview && (
+              <Badge className="text-xs bg-amber-600 text-white border-amber-700">
+                A revoir
+              </Badge>
+            )}
+
             {(isRejected || analysis?.isRejected) && (
               <Badge variant="destructive" className="text-xs bg-red-600 text-white border-red-700">
                 ❌ Rejetée
               </Badge>
             )}
-            
+
             {isInDevelopmentQueue && (
               <Badge variant="outline" className="text-xs bg-purple-600 text-white border-purple-700">
                 Dév.
               </Badge>
             )}
-            
+
             {showGroupInfo && group && (
               <Badge variant="outline" className="text-xs bg-blue-600 text-white border-blue-700">
                 Groupe ({group.photos.length})
@@ -221,7 +235,7 @@ export function PhotoCard({
             >
               {analysis?.isPick ? '🎯 Pick' : 'P'}
             </Button>
-            
+
             <Button
               size="sm"
               variant={(isRejected || analysis?.isRejected) ? 'destructive' : 'outline'}
@@ -233,7 +247,7 @@ export function PhotoCard({
             >
               {(isRejected || analysis?.isRejected) ? '❌' : 'X'}
             </Button>
-            
+
             <Button
               size="sm"
               variant={inCollection ? 'secondary' : 'outline'}

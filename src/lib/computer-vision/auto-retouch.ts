@@ -66,7 +66,7 @@ export class AutoRetoucher {
   async analyzeImage(imageData: Uint8Array, width: number, height: number): Promise<RetouchAnalysis> {
     const metrics = await this.calculateImageMetrics(imageData, width, height);
     const suggestedOptions = this.generateSuggestedOptions(metrics);
-    
+
     return {
       needsBrightness: this.needsBrightnessCorrection(metrics.brightness),
       needsContrast: this.needsContrastCorrection(metrics.contrast),
@@ -83,13 +83,13 @@ export class AutoRetoucher {
    * Applique la retouche automatique à une image
    */
   async retouchImage(
-    imageData: Uint8Array, 
-    width: number, 
-    height: number, 
+    imageData: Uint8Array,
+    width: number,
+    height: number,
     options?: Partial<RetouchOptions>
   ): Promise<RetouchResult> {
     const originalImage = this.config.preserveOriginal ? new Uint8Array(imageData) : imageData;
-    
+
     // Analyser l'image si nécessaire
     let analysis: RetouchAnalysis;
     if (this.config.autoDetect && !options) {
@@ -102,7 +102,7 @@ export class AutoRetoucher {
 
     // Appliquer les corrections
     const retouchedImage = await this.applyCorrections(imageData, width, height, options);
-    
+
     // Calculer les métriques avant/après
     const beforeMetrics = await this.calculateImageMetrics(originalImage, width, height);
     const afterMetrics = await this.calculateImageMetrics(retouchedImage, width, height);
@@ -179,7 +179,7 @@ export class AutoRetoucher {
       const r = imageData[pixelIndex] || 0;
       const g = imageData[pixelIndex + 1] || 0;
       const b = imageData[pixelIndex + 2] || 0;
-      
+
       // Conversion RGB vers grayscale (luminance)
       grayscale.push(0.299 * r + 0.587 * g + 0.114 * b);
     }
@@ -214,11 +214,11 @@ export class AutoRetoucher {
       const r = channels.red[i];
       const g = channels.green[i];
       const b = channels.blue[i];
-      
+
       const max = Math.max(r, g, b);
       const min = Math.min(r, g, b);
       const saturation = max === 0 ? 0 : (max - min) / max;
-      
+
       totalSaturation += saturation;
     }
 
@@ -292,7 +292,7 @@ export class AutoRetoucher {
    */
   private generateSuggestedOptions(metrics: any): RetouchOptions {
     const intensity = this.config.intensity;
-    
+
     return {
       brightness: this.suggestBrightness(metrics.brightness) * intensity,
       contrast: this.suggestContrast(metrics.contrast) * intensity,
@@ -313,9 +313,9 @@ export class AutoRetoucher {
    * Applique les corrections à l'image
    */
   private async applyCorrections(
-    imageData: Uint8Array, 
-    width: number, 
-    height: number, 
+    imageData: Uint8Array,
+    width: number,
+    height: number,
     options: Partial<RetouchOptions>
   ): Promise<Uint8Array> {
     const result = new Uint8Array(imageData);
@@ -323,27 +323,27 @@ export class AutoRetoucher {
 
     for (let i = 0; i < width * height; i++) {
       const pixelIndex = i * channelsCount;
-      
+
       // Appliquer les corrections pixel par pixel
       for (let c = 0; c < Math.min(3, channelsCount); c++) {
         let value = imageData[pixelIndex + c];
-        
+
         // Luminosité
         value = this.adjustBrightness(value, options.brightness);
-        
+
         // Contraste
         value = this.adjustContrast(value, options.contrast);
-        
+
         // Exposition
         value = this.adjustExposure(value, options.exposure);
-        
+
         // Balance des blancs
         if (c === 0) value = this.adjustTemperature(value, options.whiteBalance.temperature);
         if (c === 2) value = this.adjustTint(value, options.whiteBalance.tint);
-        
+
         // Saturation
         if (c < 3) value = this.adjustSaturation(value, options.saturation, c);
-        
+
         result[pixelIndex + c] = Math.max(0, Math.min(255, Math.round(value)));
       }
     }

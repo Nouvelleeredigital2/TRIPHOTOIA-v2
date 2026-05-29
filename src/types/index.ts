@@ -213,10 +213,16 @@ export interface PhotoCollection {
 }
 
 export type SmartCollectionRule =
+  | { type: 'all' }
+  | { type: 'unreviewed' }
+  | { type: 'review' }
   | { type: 'rating'; minValue: number }
   | { type: 'isPick' }
+  | { type: 'isFavorite' }
   | { type: 'isRejected' }
+  | { type: 'isDuplicate' }
   | { type: 'isBlurry' }
+  | { type: 'readyToExport' }
   | { type: 'hasTag'; tag: string }
   | { type: 'colorLabel'; label: ColorLabel };
 

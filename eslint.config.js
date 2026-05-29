@@ -52,7 +52,7 @@ export default [
   js.configs.recommended,
   {
     ...baseConfig,
-    files: ['src/**/*.{ts,tsx}', '*.ts'],
+    files: ['src/**/*.{ts,tsx}', 'worker/**/*.ts', '*.ts'],
     languageOptions: {
       ...baseConfig.languageOptions,
       globals: {
@@ -69,6 +69,14 @@ export default [
     },
     rules: {
       'no-restricted-globals': 'off',
+    },
+  },
+  {
+    files: ['worker/**/*.ts'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
     },
   },
   {
@@ -92,4 +100,3 @@ export default [
     },
   },
 ];
-

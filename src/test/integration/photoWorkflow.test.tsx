@@ -1,17 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '../test-utils';
-import App from '../../App';
+import { renderApp, screen, fireEvent, waitFor } from '../test-utils';
 
 describe('Photo Workflow Integration', () => {
   it('renders initial state without photos', async () => {
-    render(<App />);
+    await renderApp();
     expect(screen.getByText('TRIPHOTOIA')).toBeInTheDocument();
     // IngestionTab is lazy-loaded — wait for Suspense to resolve
     await waitFor(() => expect(screen.getByText('Ingestion Tab')).toBeInTheDocument());
   });
 
-  it('switches to triage tab on click', () => {
-    render(<App />);
+  it('switches to triage tab on click', async () => {
+    await renderApp();
     const triageBtn = screen.getByRole('button', { name: /triage/i });
     // Verify button exists and is clickable — full tab switch requires a real store
     expect(triageBtn).toBeInTheDocument();
@@ -20,16 +19,16 @@ describe('Photo Workflow Integration', () => {
     expect(screen.getByText('TRIPHOTOIA')).toBeInTheDocument();
   });
 
-  it('switches to export tab on click', () => {
-    render(<App />);
+  it('switches to export tab on click', async () => {
+    await renderApp();
     const exportBtn = screen.getByRole('button', { name: /exportation/i });
     expect(exportBtn).toBeInTheDocument();
     fireEvent.click(exportBtn);
     expect(screen.getByText('TRIPHOTOIA')).toBeInTheDocument();
   });
 
-  it('renders without crashing after multiple tab switches', () => {
-    render(<App />);
+  it('renders without crashing after multiple tab switches', async () => {
+    await renderApp();
 
     const tabs = [
       screen.getByRole('button', { name: /ingestion/i }),
@@ -44,8 +43,8 @@ describe('Photo Workflow Integration', () => {
     expect(screen.getByText('TRIPHOTOIA')).toBeInTheDocument();
   });
 
-  it('renders error boundary without crashing', () => {
-    render(<App />);
+  it('renders error boundary without crashing', async () => {
+    await renderApp();
     expect(screen.getByText('TRIPHOTOIA')).toBeInTheDocument();
   });
 });

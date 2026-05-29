@@ -154,14 +154,13 @@ export async function getUserShareLinks(userId: string): Promise<DbShareLink[]> 
 export async function getShareLinkByToken(token: string): Promise<DbShareLink | null> {
   if (!supabase) return null;
 
-  const { data, error } = await supabase
-    .from('share_links')
-    .select('*')
-    .eq('token', token)
-    .single();
+  // Token-scoped RPC: the share_links table is no longer publicly readable, so a
+  // recipient resolves exactly one (non-expired) link via this security-definer function.
+  const { data, error } = await supabase.rpc('get_shared_link', { target_token: token });
 
   if (error) return null;
-  return data as DbShareLink;
+  const link = Array.isArray(data) ? data[0] : data;
+  return (link as DbShareLink | undefined) ?? null;
 }
 
 /**

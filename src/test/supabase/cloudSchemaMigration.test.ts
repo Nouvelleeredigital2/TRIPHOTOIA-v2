@@ -50,4 +50,12 @@ describe('TreePhoto cloud schema migration', () => {
     expect(sql).toContain('photos_project_status_idx');
     expect(sql).toContain('jobs_polling_idx');
   });
+
+  it('creates the private project photos storage bucket and policies', () => {
+    expect(sql).toContain("insert into storage.buckets");
+    expect(sql).toContain("'project-photos'");
+    expect(sql).toContain('public.can_access_project_storage_object');
+    expect(sql).toContain('create policy "project_photos_members_insert" on storage.objects');
+    expect(sql).toContain('create policy "project_photos_members_select" on storage.objects');
+  });
 });

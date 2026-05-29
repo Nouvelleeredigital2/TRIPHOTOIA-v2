@@ -15,6 +15,7 @@ import {
   RETOUCH_OPTION_KEYS,
 } from '../types';
 import { SMART_COLLECTIONS, matchesRule } from './smartCollectionsSelector';
+import { buildWeddingCollectionDefinitions } from '../features/wedding/weddingTemplate';
 import { LSHDuplicateDetector, hammingDistance } from '../lib/lsh-duplicate-detector';
 import { GPURetouchProcessor } from '../lib/computer-vision/gpu-retouch';
 import { useAiErrorStore } from './aiErrorStore';
@@ -223,6 +224,7 @@ interface PhotoState {
   // Collections actions
   setActiveSmartCollection: (id: string | null) => void;
   createCollection: (name: string, photoIds?: string[]) => string;
+  applyWeddingTemplate: () => string[];
   renameCollection: (collectionId: string, name: string) => void;
   deleteCollection: (collectionId: string) => void;
   setActiveCollection: (collectionId: string) => void;
@@ -455,6 +457,49 @@ export const usePhotoStore = create<PhotoState>()(
           return newCollectionId;
         },
 
+        applyWeddingTemplate: () => {
+          const createdIds: string[] = [];
+          set((state) => {
+            const existingNames = new Set(
+              Object.values(state.collections).map((collection) => collection.name)
+            );
+            const definitions = buildWeddingCollectionDefinitions(existingNames);
+            if (definitions.length === 0) {
+              return;
+            }
+
+            const previousActiveCollectionId = state.activeCollectionId;
+            const timestamp = new Date().toISOString();
+
+            definitions.forEach((definition) => {
+              let collectionId = definition.id;
+              while (state.collections[collectionId]) {
+                collectionId = generateCollectionId();
+              }
+
+              state.collections[collectionId] = {
+                id: collectionId,
+                name: definition.name,
+                description: definition.description,
+                photoIds: [],
+                createdAt: timestamp,
+                updatedAt: timestamp,
+              };
+              state.collectionOrder.push(collectionId);
+              createdIds.push(collectionId);
+            });
+
+            state.activeCollectionId = previousActiveCollectionId;
+            state.activeSmartCollectionId = null;
+          });
+
+          if (createdIds.length > 0) {
+            persistCollections();
+          }
+
+          return createdIds;
+        },
+
         renameCollection: (collectionId: string, name: string) => {
           let didUpdate = false;
           set((state) => {
@@ -601,7 +646,10 @@ export const usePhotoStore = create<PhotoState>()(
           if (state.activeSmartCollectionId) {
             const sc = SMART_COLLECTIONS.find((c) => c.id === state.activeSmartCollectionId);
             if (sc) {
-              return state.photos.filter((p) => matchesRule(p, sc.rule));
+              return state.photos.filter((p) => matchesRule(p, sc.rule, {
+                duplicateGroups: state.duplicateGroups,
+                rejectedPhotoIds: state.rejectedPhotoIds,
+              }));
             }
           }
 

@@ -41,6 +41,12 @@ export interface ExportOptions {
   watermark?: WatermarkOptions;
 }
 
+export interface PhotoExportChapter {
+  collectionId: string;
+  name: string;
+  photos: Photo[];
+}
+
 // ── Rename helper ─────────────────────────────────────────────────────────────
 
 const todayISO = new Date().toISOString().slice(0, 10).replace(/-/g, '');
@@ -82,6 +88,18 @@ function getExportFileName(photo: Photo, options: ExportOptions, index: number):
     ? (photo.file.name.split('.').pop() ?? 'jpg')
     : options.format;
   return `${baseName}.${ext}`;
+}
+
+function sanitizeZipFolderName(name: string): string {
+  const sanitized = name
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9._-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  return sanitized || 'Chapitre';
 }
 
 // ── Watermark draw ────────────────────────────────────────────────────────────
@@ -227,6 +245,45 @@ export async function exportPhotosAsZip(
 }
 
 // ── Directory export (File System Access API) ─────────────────────────────────
+
+export async function exportPhotoChaptersAsZip(
+  chapters: PhotoExportChapter[],
+  options: ExportOptions,
+  onProgress?: (progress: number) => void
+): Promise<Blob> {
+  const zip = new JSZip();
+  const total = chapters.reduce((sum, chapter) => sum + chapter.photos.length, 0);
+  let processed = 0;
+
+  for (let chapterIndex = 0; chapterIndex < chapters.length; chapterIndex++) {
+    const chapter = chapters[chapterIndex];
+    const folderName = `${String(chapterIndex + 1).padStart(2, '0')}-${sanitizeZipFolderName(chapter.name)}`;
+    const folder = zip.folder(folderName);
+
+    if (!folder) {
+      continue;
+    }
+
+    for (let photoIndex = 0; photoIndex < chapter.photos.length; photoIndex++) {
+      const photo = chapter.photos[photoIndex];
+      const fileName = getExportFileName(photo, options, photoIndex);
+
+      try {
+        const processedBlob = await processImage(photo.file, options);
+        folder.file(fileName, processedBlob);
+      } catch (error) {
+        console.error(`Failed to process ${folderName}/${fileName}:`, error);
+      }
+
+      processed++;
+      if (onProgress) {
+        onProgress(total === 0 ? 100 : Math.round((processed / total) * 100));
+      }
+    }
+  }
+
+  return zip.generateAsync({ type: 'blob' });
+}
 
 export function supportsDirectoryExport(): boolean {
   return 'showDirectoryPicker' in window;

@@ -57,6 +57,7 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
   const setActiveSmartCollection = usePhotoStore((state) => state.setActiveSmartCollection);
   const collections = usePhotoStore((state) => state.collections);
   const allPhotos = usePhotoStore((state) => state.photos);
+  const userTags = usePhotoStore((state) => state.userTags);
   const developmentSelection = usePhotoStore((state) => state.developmentSelection);
   const toggleDevelopmentSelection = usePhotoStore((state) => state.toggleDevelopmentSelection);
   const clearDevelopmentSelection = usePhotoStore((state) => state.clearDevelopmentSelection);
@@ -84,7 +85,7 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
   const activePhotos = useMemo(() => {
     // Smart collection active : filtrer directement toutes les photos
     if (activeSC) {
-      return allPhotos.filter((p) => matchesRule(p, activeSC.rule));
+      return allPhotos.filter((p) => matchesRule(p, activeSC.rule, { duplicateGroups, rejectedPhotoIds }));
     }
     if (!activeCollection) {
       return allPhotos;
@@ -93,7 +94,7 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
     return activeCollection.photoIds
       .map((id) => photoMap.get(id))
       .filter((photo): photo is Photo => Boolean(photo));
-  }, [activeCollection, allPhotos, activeSC]);
+  }, [activeCollection, allPhotos, activeSC, duplicateGroups, rejectedPhotoIds]);
 
   const collectionPhotoIds = useMemo(() => new Set<string>(activeCollection?.photoIds ?? []), [activeCollection?.photoIds]);
 
@@ -123,6 +124,8 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
 
   const [activeFilter, setActiveFilter] = useState<TriageFilterType>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [sortKey, setSortKey] = useState<TriageSortKey>('default');
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
@@ -347,6 +350,7 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
       result = result.filter((photo) => {
         if (photo.file.name.toLowerCase().includes(q)) return true;
         if ((photo.analysis?.tags ?? []).some((t) => t.toLowerCase().includes(q))) return true;
+        if ((userTags[photo.id] ?? []).some((tag) => tag.toLowerCase().includes(q))) return true;
         // User tags (from store snapshot — accessed via photo key in state below)
         // EXIF fields: camera, lens, ISO, date, focal length
         const exif = photo.metadata?.exif as Record<string, unknown> | undefined;
@@ -362,6 +366,20 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
           if (searchable.includes(q)) return true;
         }
         return false;
+      });
+    }
+
+    if (dateFrom || dateTo) {
+      result = result.filter((photo) => {
+        const exif = photo.metadata?.exif as Record<string, unknown> | undefined;
+        const exifDate = typeof exif?.DateTimeOriginal === 'string'
+          ? exif.DateTimeOriginal.replace(/^(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3')
+          : null;
+        const timestamp = exifDate ? Date.parse(exifDate) : photo.lastModified;
+        if (typeof timestamp !== 'number' || Number.isNaN(timestamp)) return false;
+        if (dateFrom && timestamp < Date.parse(`${dateFrom}T00:00:00.000`)) return false;
+        if (dateTo && timestamp > Date.parse(`${dateTo}T23:59:59.999`)) return false;
+        return true;
       });
     }
 
@@ -381,7 +399,7 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
     }
 
     return result;
-  }, [activePhotos, duplicateGroups, rejectedPhotoIds, selectedPhotoId, activeFilter, searchTerm, sortKey]);
+  }, [activePhotos, duplicateGroups, rejectedPhotoIds, selectedPhotoId, activeFilter, searchTerm, sortKey, userTags, dateFrom, dateTo]);
 
   const handleSelectPhoto = (id: string) => {
     setSelectedPhotoId(selectedPhotoId === id ? null : id);
@@ -596,8 +614,12 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
               colorCounts={stats.colorCounts}
               activeFilter={activeFilter}
               searchTerm={searchTerm}
+              dateFrom={dateFrom}
+              dateTo={dateTo}
               onFilterChange={(f) => setActiveFilter(f as TriageFilterType)}
               onSearchChange={setSearchTerm}
+              onDateFromChange={setDateFrom}
+              onDateToChange={setDateTo}
             />
           </div>
           {/* Sort control */}

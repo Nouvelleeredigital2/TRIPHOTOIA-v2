@@ -19,8 +19,12 @@ interface FilterBarProps {
   colorCounts: Record<ColorLabel, number>;
   activeFilter: FilterType;
   searchTerm: string;
+  dateFrom: string;
+  dateTo: string;
   onFilterChange: (filter: FilterType) => void;
   onSearchChange: (term: string) => void;
+  onDateFromChange: (date: string) => void;
+  onDateToChange: (date: string) => void;
 }
 
 const STAR_FILTERS = [5, 4, 3, 2, 1] as const;
@@ -37,8 +41,12 @@ export function FilterBar({
   colorCounts,
   activeFilter,
   searchTerm,
+  dateFrom,
+  dateTo,
   onFilterChange,
   onSearchChange,
+  onDateFromChange,
+  onDateToChange,
 }: FilterBarProps) {
   const [starsOpen, setStarsOpen] = useState(false);
   const starsRef = useRef<HTMLDivElement>(null);
@@ -93,6 +101,40 @@ export function FilterBar({
           >
             <X className="w-3.5 h-3.5" />
           </button>
+        )}
+      </div>
+
+      {/* Ligne 1b : Plage de dates */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs text-muted-foreground">Date :</span>
+        <Input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => onDateFromChange(e.target.value)}
+          className="h-8 w-[150px] text-xs"
+          aria-label="Date de début"
+        />
+        <span className="text-xs text-muted-foreground">à</span>
+        <Input
+          type="date"
+          value={dateTo}
+          onChange={(e) => onDateToChange(e.target.value)}
+          className="h-8 w-[150px] text-xs"
+          aria-label="Date de fin"
+        />
+        {(dateFrom || dateTo) && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 text-xs"
+            onClick={() => {
+              onDateFromChange('');
+              onDateToChange('');
+            }}
+          >
+            Effacer
+          </Button>
         )}
       </div>
 

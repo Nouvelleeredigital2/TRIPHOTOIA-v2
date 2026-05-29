@@ -1,10 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '../test-utils';
-import App from '../../App';
+import { renderApp, screen, fireEvent, waitFor } from '../test-utils';
 
 describe('Regression Tests', () => {
   it('should not crash when switching tabs rapidly', async () => {
-    render(<App />);
+    await renderApp();
 
     const tabs = [
       screen.getByRole('button', { name: /ingestion/i }),
@@ -17,29 +16,29 @@ describe('Regression Tests', () => {
     }
 
     expect(screen.getByText('TRIPHOTOIA')).toBeInTheDocument();
-  });
+  }, 10000);
 
-  it('should render empty state without crashing', () => {
-    render(<App />);
+  it('should render empty state without crashing', async () => {
+    await renderApp();
     expect(screen.getByText('TRIPHOTOIA')).toBeInTheDocument();
     const zeros = screen.getAllByText('0');
     expect(zeros.length).toBeGreaterThan(0);
   });
 
-  it('should render all navigation tabs', () => {
-    render(<App />);
+  it('should render all navigation tabs', async () => {
+    await renderApp();
     expect(screen.getByRole('button', { name: /ingestion/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /triage/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /exportation/i })).toBeInTheDocument();
   });
 
-  it('should display logo', () => {
-    render(<App />);
+  it('should display logo', async () => {
+    await renderApp();
     expect(screen.getByTestId('logo')).toBeInTheDocument();
   });
 
   it('should handle rapid tab switching without memory leaks', async () => {
-    render(<App />);
+    await renderApp();
 
     const ingestionBtn = screen.getByRole('button', { name: /ingestion/i });
     const triageBtn = screen.getByRole('button', { name: /triage/i });
@@ -54,13 +53,13 @@ describe('Regression Tests', () => {
   });
 
   it('should display the ingestion tab content by default', async () => {
-    render(<App />);
+    await renderApp();
     // IngestionTab is lazy-loaded — wait for Suspense to resolve
     await waitFor(() => expect(screen.getByText('Ingestion Tab')).toBeInTheDocument());
   });
 
-  it('should maintain header across tab changes', () => {
-    render(<App />);
+  it('should maintain header across tab changes', async () => {
+    await renderApp();
 
     // Click through tabs — header must survive each switch
     fireEvent.click(screen.getByRole('button', { name: /triage/i }));

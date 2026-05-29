@@ -56,7 +56,7 @@ export function DuplicateComparison({ group, open, onOpenChange }: DuplicateComp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto" description="Comparaison côte à côte des photos en doublon pour choisir laquelle conserver.">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span>Comparaison des doublons - Groupe {group.id.slice(-8)}</span>

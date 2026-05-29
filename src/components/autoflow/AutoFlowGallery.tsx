@@ -90,6 +90,15 @@ export const AutoFlowGallery: React.FC<AutoFlowGalleryProps> = ({
             return (
               <div key={p.id}
                 onClick={() => setSel(p.id === sel ? null : p.id)}
+                role="button"
+                tabIndex={0}
+                aria-label={p.name}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    setSel(p.id === sel ? null : p.id);
+                  }
+                }}
                 style={{
                   aspectRatio: '3/2', borderRadius: 6, cursor: 'pointer', overflow: 'hidden', position: 'relative',
                   background: p.previewUrl

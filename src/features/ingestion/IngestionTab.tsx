@@ -18,8 +18,10 @@ import { AutoFlowImportScreen } from '../../components/autoflow/AutoFlowImportSc
 import { useCloudProjectStore } from '../../store/cloudProjectStore';
 import { uploadPhotosToCloud } from '../cloud-projects/cloudUpload';
 import toast from 'react-hot-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 function IngestionTab() {
+  const queryClient = useQueryClient();
   const analyzingPhotoIds = usePhotoStore((state) => state.analyzingPhotoIds);
   const addPhotos = usePhotoStore((state) => state.addPhotos);
   const addPhotosToCollection = usePhotoStore((state) => state.addPhotosToCollection);
@@ -78,11 +80,14 @@ function IngestionTab() {
       uploadPhotosToCloud({
         activeProject: activeCloudProject,
         files,
+        localPhotoIds: photosWithHashes.map((photo) => photo.id),
         onProgress: (progress) => {
           toast.loading(`Upload cloud ${progress} % · ${activeCloudProject.name}`, { id: toastId });
         },
       })
         .then((result) => {
+          useCloudProjectStore.getState().linkCloudPhotos(result.mappings);
+          void queryClient.invalidateQueries({ queryKey: ['cloud-project-photos', activeCloudProject.id] });
           toast.success(`${result.uploaded} photo${result.uploaded > 1 ? 's' : ''} uploadée${result.uploaded > 1 ? 's' : ''} dans le projet cloud`, { id: toastId });
         })
         .catch((error) => {
@@ -175,7 +180,6 @@ function IngestionTab() {
 }
 
 export default IngestionTab;
-
 
 
 

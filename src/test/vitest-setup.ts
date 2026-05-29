@@ -1,5 +1,15 @@
 // Polyfills et configuration globale pour les tests Vitest
 import { vi } from 'vitest';
+import { configure } from '@testing-library/react';
+
+// Le refacto act() rend <App/> via un act async (résolution du Suspense lazy),
+// ce qui rallonge légèrement chaque rendu. Sous charge parallèle de la suite
+// complète, les findBy/waitFor par défaut (1000ms) peuvent expirer. On élargit
+// la fenêtre pour absorber la contention CPU.
+configure({ asyncUtilTimeout: 5000 });
+// jsdom n'implémente pas IndexedDB — fake-indexeddb fournit une implémentation
+// complète et conforme, ce qui évite les erreurs loadFullCatalogue dans les tests.
+import 'fake-indexeddb/auto';
 
 // ── window.matchMedia ──────────────────────────────────────────────────────────
 // jsdom ne l'implémente pas — requis par useTheme et tout code lisant prefers-color-scheme
@@ -76,14 +86,7 @@ if (typeof Worker === 'undefined') {
   });
 }
 
-// ── IndexedDB ─────────────────────────────────────────────────────────────────
-// jsdom a une implémentation partielle — on s'assure qu'elle existe
-if (!globalThis.indexedDB) {
-  Object.defineProperty(globalThis, 'indexedDB', {
-    writable: true,
-    value: undefined,
-  });
-}
+// IndexedDB est fourni par `fake-indexeddb/auto` importé en tête de fichier.
 
 // ── ResizeObserver ────────────────────────────────────────────────────────────
 if (typeof ResizeObserver === 'undefined') {

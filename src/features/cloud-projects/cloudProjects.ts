@@ -10,15 +10,32 @@ export interface CloudProjectRow {
   name: string;
   project_type: string;
   status: string;
+  face_analysis_enabled?: boolean;
   created_at: string;
   updated_at: string;
 }
 
 export interface CloudPhotoRow {
+  id?: string;
   project_id: string;
+  original_filename?: string;
+  storage_path?: string;
+  thumbnail_path?: string | null;
   pick_status: CloudPickStatus;
   analysis_status: CloudAnalysisStatus;
   is_deleted: boolean;
+  created_at?: string;
+}
+
+export interface CloudProjectPhoto {
+  id: string;
+  projectId: string;
+  originalFilename: string;
+  storagePath: string;
+  thumbnailPath: string | null;
+  pickStatus: CloudPickStatus;
+  analysisStatus: CloudAnalysisStatus;
+  createdAt: string;
 }
 
 export interface CloudOrganizationRow {
@@ -57,6 +74,21 @@ export function sortProjectsByRecentActivity(projects: CloudProjectRow[]): Cloud
   });
 }
 
+export function mapCloudPhotoRows(rows: CloudPhotoRow[]): CloudProjectPhoto[] {
+  return rows
+    .filter((row) => !row.is_deleted)
+    .map((row) => ({
+      id: row.id ?? '',
+      projectId: row.project_id,
+      originalFilename: row.original_filename ?? '',
+      storagePath: row.storage_path ?? '',
+      thumbnailPath: row.thumbnail_path ?? null,
+      pickStatus: row.pick_status,
+      analysisStatus: row.analysis_status,
+      createdAt: row.created_at ?? '',
+    }));
+}
+
 function requireSupabase(client: SupabaseClient | null = supabase): SupabaseClient {
   if (!client) {
     throw new Error('Supabase non configuré');
@@ -81,7 +113,7 @@ export async function fetchCloudProjects(
 
   const { data: projects, error: projectError } = await db
     .from('projects')
-    .select('id, organization_id, name, project_type, status, created_at, updated_at')
+    .select('id, organization_id, name, project_type, status, face_analysis_enabled, created_at, updated_at')
     .in('organization_id', organizationIds)
     .eq('status', 'active')
     .order('updated_at', { ascending: false });
@@ -125,7 +157,7 @@ export async function createCloudProject(
       project_type: 'wedding',
       created_by: userId,
     })
-    .select('id, organization_id, name, project_type, status, created_at, updated_at')
+    .select('id, organization_id, name, project_type, status, face_analysis_enabled, created_at, updated_at')
     .single();
 
   if (error) throw error;
@@ -134,6 +166,23 @@ export async function createCloudProject(
     ...(project as CloudProjectRow),
     stats: buildProjectStats((project as CloudProjectRow).id, []),
   };
+}
+
+export async function fetchCloudProjectPhotos(
+  projectId: string,
+  client: SupabaseClient | null = supabase
+): Promise<CloudProjectPhoto[]> {
+  const db = requireSupabase(client);
+  const { data, error } = await db
+    .from('photos')
+    .select('id, project_id, original_filename, storage_path, thumbnail_path, pick_status, analysis_status, is_deleted, created_at')
+    .eq('project_id', projectId)
+    .eq('is_deleted', false)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+
+  return mapCloudPhotoRows((data ?? []) as CloudPhotoRow[]);
 }
 
 async function ensureDefaultOrganization(

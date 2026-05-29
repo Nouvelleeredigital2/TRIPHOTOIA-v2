@@ -1,10 +1,28 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import type { ActiveCloudProject } from '../../store/cloudProjectStore';
 
 export const PROJECT_PHOTOS_BUCKET = 'project-photos';
 
-type CloudUploadClient = Pick<SupabaseClient, 'from' | 'storage'>;
+// Semantic embedding is the heaviest job; defer it so the cheap analysis jobs
+// (thumbnail, quality, perceptual hash) are picked up first by the worker.
+export const SEMANTIC_EMBEDDING_DELAY_MS = 5000;
+// Face detection runs only when the project opted in; defer it like embeddings.
+export const FACE_DETECTION_DELAY_MS = 5000;
+
+interface CloudUploadClient {
+  storage: {
+    from: (bucket: string) => {
+      upload: (
+        path: string,
+        file: File,
+        options: { cacheControl: string; upsert: boolean }
+      ) => Promise<{ error: Error | null } | { error: unknown }>;
+    };
+  };
+  from: (table: string) => {
+    insert: (payload: unknown) => unknown;
+  };
+}
 
 interface BuildProjectPhotoStoragePathParams {
   organizationId: string;
@@ -16,14 +34,23 @@ interface BuildProjectPhotoStoragePathParams {
 interface UploadPhotosToCloudParams {
   activeProject: ActiveCloudProject;
   files: File[];
+  localPhotoIds?: string[];
   client?: CloudUploadClient | null;
   createPhotoId?: () => string;
   onProgress?: (progress: number) => void;
+  now?: () => Date;
+  faceAnalysisEnabled?: boolean;
+}
+
+export interface CloudPhotoUploadMapping {
+  localPhotoId: string;
+  cloudPhotoId: string;
 }
 
 interface UploadPhotosToCloudResult {
   uploaded: number;
   photoIds: string[];
+  mappings: CloudPhotoUploadMapping[];
 }
 
 export function buildProjectPhotoStoragePath({
@@ -45,15 +72,19 @@ export function buildProjectPhotoStoragePath({
 export async function uploadPhotosToCloud({
   activeProject,
   files,
+  localPhotoIds = [],
   client = supabase,
   createPhotoId = createUuid,
   onProgress,
+  now = () => new Date(),
+  faceAnalysisEnabled = false,
 }: UploadPhotosToCloudParams): Promise<UploadPhotosToCloudResult> {
   if (!client) {
     throw new Error('Supabase non configuré');
   }
 
   const photoIds: string[] = [];
+  const mappings: CloudPhotoUploadMapping[] = [];
 
   for (const [index, file] of files.entries()) {
     const photoId = createPhotoId();
@@ -70,52 +101,83 @@ export async function uploadPhotosToCloud({
 
     if (uploadError) throw uploadError;
 
-    const { error: photoError } = await client
+    const photoInsert = client
       .from('photos')
       .insert({
         id: photoId,
         project_id: activeProject.id,
         original_filename: file.name,
+        file_size: file.size,
+        mime_type: file.type || null,
         storage_path: storagePath,
         analysis_status: 'pending',
-      })
-      .select('id')
-      .single();
+      }) as {
+        select: (columns: string) => {
+          single: () => Promise<{ error: unknown }>;
+        };
+      };
+    const { error: photoError } = await photoInsert.select('id').single();
 
     if (photoError) throw photoError;
 
-    const { error: jobsError } = await client
-      .from('jobs')
-      .insert([
-        {
-          project_id: activeProject.id,
-          photo_id: photoId,
-          job_type: 'generate_thumbnail',
-          status: 'pending',
-        },
-        {
-          project_id: activeProject.id,
-          photo_id: photoId,
-          job_type: 'quality_analysis',
-          status: 'pending',
-        },
-        {
-          project_id: activeProject.id,
-          photo_id: photoId,
-          job_type: 'perceptual_hash',
-          status: 'pending',
-        },
-      ]);
+    const jobs: Array<Record<string, unknown>> = [
+      {
+        project_id: activeProject.id,
+        photo_id: photoId,
+        job_type: 'generate_thumbnail',
+        status: 'pending',
+      },
+      {
+        project_id: activeProject.id,
+        photo_id: photoId,
+        job_type: 'quality_analysis',
+        status: 'pending',
+      },
+      {
+        project_id: activeProject.id,
+        photo_id: photoId,
+        job_type: 'perceptual_hash',
+        status: 'pending',
+      },
+      {
+        project_id: activeProject.id,
+        photo_id: photoId,
+        job_type: 'semantic_embedding',
+        status: 'pending',
+        payload: { storage_path: storagePath },
+        run_after: new Date(now().getTime() + SEMANTIC_EMBEDDING_DELAY_MS).toISOString(),
+      },
+    ];
+
+    // Strict opt-in: face detection is only enqueued when the project enabled it.
+    if (faceAnalysisEnabled) {
+      jobs.push({
+        project_id: activeProject.id,
+        photo_id: photoId,
+        job_type: 'face_detection',
+        status: 'pending',
+        payload: { storage_path: storagePath },
+        run_after: new Date(now().getTime() + FACE_DETECTION_DELAY_MS).toISOString(),
+      });
+    }
+
+    const jobsInsert = client.from('jobs').insert(jobs) as Promise<{ error: unknown }>;
+    const { error: jobsError } = await jobsInsert;
 
     if (jobsError) throw jobsError;
 
     photoIds.push(photoId);
+    const localPhotoId = localPhotoIds[index];
+    if (localPhotoId) {
+      mappings.push({ localPhotoId, cloudPhotoId: photoId });
+    }
     onProgress?.(Math.round(((index + 1) / files.length) * 100));
   }
 
   return {
     uploaded: photoIds.length,
     photoIds,
+    mappings,
   };
 }
 

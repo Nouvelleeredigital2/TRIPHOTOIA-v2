@@ -10,6 +10,7 @@ import { formatFileSize } from '../../lib/utils';
 import { Photo } from '../../types';
 import toast from 'react-hot-toast';
 import {
+  exportPhotoChaptersAsZip,
   exportPhotosAsZip,
   exportPhotosToDirectory,
   supportsDirectoryExport,
@@ -27,6 +28,7 @@ import {
 import { BookmarkPlus, Trash2, Download } from 'lucide-react';
 import { ExportFilterBar } from './components/ExportFilterBar';
 import { RenamePanel } from './components/RenamePanel';
+import { buildExportChapters } from './exportChapters';
 import { buildDuplicatePhotoIds, buildPhotosToExport } from './exportSelection';
 
 // ── Schema ────────────────────────────────────────────────────────────────────
@@ -78,6 +80,7 @@ function ExportTab() {
   const refreshPresets = useCallback(() => setPresets(loadPresets()), []);
 
   const collections = usePhotoStore((state) => state.collections);
+  const collectionOrder = usePhotoStore((state) => state.collectionOrder);
   const activeCollectionId = usePhotoStore((state) => state.activeCollectionId);
   const allPhotos = usePhotoStore((state) => state.photos);
 
@@ -269,6 +272,61 @@ function ExportTab() {
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
+
+  const handleExportByChapters = async () => {
+    const data = form.getValues();
+    const chapters = buildExportChapters({
+      photos: allPhotos,
+      collections,
+      collectionOrder,
+      duplicateGroups,
+      rejectedPhotoIds,
+      options: {
+        includeRejected: data.includeRejected,
+        includeDuplicates: data.includeDuplicates,
+        filterMode: data.filterMode,
+        minRating: data.minRating,
+      },
+    });
+
+    if (chapters.length === 0) {
+      toast.error('Aucun chapitre à exporter');
+      return;
+    }
+
+    const options = {
+      format: data.format,
+      quality: data.quality,
+      maxWidth: data.maxWidth,
+      maxHeight: data.maxHeight,
+      renamePattern: data.renamePattern || undefined,
+      watermark: data.watermarkEnabled && data.watermarkText.trim()
+        ? {
+            text: data.watermarkText,
+            position: data.watermarkPosition as WatermarkPosition,
+            size: data.watermarkSize,
+            opacity: data.watermarkOpacity,
+            color: data.watermarkColor,
+          }
+        : undefined,
+    };
+
+    const photoCount = chapters.reduce((sum, chapter) => sum + chapter.photos.length, 0);
+
+    try {
+      setIsExporting(true);
+      setExportProgress(0);
+      const zipBlob = await exportPhotoChaptersAsZip(chapters, options, (p) => setExportProgress(p));
+      downloadBlob(zipBlob, generateZipFileName('chapitres-mariage'));
+      toast.success(`Export par chapitres terminé : ${photoCount} photos dans ${chapters.length} dossiers.`);
+    } catch (error) {
+      toast.error("Erreur lors de l'export par chapitres");
+      console.error('Chapter export error:', error);
+    } finally {
+      setIsExporting(false);
+      setExportProgress(0);
+    }
+  };
 
   return (
     <motion.div
@@ -678,6 +736,16 @@ function ExportTab() {
             Votre navigateur ne supporte pas le sélecteur de dossier — l&apos;export sera téléchargé en ZIP.
           </p>
         )}
+        <Button
+          type="button"
+          variant="outline"
+          disabled={isExporting || allPhotos.length === 0}
+          onClick={handleExportByChapters}
+          className="min-w-[210px] gap-2"
+        >
+          <Download className="w-4 h-4" />
+          Exporter par chapitres
+        </Button>
         <Button
           form="export-form"
           type="submit"

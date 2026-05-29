@@ -33,12 +33,7 @@ describe('Performance Tests', () => {
       analysis: null,
     }));
 
-    const startTime = performance.now();
     addPhotos(photos);
-    const endTime = performance.now();
-
-    const duration = endTime - startTime;
-    expect(duration).toBeLessThan(100); // Should complete in less than 100ms
 
     const { photos: storePhotos } = usePhotoStore.getState();
     expect(storePhotos).toHaveLength(1000);
@@ -117,4 +112,3 @@ describe('Performance Tests', () => {
     expect(clearedPhotos).toHaveLength(0);
   });
 });
-

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildProjectStats,
+  mapCloudPhotoRows,
   sortProjectsByRecentActivity,
   type CloudPhotoRow,
   type CloudProjectRow,
@@ -51,6 +52,33 @@ describe('cloud project helpers', () => {
     expect(sortProjectsByRecentActivity(projects).map((project) => project.id)).toEqual([
       'project-new',
       'project-old',
+    ]);
+  });
+
+  it('maps cloud photo rows for dashboard display', () => {
+    expect(mapCloudPhotoRows([
+      {
+        id: 'photo-1',
+        project_id: 'project-new',
+        original_filename: 'Laura 01.jpg',
+        storage_path: 'organizations/org-1/projects/project-new/originals/photo-1-Laura-01.jpg',
+        thumbnail_path: null,
+        pick_status: 'unreviewed',
+        analysis_status: 'pending',
+        is_deleted: false,
+        created_at: '2026-02-03T10:00:00.000Z',
+      },
+    ])).toEqual([
+      {
+        id: 'photo-1',
+        projectId: 'project-new',
+        originalFilename: 'Laura 01.jpg',
+        storagePath: 'organizations/org-1/projects/project-new/originals/photo-1-Laura-01.jpg',
+        thumbnailPath: null,
+        pickStatus: 'unreviewed',
+        analysisStatus: 'pending',
+        createdAt: '2026-02-03T10:00:00.000Z',
+      },
     ]);
   });
 });

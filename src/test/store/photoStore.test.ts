@@ -107,5 +107,30 @@ describe('PhotoStore', () => {
     expect(state.activeTab).toBe('ingestion');
     expect(state.analysisQueue).toHaveLength(0);
   });
-});
 
+  it('should apply the wedding workflow template once', () => {
+    const { applyWeddingTemplate } = usePhotoStore.getState();
+
+    const createdIds = applyWeddingTemplate();
+    const firstState = usePhotoStore.getState();
+
+    expect(createdIds).toHaveLength(11);
+    expect(firstState.collectionOrder.map((id) => firstState.collections[id]?.name)).toEqual([
+      'Collection principale',
+      'Préparatifs',
+      'Cérémonie',
+      'Couple',
+      'Famille',
+      'Groupes',
+      'Cocktail',
+      'Détails',
+      'Soirée',
+      'Best of',
+      'Album',
+      'Client',
+    ]);
+
+    expect(applyWeddingTemplate()).toEqual([]);
+    expect(usePhotoStore.getState().collectionOrder).toHaveLength(12);
+  });
+});

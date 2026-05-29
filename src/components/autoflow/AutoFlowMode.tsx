@@ -21,6 +21,7 @@ interface DecisionHistoryEntry {
   name: string;
   action: AutoFlowDecision;
   previous: Partial<AfPhoto>;
+  current: Partial<AfPhoto>;
 }
 
 type Screen =
@@ -33,6 +34,8 @@ interface AutoFlowModeProps {
   photos: AfPhoto[];
   initialPhotoIds?: string[];
   onMutation: (id: string, changes: Partial<AfPhoto>) => void;
+  onDecision?: (id: string, decision: AutoFlowDecision, previous: Partial<AfPhoto>) => void;
+  onRating?: (id: string, rating: number, previous: Partial<AfPhoto>) => void;
   onExportPicks?: () => void;
   onClose: () => void;
 }
@@ -41,6 +44,8 @@ export const AutoFlowMode: React.FC<AutoFlowModeProps> = ({
   photos,
   initialPhotoIds,
   onMutation,
+  onDecision,
+  onRating,
   onExportPicks,
   onClose,
 }) => {
@@ -96,8 +101,17 @@ export const AutoFlowMode: React.FC<AutoFlowModeProps> = ({
     rating: photo.rating,
   });
 
+  const inferDecisionFromState = (state: Partial<AfPhoto>): AutoFlowDecision | null => {
+    if (state.isRejected === true || state.cls === 'reject') return 'reject';
+    if (state.isFavorite === true) return 'favorite';
+    if (state.isPick === true || state.cls === 'keep') return 'pick';
+    if (state.cls === 'review') return 'review';
+    return null;
+  };
+
   const handleSwipeDecision = (id: string, action: AutoFlowDecision) => {
     const previousPhoto = mergedPhotos.find((p) => p.id === id);
+    const previous = previousPhoto ? snapshotDecisionState(previousPhoto) : {};
     const changes: Partial<AfPhoto> =
       action === 'reject'
         ? { isRejected: true, isPick: false, isFavorite: false, cls: 'reject' }
@@ -107,21 +121,47 @@ export const AutoFlowMode: React.FC<AutoFlowModeProps> = ({
             ? { rating: 5, isPick: true, isRejected: false, isFavorite: true, cls: 'keep' }
             : { isPick: true, isRejected: false, isFavorite: false, cls: 'keep' };
     if (previousPhoto) {
+      const current = snapshotDecisionState({ ...previousPhoto, ...changes });
       setDecisionHistory((prev) => [
         {
           id,
           name: previousPhoto.name,
           action,
-          previous: snapshotDecisionState(previousPhoto),
+          previous,
+          current,
         },
         ...prev,
       ].slice(0, 5));
     }
     applyOverride(id, changes);
+    onDecision?.(id, action, previous);
   };
 
   const handleSwipeRating = (id: string, rating: number) => {
+    const previousPhoto = mergedPhotos.find((p) => p.id === id);
+    const previous = previousPhoto ? snapshotDecisionState(previousPhoto) : {};
     applyOverride(id, { rating });
+    onRating?.(id, rating, previous);
+  };
+
+  const inferDecisionFromChanges = (changes: Partial<AfPhoto>): AutoFlowDecision | null => {
+    if (changes.isRejected === true || changes.cls === 'reject') return 'reject';
+    if (changes.isFavorite === true) return 'favorite';
+    if (changes.isPick === true || changes.cls === 'keep') return 'pick';
+    if (changes.isPick === false && changes.isRejected === false) return 'review';
+    if (changes.cls === 'review') return 'review';
+    return null;
+  };
+
+  const handleDirectDecisionMutation = (id: string, changes: Partial<AfPhoto>) => {
+    const previousPhoto = mergedPhotos.find((p) => p.id === id);
+    const previous = previousPhoto ? snapshotDecisionState(previousPhoto) : {};
+    applyOverride(id, changes);
+
+    const decision = inferDecisionFromChanges(changes);
+    if (decision) {
+      onDecision?.(id, decision, previous);
+    }
   };
 
   const handleUndoLastDecision = () => {
@@ -130,6 +170,16 @@ export const AutoFlowMode: React.FC<AutoFlowModeProps> = ({
 
     setDecisionHistory((prev) => prev.slice(1));
     applyOverride(lastDecision.id, lastDecision.previous);
+    const restoredDecision = inferDecisionFromState(lastDecision.previous);
+    if (restoredDecision) {
+      onDecision?.(lastDecision.id, restoredDecision, lastDecision.current);
+    }
+    if (
+      typeof lastDecision.previous.rating === 'number' &&
+      lastDecision.previous.rating !== lastDecision.current.rating
+    ) {
+      onRating?.(lastDecision.id, lastDecision.previous.rating, lastDecision.current);
+    }
     return true;
   };
 
@@ -150,7 +200,7 @@ export const AutoFlowMode: React.FC<AutoFlowModeProps> = ({
     return (
       <AutoFlowDupCompare
         photos={sessionPhotos}
-        onDecision={applyOverride}
+        onDecision={handleDirectDecisionMutation}
         onBack={() => setScreen('dashboard')}
       />
     );
@@ -164,7 +214,7 @@ export const AutoFlowMode: React.FC<AutoFlowModeProps> = ({
         title={screen.title}
         cls={screen.cls}
         onBack={() => setScreen('dashboard')}
-        onDecision={applyOverride}
+        onDecision={handleDirectDecisionMutation}
       />
     );
   }

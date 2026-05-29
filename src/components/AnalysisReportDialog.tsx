@@ -117,7 +117,7 @@ export function AnalysisReportDialog({ open, onOpenChange }: AnalysisReportDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" description="Rapport détaillé de l'analyse qualité des photos.">
         <DialogHeader>
           <div className="flex items-center justify-between gap-4">
             <DialogTitle className="text-xl font-bold">Rapport d'analyse</DialogTitle>

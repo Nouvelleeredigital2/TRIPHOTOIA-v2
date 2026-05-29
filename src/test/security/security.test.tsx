@@ -1,11 +1,10 @@
 ﻿import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '../test-utils';
-import App from '../../App';
+import { renderApp, screen, fireEvent, waitFor } from '../test-utils';
 import { usePhotoStore } from '../../store/photoStore';
 
 describe('Security Tests', () => {
   it('should sanitize file names', async () => {
-    render(<App />);
+    await renderApp();
 
     const { addPhotos } = usePhotoStore.getState();
 
@@ -27,7 +26,7 @@ describe('Security Tests', () => {
   });
 
   it('should handle malicious file types', async () => {
-    render(<App />);
+    await renderApp();
 
     const { addPhotos } = usePhotoStore.getState();
 
@@ -47,7 +46,7 @@ describe('Security Tests', () => {
   });
 
   it('should handle extremely large files', async () => {
-    render(<App />);
+    await renderApp();
 
     const { addPhotos } = usePhotoStore.getState();
 
@@ -69,7 +68,7 @@ describe('Security Tests', () => {
   });
 
   it('should handle malicious analysis data', async () => {
-    render(<App />);
+    await renderApp();
 
     const { addPhotos, updatePhotoAnalysis } = usePhotoStore.getState();
 
@@ -97,7 +96,7 @@ describe('Security Tests', () => {
   });
 
   it('should handle invalid photo IDs', async () => {
-    render(<App />);
+    await renderApp();
 
     const { updatePhotoAnalysis, updateUserTags } = usePhotoStore.getState();
 
@@ -110,7 +109,7 @@ describe('Security Tests', () => {
   });
 
   it('should handle malformed undo actions', async () => {
-    render(<App />);
+    await renderApp();
 
     const { addUndoAction, undo } = usePhotoStore.getState();
 
@@ -131,7 +130,7 @@ describe('Security Tests', () => {
   });
 
   it('should handle concurrent malicious operations', async () => {
-    render(<App />);
+    await renderApp();
 
     const { addPhotos, clearAll } = usePhotoStore.getState();
 
@@ -161,7 +160,7 @@ describe('Security Tests', () => {
   });
 
   it('should handle memory exhaustion attacks', async () => {
-    render(<App />);
+    await renderApp();
 
     const { addPhotos, clearAll } = usePhotoStore.getState();
 
@@ -185,7 +184,7 @@ describe('Security Tests', () => {
   });
 
   it('should handle XSS attempts in photo metadata', async () => {
-    render(<App />);
+    await renderApp();
 
     const { addPhotos, updatePhotoAnalysis } = usePhotoStore.getState();
 
@@ -213,7 +212,7 @@ describe('Security Tests', () => {
   });
 
   it('should handle SQL injection attempts', async () => {
-    render(<App />);
+    await renderApp();
 
     const { addPhotos, updatePhotoAnalysis } = usePhotoStore.getState();
 
@@ -241,7 +240,7 @@ describe('Security Tests', () => {
   });
 
   it('should handle path traversal attempts', async () => {
-    render(<App />);
+    await renderApp();
 
     const { addPhotos } = usePhotoStore.getState();
 

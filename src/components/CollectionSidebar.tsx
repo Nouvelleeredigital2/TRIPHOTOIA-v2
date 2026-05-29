@@ -13,6 +13,7 @@ import {
   Trash2,
   Folder,
   Image as ImageIcon,
+  Sparkles,
   Zap,
   X,
 } from 'lucide-react';
@@ -45,6 +46,7 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
   const activeCollectionId = usePhotoStore((state) => state.activeCollectionId);
   const activeSmartCollectionId = usePhotoStore((state) => state.activeSmartCollectionId);
   const createCollection = usePhotoStore((state) => state.createCollection);
+  const applyWeddingTemplate = usePhotoStore((state) => state.applyWeddingTemplate);
   const renameCollection = usePhotoStore((state) => state.renameCollection);
   const deleteCollection = usePhotoStore((state) => state.deleteCollection);
   const setActiveCollection = usePhotoStore((state) => state.setActiveCollection);
@@ -112,6 +114,16 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
     setIsRenameDialogOpen(true);
   };
 
+  const handleApplyWeddingTemplate = () => {
+    const createdIds = applyWeddingTemplate();
+    if (createdIds.length === 0) {
+      toast('Template mariage déjà appliqué');
+      return;
+    }
+
+    toast.success(`${createdIds.length} collections mariage créées`);
+  };
+
   const sidebarContent = (
     <motion.aside
       initial={{ x: -288 }}
@@ -153,7 +165,7 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
                   <Plus className="w-4 h-4" />
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent description="Formulaire de création d'une nouvelle collection.">
                 <DialogHeader>
                   <DialogTitle>Créer une nouvelle collection</DialogTitle>
                 </DialogHeader>
@@ -188,6 +200,16 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
             </Dialog>
           </div>
         </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full justify-start gap-2"
+          onClick={handleApplyWeddingTemplate}
+        >
+          <Sparkles className="w-4 h-4" />
+          Template mariage
+        </Button>
       </div>
 
       {/* Collections List */}
@@ -374,7 +396,7 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
             >
               {/* Header */}
               <div className="p-4 border-b border-border/50 shrink-0">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <FolderOpen className="w-5 h-5 text-primary" />
                     <h2 className="font-semibold text-foreground">Collections</h2>
@@ -383,6 +405,19 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
                     <X className="w-4 h-4" />
                   </Button>
                 </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start gap-2"
+                  onClick={() => {
+                    handleApplyWeddingTemplate();
+                    onMobileClose?.();
+                  }}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Template mariage
+                </Button>
               </div>
               {/* Scrollable body — same as desktop */}
               <div className="flex-1 overflow-y-auto p-2">
@@ -441,7 +476,7 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
 
       {/* Rename Dialog */}
       <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
-        <DialogContent>
+        <DialogContent description="Formulaire pour renommer la collection sélectionnée.">
           <DialogHeader>
             <DialogTitle>Renommer la collection</DialogTitle>
           </DialogHeader>

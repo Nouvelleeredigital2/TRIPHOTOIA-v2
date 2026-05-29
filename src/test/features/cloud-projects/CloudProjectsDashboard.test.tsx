@@ -44,6 +44,18 @@ vi.mock('../../../features/cloud-projects/cloudProjects', async () => {
         },
       },
     ]),
+    fetchCloudProjectPhotos: vi.fn().mockResolvedValue([
+      {
+        id: 'photo-1',
+        projectId: 'project-1',
+        originalFilename: 'Laura 01.jpg',
+        storagePath: 'organizations/org-1/projects/project-1/originals/photo-1-Laura-01.jpg',
+        thumbnailPath: null,
+        pickStatus: 'unreviewed',
+        analysisStatus: 'pending',
+        createdAt: '2026-01-03T10:00:00.000Z',
+      },
+    ]),
     createCloudProject: vi.fn(),
   };
 });
@@ -86,5 +98,12 @@ describe('CloudProjectsDashboard', () => {
       organizationId: 'org-1',
       name: 'Reportage studio',
     });
+  });
+
+  it('renders cloud photos for the active project', async () => {
+    renderDashboard();
+
+    expect(await screen.findByText('Laura 01.jpg')).toBeInTheDocument();
+    expect(screen.getByText('pending')).toBeInTheDocument();
   });
 });

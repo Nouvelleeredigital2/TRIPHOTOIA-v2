@@ -53,15 +53,17 @@ describe('usePhotoAnalysis integration', () => {
     (persistence.clearAnalysisState as Mock).mockResolvedValue(undefined);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     // Reset store to prevent state leaking between tests
-    usePhotoStore.setState({
-      stopProcessing: false,
-      isProcessing: false,
-      analysisQueue: [],
-      photos: [],
+    await act(async () => {
+      usePhotoStore.setState({
+        stopProcessing: false,
+        isProcessing: false,
+        analysisQueue: [],
+        photos: [],
+      });
+      vi.runOnlyPendingTimers();
     });
-    vi.runOnlyPendingTimers();
     vi.useRealTimers();
   });
 

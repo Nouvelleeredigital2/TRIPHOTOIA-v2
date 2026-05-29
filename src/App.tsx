@@ -30,6 +30,12 @@ import { AutoFlowMode } from './components/autoflow/AutoFlowMode';
 import { AutoFlowAnalyzing } from './components/autoflow/AutoFlowAnalyzing';
 import { toAfPhotos } from './components/autoflow/afUtils';
 import type { AfPhoto } from './components/autoflow/afUtils';
+import { useCloudProjectStore } from './store/cloudProjectStore';
+import {
+  persistCloudAutoFlowDecision,
+  persistCloudAutoFlowRating,
+  type CloudAutoFlowDecision,
+} from './features/cloud-projects/cloudDecisions';
 
 // Lazy load tabs for better performance
 const IngestionTab = lazy(() => import('./features/ingestion/IngestionTab'));
@@ -238,6 +244,42 @@ function App() {
     if ('rating' in changes && typeof changes.rating === 'number') {
       setPhotoRating(id, changes.rating);
     }
+  };
+
+  const handleAfDecision = (
+    id: string,
+    decision: CloudAutoFlowDecision,
+    previous: Partial<AfPhoto>,
+  ) => {
+    const cloudState = useCloudProjectStore.getState();
+
+    void persistCloudAutoFlowDecision({
+      localPhotoId: id,
+      decision,
+      previous,
+      activeProject: cloudState.activeProject,
+      getCloudPhotoId: cloudState.getCloudPhotoId,
+      onPersisted: (projectId) =>
+        queryClient.invalidateQueries({ queryKey: ['cloud-project-photos', projectId] }),
+      onRollback: handleAfMutation,
+      onError: (message) => toast.error(message),
+    });
+  };
+
+  const handleAfRating = (id: string, rating: number, previous: Partial<AfPhoto>) => {
+    const cloudState = useCloudProjectStore.getState();
+
+    void persistCloudAutoFlowRating({
+      localPhotoId: id,
+      rating,
+      previous,
+      activeProject: cloudState.activeProject,
+      getCloudPhotoId: cloudState.getCloudPhotoId,
+      onPersisted: (projectId) =>
+        queryClient.invalidateQueries({ queryKey: ['cloud-project-photos', projectId] }),
+      onRollback: handleAfMutation,
+      onError: (message) => toast.error(message),
+    });
   };
 
   const globalStats = useMemo(() => {
@@ -642,6 +684,8 @@ function App() {
             photos={afPhotos}
             initialPhotoIds={autoFlowPhotoIds ?? undefined}
             onMutation={handleAfMutation}
+            onDecision={handleAfDecision}
+            onRating={handleAfRating}
             onExportPicks={openExportFromAutoFlow}
             onClose={() => {
               setAutoFlowOpen(false);
@@ -655,7 +699,4 @@ function App() {
 }
 
 export default App;
-
-
-
 

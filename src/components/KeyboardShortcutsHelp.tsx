@@ -100,7 +100,7 @@ function Kbd({ children }: { children: React.ReactNode }) {
 export function KeyboardShortcutsHelp({ open, onOpenChange }: KeyboardShortcutsHelpProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto" description="Liste des raccourcis clavier disponibles dans l'application.">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             Raccourcis clavier

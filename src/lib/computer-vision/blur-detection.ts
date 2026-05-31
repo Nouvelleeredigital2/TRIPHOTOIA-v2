@@ -50,7 +50,7 @@ export class BlurDetector {
    * Analyse le flou d'une image
    */
   async analyzeBlur(imageData: Uint8Array, width: number, height: number): Promise<BlurAnalysis> {
-    const methods = this.config.method === 'combined' 
+    const methods = this.config.method === 'combined'
       ? ['laplacian', 'sobel', 'gradient'] as const
       : [this.config.method];
 
@@ -68,15 +68,15 @@ export class BlurDetector {
    * Analyse avec une méthode spécifique
    */
   private async analyzeWithMethod(
-    imageData: Uint8Array, 
-    width: number, 
-    height: number, 
+    imageData: Uint8Array,
+    width: number,
+    height: number,
     method: 'laplacian' | 'sobel' | 'gradient'
   ): Promise<BlurAnalysis> {
     const grayscale = this.convertToGrayscale(imageData, width, height);
     const kernel = this.getKernel(method);
     const filtered = this.applyKernel(grayscale, width, height, kernel);
-    
+
     const variance = this.calculateVariance(filtered);
     const maxValue = Math.max(...filtered);
     const meanValue = this.calculateMean(filtered);
@@ -306,7 +306,7 @@ export class BlurDetector {
     const varianceConfidence = Math.min(variance / threshold, 1);
     const edgeConfidence = Math.min(edgeCount / 1000, 1); // Normalisé
     const distanceConfidence = Math.abs(variance - threshold) / threshold;
-    
+
     return (varianceConfidence + edgeConfidence + (1 - distanceConfidence)) / 3;
   }
 
@@ -330,7 +330,7 @@ export class BlurDetector {
 
     for (const sample of sampleImages) {
       const analysis = await this.analyzeBlur(sample.imageData, sample.width, sample.height);
-      
+
       if (sample.isSharp) {
         sharpScores.push(analysis.score);
       } else {

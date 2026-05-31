@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -10,6 +10,7 @@ import { formatFileSize } from '../../lib/utils';
 import { Photo } from '../../types';
 import toast from 'react-hot-toast';
 import {
+  exportPhotoChaptersAsZip,
   exportPhotosAsZip,
   exportPhotosToDirectory,
   supportsDirectoryExport,
@@ -25,8 +26,11 @@ import {
   ExportPreset,
 } from '../../lib/export-presets';
 import { BookmarkPlus, Trash2, Download } from 'lucide-react';
+import { ConfirmationDialog } from '../../components/ui/confirmation-dialog';
 import { ExportFilterBar } from './components/ExportFilterBar';
 import { RenamePanel } from './components/RenamePanel';
+import { buildExportChapters } from './exportChapters';
+import { buildDuplicatePhotoIds, buildPhotosToExport } from './exportSelection';
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
@@ -40,7 +44,7 @@ const exportSchema = z.object({
   // Rename
   renamePattern: z.string(),
   // Filter mode
-  filterMode: z.enum(['all', 'picks-only', 'min-rating']),
+  filterMode: z.enum(['all', 'picks-only', 'favorites-only', 'min-rating']),
   minRating: z.number().min(1).max(5),
   // Watermark
   watermarkEnabled: z.boolean(),
@@ -63,6 +67,8 @@ const fsaAvailable = supportsDirectoryExport();
 function ExportTab() {
   const duplicateGroups = usePhotoStore((state) => state.duplicateGroups);
   const rejectedPhotoIds = usePhotoStore((state) => state.rejectedPhotoIds);
+  const pendingExportFilterMode = usePhotoStore((state) => state.pendingExportFilterMode);
+  const setPendingExportFilterMode = usePhotoStore((state) => state.setPendingExportFilterMode);
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
 
@@ -75,6 +81,7 @@ function ExportTab() {
   const refreshPresets = useCallback(() => setPresets(loadPresets()), []);
 
   const collections = usePhotoStore((state) => state.collections);
+  const collectionOrder = usePhotoStore((state) => state.collectionOrder);
   const activeCollectionId = usePhotoStore((state) => state.activeCollectionId);
   const allPhotos = usePhotoStore((state) => state.photos);
 
@@ -111,6 +118,12 @@ function ExportTab() {
     },
   });
 
+  useEffect(() => {
+    if (!pendingExportFilterMode) return;
+    form.setValue('filterMode', pendingExportFilterMode, { shouldDirty: true });
+    setPendingExportFilterMode(null);
+  }, [form, pendingExportFilterMode, setPendingExportFilterMode]);
+
   // ── Preset handlers (after form so no TDZ) ──────────────────────────────
   const handleLoadPreset = useCallback((id: string) => {
     const preset = presets.find((p) => p.id === id);
@@ -136,7 +149,14 @@ function ExportTab() {
     setShowSaveInput(false);
   }, [savePresetName, selectedPresetId, presets, form, refreshPresets]);
 
+  const [presetDeleteOpen, setPresetDeleteOpen] = useState(false);
+
   const handleDeletePreset = useCallback(() => {
+    if (!selectedPresetId) return;
+    setPresetDeleteOpen(true);
+  }, [selectedPresetId]);
+
+  const confirmDeletePreset = useCallback(() => {
     if (!selectedPresetId) return;
     const preset = presets.find((p) => p.id === selectedPresetId);
     deletePreset(selectedPresetId);
@@ -144,6 +164,8 @@ function ExportTab() {
     setSelectedPresetId('');
     toast.success(`Preset "${preset?.name ?? ''}" supprimé`);
   }, [selectedPresetId, presets, refreshPresets]);
+
+  const presetToDeleteName = presets.find((p) => p.id === selectedPresetId)?.name ?? '';
 
   const {
     includeRejected,
@@ -167,21 +189,17 @@ function ExportTab() {
 
   // ── Build photo list ──────────────────────────────────────────────────────
 
-  const buildPhotosToExport = (data: ExportFormData): Photo[] => {
-    const analyzedPhotos = activePhotos.filter((p) => p.analysis && !p.analysis.error);
-    const activePhotoIds = new Set(analyzedPhotos.map((p) => p.id));
-    const duplicatePhotoIds = new Set(
-      duplicateGroups
-        .filter((g) => g.photos.some((p) => activePhotoIds.has(p.id)))
-        .flatMap((g) => g.photos.map((p) => p.id))
-    );
-
-    return analyzedPhotos.filter((photo) => {
-      if ((rejectedPhotoIds.has(photo.id) || photo.analysis?.isRejected) && !data.includeRejected) return false;
-      if (duplicatePhotoIds.has(photo.id) && !data.includeDuplicates) return false;
-      if (data.filterMode === 'picks-only' && !photo.analysis?.isPick) return false;
-      if (data.filterMode === 'min-rating' && (photo.analysis?.rating ?? 0) < data.minRating) return false;
-      return true;
+  const buildPhotosToExportFromForm = (data: ExportFormData): Photo[] => {
+    return buildPhotosToExport({
+      photos: activePhotos,
+      duplicateGroups,
+      rejectedPhotoIds,
+      options: {
+        includeRejected: data.includeRejected,
+        includeDuplicates: data.includeDuplicates,
+        filterMode: data.filterMode,
+        minRating: data.minRating,
+      },
     });
   };
 
@@ -192,34 +210,70 @@ function ExportTab() {
 
   const exportStats = useMemo(() => {
     const analyzedPhotos = activePhotos.filter((p) => p.analysis && !p.analysis.error);
-    const activePhotoIds = new Set(analyzedPhotos.map((p) => p.id));
-    const duplicatePhotoIds = new Set(
-      duplicateGroups
-        .filter((g) => g.photos.some((p) => activePhotoIds.has(p.id)))
-        .flatMap((g) => g.photos.map((p) => p.id))
-    );
-
-    const photos = analyzedPhotos.filter((photo) => {
-      if (rejectedPhotoIds.has(photo.id) && !includeRejected) return false;
-      if (duplicatePhotoIds.has(photo.id) && !includeDuplicates) return false;
-      if (filterModeWatch === 'picks-only' && !photo.analysis?.isPick) return false;
-      if (filterModeWatch === 'min-rating' && (photo.analysis?.rating ?? 0) < minRatingWatch) return false;
-      return true;
+    const photos = buildPhotosToExport({
+      photos: activePhotos,
+      duplicateGroups,
+      rejectedPhotoIds,
+      options: {
+        includeRejected,
+        includeDuplicates,
+        filterMode: filterModeWatch,
+        minRating: minRatingWatch,
+      },
     });
 
     const totalSize = photos.reduce((sum, p) => sum + p.file.size, 0);
+    const duplicatePhotoIds = buildDuplicatePhotoIds(analyzedPhotos, duplicateGroups);
     const duplicatesCount = duplicateGroups.filter((g) =>
-      g.photos.some((p) => activePhotoIds.has(p.id))
+      g.photos.some((p) => duplicatePhotoIds.has(p.id))
     ).length;
     const rejectedCount = photos.filter((p) => rejectedPhotoIds.has(p.id) || p.analysis?.isRejected).length;
 
     return { count: photos.length, totalSize, duplicates: duplicatesCount, rejected: rejectedCount };
   }, [activePhotos, duplicateGroups, rejectedPhotoIds, includeRejected, includeDuplicates, filterModeWatch, minRatingWatch]);
 
+  // A-31 : nombre réel de photos exportables par chapitres (selon les filtres courants),
+  // pour ne pas activer le bouton si rien n'est exportable.
+  const exportableChapterCount = useMemo(() => {
+    const chapters = buildExportChapters({
+      photos: allPhotos,
+      collections,
+      collectionOrder,
+      duplicateGroups,
+      rejectedPhotoIds,
+      options: {
+        includeRejected,
+        includeDuplicates,
+        filterMode: filterModeWatch,
+        minRating: minRatingWatch,
+      },
+    });
+    return chapters.reduce((sum, c) => sum + c.photos.length, 0);
+  }, [allPhotos, collections, collectionOrder, duplicateGroups, rejectedPhotoIds, includeRejected, includeDuplicates, filterModeWatch, minRatingWatch]);
+
   // ── Handle submit ─────────────────────────────────────────────────────────
 
+  // A-29 : feedback honnête succès complet / partiel / échec total.
+  const reportExportResult = (
+    result: { exported: number; failed: number; failedNames: string[] },
+    mode: 'ZIP' | 'dossier' | 'chapitres',
+  ) => {
+    if (result.failed === 0) {
+      toast.success(`Export ${mode} terminé : ${result.exported} photo${result.exported > 1 ? 's' : ''}.`);
+    } else if (result.exported === 0) {
+      toast.error(`Échec de l'export : aucune des ${result.failed} photos n'a pu être traitée.`);
+    } else {
+      const sample = result.failedNames.slice(0, 3).join(', ');
+      const more = result.failedNames.length > 3 ? ` (+${result.failedNames.length - 3})` : '';
+      toast(
+        `Export ${mode} terminé avec ${result.failed} erreur(s) — ${result.exported} réussie(s). Échecs : ${sample}${more}`,
+        { icon: '⚠️', duration: 7000 },
+      );
+    }
+  };
+
   const handleExport = async (data: ExportFormData) => {
-    const photosToExport = buildPhotosToExport(data);
+    const photosToExport = buildPhotosToExportFromForm(data);
     if (photosToExport.length === 0) {
       toast.error('Aucune photo à exporter');
       return;
@@ -246,15 +300,15 @@ function ExportTab() {
     };
 
     try {
+      let result: { exported: number; failed: number; failedNames: string[] };
       if (fsaAvailable) {
-        await exportPhotosToDirectory(photosToExport, options, (p) => setExportProgress(p));
-        toast.success(`Export terminé ! ${photosToExport.length} photos écrites dans le dossier.`);
+        result = await exportPhotosToDirectory(photosToExport, options, (p) => setExportProgress(p));
       } else {
-        const zipBlob = await exportPhotosAsZip(photosToExport, options, (p) => setExportProgress(p));
-        const fileName = generateZipFileName(activeCollection?.name);
-        downloadBlob(zipBlob, fileName);
-        toast.success(`Export terminé ! ${photosToExport.length} photos exportées.`);
+        const zipResult = await exportPhotosAsZip(photosToExport, options, (p) => setExportProgress(p));
+        downloadBlob(zipResult.blob, generateZipFileName(activeCollection?.name));
+        result = zipResult;
       }
+      reportExportResult(result, fsaAvailable ? 'dossier' : 'ZIP');
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return;
       toast.error("Erreur lors de l'export");
@@ -266,6 +320,59 @@ function ExportTab() {
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
+
+  const handleExportByChapters = async () => {
+    const data = form.getValues();
+    const chapters = buildExportChapters({
+      photos: allPhotos,
+      collections,
+      collectionOrder,
+      duplicateGroups,
+      rejectedPhotoIds,
+      options: {
+        includeRejected: data.includeRejected,
+        includeDuplicates: data.includeDuplicates,
+        filterMode: data.filterMode,
+        minRating: data.minRating,
+      },
+    });
+
+    if (chapters.length === 0) {
+      toast.error('Aucun chapitre à exporter');
+      return;
+    }
+
+    const options = {
+      format: data.format,
+      quality: data.quality,
+      maxWidth: data.maxWidth,
+      maxHeight: data.maxHeight,
+      renamePattern: data.renamePattern || undefined,
+      watermark: data.watermarkEnabled && data.watermarkText.trim()
+        ? {
+            text: data.watermarkText,
+            position: data.watermarkPosition as WatermarkPosition,
+            size: data.watermarkSize,
+            opacity: data.watermarkOpacity,
+            color: data.watermarkColor,
+          }
+        : undefined,
+    };
+
+    try {
+      setIsExporting(true);
+      setExportProgress(0);
+      const result = await exportPhotoChaptersAsZip(chapters, options, (p) => setExportProgress(p));
+      downloadBlob(result.blob, generateZipFileName('chapitres-mariage'));
+      reportExportResult(result, 'chapitres');
+    } catch (error) {
+      toast.error("Erreur lors de l'export par chapitres");
+      console.error('Chapter export error:', error);
+    } finally {
+      setIsExporting(false);
+      setExportProgress(0);
+    }
+  };
 
   return (
     <motion.div
@@ -515,6 +622,7 @@ function ExportTab() {
                 [
                   { value: 'all', label: 'Toutes les photos analysées' },
                   { value: 'picks-only', label: 'Picks uniquement 🎯' },
+                  { value: 'favorites-only', label: 'Favorites uniquement' },
                   { value: 'min-rating', label: 'Note minimale ★' },
                 ] as const
               ).map(({ value, label }) => (
@@ -675,6 +783,17 @@ function ExportTab() {
           </p>
         )}
         <Button
+          type="button"
+          variant="outline"
+          disabled={isExporting || exportableChapterCount === 0}
+          onClick={handleExportByChapters}
+          className="min-w-[210px] gap-2"
+          title={exportableChapterCount === 0 ? 'Aucune photo exportable par chapitres avec les filtres actuels' : undefined}
+        >
+          <Download className="w-4 h-4" />
+          Exporter par chapitres{exportableChapterCount > 0 ? ` (${exportableChapterCount})` : ''}
+        </Button>
+        <Button
           form="export-form"
           type="submit"
           disabled={isExporting || exportStats.count === 0}
@@ -709,6 +828,17 @@ function ExportTab() {
           </CardContent>
         </Card>
       )}
+
+      <ConfirmationDialog
+        open={presetDeleteOpen}
+        onOpenChange={setPresetDeleteOpen}
+        onConfirm={confirmDeletePreset}
+        title="Supprimer ce preset d'export ?"
+        description={`Le preset « ${presetToDeleteName} » sera définitivement supprimé. Cette action est irréversible.`}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        variant="destructive"
+      />
     </motion.div>
   );
 }

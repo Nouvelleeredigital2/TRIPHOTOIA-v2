@@ -11,7 +11,7 @@ interface OnboardingStep {
 
 const ONBOARDING_STEPS: OnboardingStep[] = [
   {
-    title: 'Bienvenue dans TRIPHOTOIA ! 👋',
+    title: 'Bienvenue dans Tree Photo IA ! 👋',
     description: 'Votre assistant intelligent pour trier et organiser vos photos. Laissez-nous vous guider à travers les fonctionnalités principales.',
   },
   {
@@ -36,11 +36,11 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     title: 'Prêt à commencer ! 🚀',
-    description: 'Vous êtes maintenant prêt à utiliser TRIPHOTOIA. Commencez par créer votre première collection puis importer vos photos.',
+    description: 'Vous êtes maintenant prêt à utiliser Tree Photo IA. Commencez par créer votre première collection puis importer vos photos.',
   },
 ];
 
-const ONBOARDING_KEY = 'triphotoia-onboarding-completed';
+const ONBOARDING_KEY = 'treephoto-onboarding-completed';
 
 export function Onboarding() {
   const [isOpen, setIsOpen] = useState(false);

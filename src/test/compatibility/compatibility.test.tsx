@@ -1,33 +1,30 @@
 ﻿import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '../test-utils';
-import App from '../../App';
+import { renderApp, screen, fireEvent } from '../test-utils';
 
 describe('Compatibility Tests', () => {
-  it('should work with different screen sizes', () => {
+  it('should work with different screen sizes', async () => {
     // Test mobile viewport
     Object.defineProperty(window, 'innerWidth', { value: 375 });
     Object.defineProperty(window, 'innerHeight', { value: 667 });
-    
-    render(<App />);
-    expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
-    
+
+    await renderApp();
+    expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
+
     // Test tablet viewport
     Object.defineProperty(window, 'innerWidth', { value: 768 });
     Object.defineProperty(window, 'innerHeight', { value: 1024 });
-    
-    render(<App />);
-    expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
-    
+    fireEvent.resize(window);
+    expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
+
     // Test desktop viewport
     Object.defineProperty(window, 'innerWidth', { value: 1920 });
     Object.defineProperty(window, 'innerHeight', { value: 1080 });
-    
-    render(<App />);
-    expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
+    fireEvent.resize(window);
+    expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
   });
 
-  it('should work with different browsers', () => {
+  it('should work with different browsers', async () => {
     // Mock different user agents
     const userAgents = [
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
@@ -36,57 +33,61 @@ describe('Compatibility Tests', () => {
       'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
     ];
 
-    userAgents.forEach(userAgent => {
+    for (const userAgent of userAgents) {
       Object.defineProperty(navigator, 'userAgent', { configurable: true, writable: true, value: userAgent });
 
-      render(<App />);
-      expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
-    });
+      await renderApp();
+      expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
+    }
   });
 
-  it('should work with different operating systems', () => {
+  it('should work with different operating systems', async () => {
     const platforms = ['Win32', 'MacIntel', 'Linux x86_64'];
 
-    platforms.forEach(platform => {
+    for (const platform of platforms) {
       Object.defineProperty(navigator, 'platform', { configurable: true, writable: true, value: platform });
 
-      render(<App />);
-      expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
-    });
+      await renderApp();
+      expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
+    }
   });
 
-  it('should work with different languages', () => {
+  it('should work with different languages', async () => {
     const languages = ['en-US', 'fr-FR', 'es-ES', 'de-DE'];
 
-    languages.forEach(language => {
+    for (const language of languages) {
       Object.defineProperty(navigator, 'language', { configurable: true, writable: true, value: language });
 
-      render(<App />);
-      expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
-    });
+      await renderApp();
+      expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
+    }
   });
 
-  it('should work with different time zones', () => {
+  it('should work with different time zones', async () => {
     const timeZones = ['America/New_York', 'Europe/London', 'Asia/Tokyo', 'Australia/Sydney'];
-    
-    timeZones.forEach(timeZone => {
+
+    for (const timeZone of timeZones) {
       const originalDateTimeFormat = Intl.DateTimeFormat;
       const spy = vi.spyOn(Intl, 'DateTimeFormat').mockImplementation((locales, options) => {
         return new originalDateTimeFormat(locales, { ...options, timeZone });
       });
 
-      render(<App />);
-      expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
+      await renderApp();
+      expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
 
       spy.mockRestore();
-    });
+    }
   });
 
-  it('should work with different input methods', () => {
-    render(<App />);
+  it('should work with different input methods', async () => {
+    await renderApp();
 
     // Test keyboard navigation
-    const tabs = screen.getAllByRole('button');
+    const tabs = [
+      screen.getByRole('button', { name: /ingestion/i }),
+      screen.getByRole('button', { name: /triage/i }),
+      screen.getByRole('button', { name: /exportation/i }),
+    ];
     tabs[0].focus();
     expect(document.activeElement).toBe(tabs[0]);
 
@@ -99,7 +100,7 @@ describe('Compatibility Tests', () => {
     expect(tabs[2]).toBeInTheDocument();
   });
 
-  it('should work with different accessibility settings', () => {
+  it('should work with different accessibility settings', async () => {
     // Test with reduced motion
     Object.defineProperty(window, 'matchMedia', {
       value: vi.fn().mockImplementation(query => ({
@@ -113,10 +114,10 @@ describe('Compatibility Tests', () => {
         dispatchEvent: vi.fn(),
       })),
     });
-    
-    render(<App />);
-    expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
-    
+
+    await renderApp();
+    expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
+
     // Test with high contrast
     Object.defineProperty(window, 'matchMedia', {
       value: vi.fn().mockImplementation(query => ({
@@ -130,51 +131,51 @@ describe('Compatibility Tests', () => {
         dispatchEvent: vi.fn(),
       })),
     });
-    
-    render(<App />);
-    expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
+
+    await renderApp();
+    expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
   });
 
-  it('should work with different network conditions', () => {
+  it('should work with different network conditions', async () => {
     // Test offline mode
     Object.defineProperty(navigator, 'onLine', { configurable: true, writable: true, value: false });
 
-    render(<App />);
-    expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
+    await renderApp();
+    expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
 
     // Test online mode
     Object.defineProperty(navigator, 'onLine', { configurable: true, writable: true, value: true });
 
-    render(<App />);
-    expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
+    await renderApp();
+    expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
   });
 
-  it('should work with different memory constraints', () => {
+  it('should work with different memory constraints', async () => {
     // Mock low memory device
     Object.defineProperty(navigator, 'deviceMemory', { configurable: true, writable: true, value: 2 });
 
-    render(<App />);
-    expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
+    await renderApp();
+    expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
 
     // Mock high memory device
     Object.defineProperty(navigator, 'deviceMemory', { configurable: true, writable: true, value: 8 });
 
-    render(<App />);
-    expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
+    await renderApp();
+    expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
   });
 
-  it('should work with different connection types', () => {
+  it('should work with different connection types', async () => {
     const connectionTypes = ['slow-2g', '2g', '3g', '4g', '5g'];
-    
-    connectionTypes.forEach(connectionType => {
+
+    for (const connectionType of connectionTypes) {
       // Mock connection type
       Object.defineProperty(navigator, 'connection', {
         value: { effectiveType: connectionType },
         writable: true,
       });
-      
-      render(<App />);
-      expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
-    });
+
+      await renderApp();
+      expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
+    }
   });
 });

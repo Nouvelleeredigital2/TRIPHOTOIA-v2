@@ -25,18 +25,18 @@ export function DuplicateComparison({ group, open, onOpenChange }: DuplicateComp
   // Calculer la similarité entre deux hash
   const calculateSimilarity = (hash1: string, hash2: string): number => {
     if (!hash1 || !hash2 || hash1.length !== hash2.length) return 0;
-    
+
     let matches = 0;
     for (let i = 0; i < hash1.length; i++) {
       if (hash1[i] === hash2[i]) matches++;
     }
-    
+
     return Math.round((matches / hash1.length) * 100);
   };
 
   const handleDeleteOthers = () => {
     const photosToDelete = group.photos.filter(p => p.id !== bestPhotoId);
-    
+
     if (photosToDelete.length === 0) {
       toast.error('Aucune photo à supprimer');
       return;
@@ -56,7 +56,7 @@ export function DuplicateComparison({ group, open, onOpenChange }: DuplicateComp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto" description="Comparaison côte à côte des photos en doublon pour choisir laquelle conserver.">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span>Comparaison des doublons - Groupe {group.id.slice(-8)}</span>
@@ -86,8 +86,8 @@ export function DuplicateComparison({ group, open, onOpenChange }: DuplicateComp
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className={`relative rounded-lg border-2 transition-all ${
-                  isBest 
-                    ? 'border-green-500 shadow-lg shadow-green-500/20' 
+                  isBest
+                    ? 'border-green-500 shadow-lg shadow-green-500/20'
                     : isSelected
                     ? 'border-primary shadow-lg'
                     : 'border-border hover:border-primary/50'
@@ -101,7 +101,7 @@ export function DuplicateComparison({ group, open, onOpenChange }: DuplicateComp
                     alt={photo.file.name}
                     className="w-full h-full object-cover"
                   />
-                  
+
                   {/* Overlay avec actions */}
                   <div className="absolute inset-0 bg-black/0 hover:bg-black/40 transition-all group">
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">

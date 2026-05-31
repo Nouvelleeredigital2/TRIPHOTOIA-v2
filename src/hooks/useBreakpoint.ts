@@ -9,7 +9,7 @@ export function useBreakpoint() {
   useEffect(() => {
     const updateBreakpoint = () => {
       const width = window.innerWidth;
-      
+
       if (width >= 1536) setCurrentBreakpoint('2xl');
       else if (width >= 1280) setCurrentBreakpoint('xl');
       else if (width >= 1024) setCurrentBreakpoint('lg');
@@ -20,7 +20,7 @@ export function useBreakpoint() {
 
     updateBreakpoint();
     window.addEventListener('resize', updateBreakpoint);
-    
+
     return () => window.removeEventListener('resize', updateBreakpoint);
   }, []);
 

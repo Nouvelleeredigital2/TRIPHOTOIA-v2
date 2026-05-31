@@ -1,10 +1,10 @@
 import React, { ReactElement } from 'react';
-import { render, RenderOptions } from '@testing-library/react';
+import { render, RenderOptions, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { vi, beforeEach } from 'vitest';
+import { vi, beforeEach, afterEach } from 'vitest';
 
 // Mock the store
-const mockStore = {
+export const mockStore = {
   // ── State ─────────────────────────────────────────────────────────────────
   photos: [],
   analysisQueue: [],
@@ -13,6 +13,7 @@ const mockStore = {
   stopProcessing: false,
   processedCount: 0,
   activeTab: 'ingestion' as 'ingestion' | 'triage' | 'export',
+  pendingExportFilterMode: null as 'all' | 'picks-only' | 'favorites-only' | 'min-rating' | null,
   selectedPhotoId: null,
   userTags: {},
   bestPhotoOverrides: {},
@@ -49,6 +50,9 @@ const mockStore = {
   setActiveTab: vi.fn((tab: 'ingestion' | 'triage' | 'export') => {
     mockStore.activeTab = tab;
   }),
+  setPendingExportFilterMode: vi.fn((mode: 'all' | 'picks-only' | 'favorites-only' | 'min-rating' | null) => {
+    mockStore.pendingExportFilterMode = mode;
+  }),
   setSelectedPhotoId: vi.fn(),
   updatePhotoAnalysis: vi.fn((id: string, analysis: any) => {
     const idx = mockStore.photos.findIndex((p: any) => p.id === id);
@@ -75,6 +79,7 @@ const mockStore = {
   setColorLabel: vi.fn(),
   // Collections
   createCollection: vi.fn(),
+  applyWeddingTemplate: vi.fn(() => []),
   deleteCollection: vi.fn(),
   renameCollection: vi.fn(),
   addPhotosToCollection: vi.fn(),
@@ -105,6 +110,13 @@ beforeEach(() => {
   mockStore.isProcessing = false;
   mockStore.processedCount = 0;
   mockStore.activeTab = 'ingestion';
+  mockStore.pendingExportFilterMode = null;
+});
+
+afterEach(async () => {
+  await act(async () => {
+    await Promise.resolve();
+  });
 });
 
 // usePhotoStore.getState() is called in App.tsx for imperative mutations
@@ -145,7 +157,12 @@ vi.mock('../features/ingestion/IngestionTab', () => ({
 }));
 
 vi.mock('../features/triage/TriageTab', () => ({
-  default: () => <div>Triage Tab</div>,
+  default: ({ onOpenAutoFlow }: { onOpenAutoFlow?: (photoIds?: string[]) => void }) => (
+    <div>
+      Triage Tab
+      <button onClick={() => onOpenAutoFlow?.(['visible-1'])}>Open filtered AutoFlow</button>
+    </div>
+  ),
 }));
 
 vi.mock('../features/export/ExportTab', () => ({
@@ -178,6 +195,20 @@ export function renderWithProviders(
   }
 
   return { ...render(ui, { wrapper: Wrapper, ...renderOptions }), queryClient };
+}
+
+// App lazy-loads its tab components via React.lazy/Suspense. Rendering it and
+// asserting synchronously makes the lazy promises resolve outside act(), which
+// floods tests with act() warnings. renderApp wraps the render in an async act so
+// the Suspense resolution is flushed inside act. Use `await renderApp()` instead
+// of `render(<App />)`.
+export async function renderApp(options: CustomRenderOptions = {}) {
+  const { default: App } = await import('../App');
+  let result: ReturnType<typeof renderWithProviders> | undefined;
+  await act(async () => {
+    result = renderWithProviders(<App />, options);
+  });
+  return result!;
 }
 
 export * from '@testing-library/react';

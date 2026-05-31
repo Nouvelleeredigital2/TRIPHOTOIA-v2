@@ -7,7 +7,7 @@
 
 import { Photo, PhotoAnalysis, PhotoCollection, DuplicateGroup } from '../types';
 
-const DB_NAME = 'triphotoia-catalogue';
+const DB_NAME = 'treephoto-catalogue';
 const DB_VERSION = 1;
 const STORE_PHOTOS = 'photos';
 const STORE_META = 'meta';
@@ -107,14 +107,12 @@ export interface CatalogueState {
 export async function saveFullCatalogue(state: CatalogueState): Promise<void> {
   try {
     const db = await openDb();
-    const tx = db.transaction([STORE_PHOTOS, STORE_META], 'readwrite');
-    const photoStore = tx.objectStore(STORE_PHOTOS);
-    const metaStore = tx.objectStore(STORE_META);
 
-    // Vider les photos existantes
-    await idbReq(photoStore.clear());
-
-    // Sauvegarder chaque photo (fichier + analyse)
+    // IMPORTANT : lire TOUS les ArrayBuffers AVANT d'ouvrir la transaction IDB.
+    // Une transaction IndexedDB se referme automatiquement dès qu'aucune requête
+    // IDB n'est en attente ; un `await` sur une promesse non-IDB (file.arrayBuffer())
+    // au milieu d'une transaction la fait expirer → TransactionInactiveError.
+    const persistedPhotos: PersistedPhoto[] = [];
     for (const photo of state.photos) {
       let data: ArrayBuffer;
       try {
@@ -122,8 +120,7 @@ export async function saveFullCatalogue(state: CatalogueState): Promise<void> {
       } catch {
         continue; // Fichier inaccessible, on skip
       }
-
-      const persisted: PersistedPhoto = {
+      persistedPhotos.push({
         id: photo.id,
         name: photo.file.name,
         type: photo.file.type,
@@ -131,11 +128,9 @@ export async function saveFullCatalogue(state: CatalogueState): Promise<void> {
         lastModified: photo.file.lastModified,
         data,
         analysis: photo.analysis,
-      };
-      await idbReq(photoStore.put(persisted));
+      });
     }
 
-    // Sauvegarder les métadonnées
     const meta: { key: string; value: CatalogueMeta } = {
       key: META_KEY_CATALOGUE,
       value: {
@@ -153,7 +148,19 @@ export async function saveFullCatalogue(state: CatalogueState): Promise<void> {
         savedAt: new Date().toISOString(),
       },
     };
-    await idbReq(metaStore.put(meta));
+
+    // Maintenant la transaction : uniquement des opérations IDB, aucun await
+    // non-IDB entre elles, donc la transaction reste active jusqu'au commit.
+    const tx = db.transaction([STORE_PHOTOS, STORE_META], 'readwrite');
+    const photoStore = tx.objectStore(STORE_PHOTOS);
+    const metaStore = tx.objectStore(STORE_META);
+
+    photoStore.clear();
+    for (const persisted of persistedPhotos) {
+      photoStore.put(persisted);
+    }
+    metaStore.put(meta);
+
     await txDone(tx);
   } catch (error) {
     console.warn('[catalogue-persistence] saveFullCatalogue failed:', error);
@@ -232,7 +239,11 @@ export async function loadFullCatalogue(): Promise<CatalogueState | null> {
   }
 }
 
-export async function clearFullCatalogue(): Promise<void> {
+/**
+ * Vide le catalogue IDB. Renvoie true si la suppression a réussi, false sinon —
+ * pour que l'appelant n'annonce « catalogue effacé » qu'en cas de succès réel (A-49).
+ */
+export async function clearFullCatalogue(): Promise<boolean> {
   try {
     const db = await openDb();
     const tx = db.transaction([STORE_PHOTOS, STORE_META], 'readwrite');
@@ -241,7 +252,9 @@ export async function clearFullCatalogue(): Promise<void> {
       idbReq(tx.objectStore(STORE_META).clear()),
     ]);
     await txDone(tx);
+    return true;
   } catch (error) {
     console.warn('[catalogue-persistence] clearFullCatalogue failed:', error);
+    return false;
   }
 }

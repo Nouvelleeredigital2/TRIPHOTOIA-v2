@@ -148,7 +148,7 @@ export function downloadReportJSON(report: AnalysisReport): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `triphotoia-rapport-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `treephoto-rapport-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -188,7 +188,7 @@ export function printReportHTML(report: AnalysisReport): void {
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Rapport TRIPHOTOIA — ${date}</title>
+  <title>Rapport Tree Photo IA — ${date}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #111; background: #fff; padding: 40px; max-width: 960px; margin: auto; }
@@ -208,7 +208,7 @@ export function printReportHTML(report: AnalysisReport): void {
   </style>
 </head>
 <body>
-  <h1>Rapport d'analyse — TRIPHOTOIA</h1>
+  <h1>Rapport d'analyse — Tree Photo IA</h1>
   <p class="subtitle">Généré le ${date}</p>
 
   <div class="grid">

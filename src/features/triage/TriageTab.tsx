@@ -20,12 +20,14 @@ import { ConfirmationDialog } from '../../components/ui/confirmation-dialog';
 import { PhotoDetailPanel } from '../../components/PhotoDetailPanel';
 import { AnimatePresence } from 'framer-motion';
 import { CullingView } from '../../components/CullingView';
+import {
+  isFavoritePhoto,
+  isReviewPhoto,
+  TriageFilterType,
+  TriageSortKey,
+} from './triageFilters';
 
-type FilterType = 'all' | 'duplicates' | 'rejected' | 'selected' | 'blurry' | 'picks' | `color:${ColorLabel}` | `stars:${number}`;
-
-type SortKey = 'default' | 'rating-desc' | 'rating-asc' | 'sharpness-desc' | 'name-asc' | 'name-desc' | 'size-desc';
-
-const SORT_LABELS: Record<SortKey, string> = {
+const SORT_LABELS: Record<TriageSortKey, string> = {
   'default':        'Par défaut',
   'rating-desc':    'Note ↓',
   'rating-asc':     'Note ↑',
@@ -35,7 +37,11 @@ const SORT_LABELS: Record<SortKey, string> = {
   'size-desc':      'Poids ↓',
 };
 
-function TriageTab() {
+interface TriageTabProps {
+  onOpenAutoFlow?: (photoIds?: string[]) => void;
+}
+
+function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
   const duplicateGroups = usePhotoStore((state) => state.duplicateGroups);
   const selectedPhotoId = usePhotoStore((state) => state.selectedPhotoId);
   const rejectedPhotoIds = usePhotoStore((state) => state.rejectedPhotoIds);
@@ -51,6 +57,7 @@ function TriageTab() {
   const setActiveSmartCollection = usePhotoStore((state) => state.setActiveSmartCollection);
   const collections = usePhotoStore((state) => state.collections);
   const allPhotos = usePhotoStore((state) => state.photos);
+  const userTags = usePhotoStore((state) => state.userTags);
   const developmentSelection = usePhotoStore((state) => state.developmentSelection);
   const toggleDevelopmentSelection = usePhotoStore((state) => state.toggleDevelopmentSelection);
   const clearDevelopmentSelection = usePhotoStore((state) => state.clearDevelopmentSelection);
@@ -60,6 +67,7 @@ function TriageTab() {
   const togglePhotoReject = usePhotoStore((state) => state.togglePhotoReject);
   const unflagPhoto = usePhotoStore((state) => state.unflagPhoto);
   const removePhoto = usePhotoStore((state) => state.removePhoto);
+  const undo = usePhotoStore((state) => state.undo);
   const setColorLabel = usePhotoStore((state) => state.setColorLabel);
   const setActiveTab = usePhotoStore((state) => state.setActiveTab);
   const pasteMetadata = usePhotoStore((state) => state.pasteMetadata);
@@ -78,7 +86,7 @@ function TriageTab() {
   const activePhotos = useMemo(() => {
     // Smart collection active : filtrer directement toutes les photos
     if (activeSC) {
-      return allPhotos.filter((p) => matchesRule(p, activeSC.rule));
+      return allPhotos.filter((p) => matchesRule(p, activeSC.rule, { duplicateGroups, rejectedPhotoIds }));
     }
     if (!activeCollection) {
       return allPhotos;
@@ -87,7 +95,7 @@ function TriageTab() {
     return activeCollection.photoIds
       .map((id) => photoMap.get(id))
       .filter((photo): photo is Photo => Boolean(photo));
-  }, [activeCollection, allPhotos, activeSC]);
+  }, [activeCollection, allPhotos, activeSC, duplicateGroups, rejectedPhotoIds]);
 
   const collectionPhotoIds = useMemo(() => new Set<string>(activeCollection?.photoIds ?? []), [activeCollection?.photoIds]);
 
@@ -115,9 +123,11 @@ function TriageTab() {
     await startRetouchSession(photoIds);
   };
 
-  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [activeFilter, setActiveFilter] = useState<TriageFilterType>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortKey, setSortKey] = useState<SortKey>('default');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [sortKey, setSortKey] = useState<TriageSortKey>('default');
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
   const [singleDeleteConfirmOpen, setSingleDeleteConfirmOpen] = useState(false);
@@ -132,7 +142,7 @@ function TriageTab() {
 
   // Auto-avance (Caps Lock mode) — persisté en localStorage
   const [autoAdvance, setAutoAdvance] = useState<boolean>(
-    () => localStorage.getItem('triphotoia_autoAdvance') === 'true'
+    () => localStorage.getItem('treephoto_autoAdvance') === 'true'
   );
   const autoAdvanceRef = useRef(autoAdvance);
   useEffect(() => { autoAdvanceRef.current = autoAdvance; }, [autoAdvance]);
@@ -165,6 +175,12 @@ function TriageTab() {
   const [metaClipboard, setMetaClipboard] = useState<MetaClipboard | null>(null);
 
   // Drag-and-drop reorder (collection mode only)
+  // A-12 : la réorganisation n'a de sens que sur la collection COMPLÈTE et ordonnée.
+  // Dès qu'un filtre, une recherche ou une smart collection est actif, la vue est un
+  // sous-ensemble : réordonner modifierait l'ordre global de façon trompeuse. On désactive
+  // donc le glisser-déposer dans ces cas.
+  const canReorderCollection =
+    activeFilter === 'all' && !searchTerm.trim() && !activeSmartCollectionId && !!activeCollection;
   const dragIdRef = useRef<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
@@ -183,7 +199,7 @@ function TriageTab() {
     const sourceId = dragIdRef.current;
     setDragOverId(null);
     dragIdRef.current = null;
-    if (!sourceId || sourceId === targetId || !activeCollectionId) return;
+    if (!sourceId || sourceId === targetId || !activeCollectionId || !canReorderCollection) return;
     const collections = usePhotoStore.getState().collections;
     const col = collections[activeCollectionId];
     if (!col) return;
@@ -218,12 +234,12 @@ function TriageTab() {
   // Actions batch
   // Persistance auto-avance
   useEffect(() => {
-    localStorage.setItem('triphotoia_autoAdvance', String(autoAdvance));
+    localStorage.setItem('treephoto_autoAdvance', String(autoAdvance));
   }, [autoAdvance]);
 
   // Copier / coller métadonnées
   const handleCopyMeta = useCallback(() => {
-    const photo = filteredPhotos.find((p) => p.id === selectedPhotoId);
+    const photo = activePhotos.find((p) => p.id === selectedPhotoId);
     if (!photo?.analysis) { toast.error('Aucune photo sélectionnée'); return; }
     const { rating, isPick, isRejected, colorLabel } = photo.analysis;
     setMetaClipboard({ rating, isPick, isRejected, colorLabel: colorLabel ?? null });
@@ -233,7 +249,7 @@ function TriageTab() {
     if (isRejected) parts.push('Rejeté');
     if (colorLabel) parts.push(colorLabel);
     toast.success(`Copié : ${parts.length ? parts.join(' · ') : 'aucune métadonnée'}`);
-  }, [filteredPhotos, selectedPhotoId]);
+  }, [activePhotos, selectedPhotoId]);
 
   const handlePasteMeta = useCallback(() => {
     if (!metaClipboard) { toast.error('Presse-papier vide — copiez d\'abord (Ctrl+Shift+C)'); return; }
@@ -271,12 +287,15 @@ function TriageTab() {
 
   const handleBulkColorLabel = (label: ColorLabel | null) => {
     // force=true ensures consistent apply (no toggle) across all selected photos
+    const count = triageMultiSelection.size;
     triageMultiSelection.forEach((id) => setColorLabel(id, label, true));
     toast.success(
       label
-        ? `Label ${label} appliqué à ${triageMultiSelection.size} photo(s)`
-        : `Label retiré de ${triageMultiSelection.size} photo(s)`
+        ? `Label ${label} appliqué à ${count} photo(s)`
+        : `Label retiré de ${count} photo(s)`
     );
+    // A-21 : cohérence avec les autres actions en lot — on vide la sélection après application.
+    handleClearMultiSelection();
   };
 
   const handleBulkDelete = () => {
@@ -286,8 +305,37 @@ function TriageTab() {
   const confirmBulkDelete = () => {
     const count = triageMultiSelection.size;
     triageMultiSelection.forEach((id) => removePhoto(id));
-    toast.success(`${count} photo${count > 1 ? 's' : ''} supprimée${count > 1 ? 's' : ''}`);
     handleClearMultiSelection();
+    showDeletedToast(count);
+  };
+
+  // Toast « Annuler » exploitant la pile undo (A-22). Une suppression en lot empile
+  // `count` actions DELETE_PHOTO ; l'annulation les rejoue toutes.
+  const showDeletedToast = (count: number) => {
+    toast(
+      (t) => (
+        <span className="flex items-center gap-3">
+          {count} photo{count > 1 ? 's' : ''} supprimée{count > 1 ? 's' : ''}
+          <button
+            onClick={() => {
+              // N'annule que les suppressions, et seulement si elles sont encore au sommet
+              // de la pile (si l'utilisateur a fait d'autres actions entre-temps, on
+              // n'écrase pas ces actions — voir audit).
+              for (let i = 0; i < count; i++) {
+                const stack = usePhotoStore.getState().undoStack;
+                if (stack[stack.length - 1]?.type !== 'DELETE_PHOTO') break;
+                undo();
+              }
+              toast.dismiss(t.id);
+            }}
+            className="px-2 py-0.5 rounded bg-white/15 hover:bg-white/25 text-xs font-medium"
+          >
+            Annuler
+          </button>
+        </span>
+      ),
+      { duration: 6000, icon: '🗑️' },
+    );
   };
 
   const handleBulkAddToCollection = () => {
@@ -317,6 +365,10 @@ function TriageTab() {
       result = analyzedPhotos.filter((photo) => photo.analysis?.isBlurry === true);
     } else if (activeFilter === 'picks') {
       result = analyzedPhotos.filter((photo) => photo.analysis?.isPick === true);
+    } else if (activeFilter === 'favorites') {
+      result = analyzedPhotos.filter(isFavoritePhoto);
+    } else if (activeFilter === 'review') {
+      result = analyzedPhotos.filter((photo) => isReviewPhoto(photo, rejectedPhotoIds));
     } else if (activeFilter === 'rejected') {
       result = analyzedPhotos.filter((photo) => photo.analysis?.isRejected === true || rejectedPhotoIds.has(photo.id));
     } else if (activeFilter === 'selected') {
@@ -337,6 +389,7 @@ function TriageTab() {
       result = result.filter((photo) => {
         if (photo.file.name.toLowerCase().includes(q)) return true;
         if ((photo.analysis?.tags ?? []).some((t) => t.toLowerCase().includes(q))) return true;
+        if ((userTags[photo.id] ?? []).some((tag) => tag.toLowerCase().includes(q))) return true;
         // User tags (from store snapshot — accessed via photo key in state below)
         // EXIF fields: camera, lens, ISO, date, focal length
         const exif = photo.metadata?.exif as Record<string, unknown> | undefined;
@@ -352,6 +405,20 @@ function TriageTab() {
           if (searchable.includes(q)) return true;
         }
         return false;
+      });
+    }
+
+    if (dateFrom || dateTo) {
+      result = result.filter((photo) => {
+        const exif = photo.metadata?.exif as Record<string, unknown> | undefined;
+        const exifDate = typeof exif?.DateTimeOriginal === 'string'
+          ? exif.DateTimeOriginal.replace(/^(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3')
+          : null;
+        const timestamp = exifDate ? Date.parse(exifDate) : photo.lastModified;
+        if (typeof timestamp !== 'number' || Number.isNaN(timestamp)) return false;
+        if (dateFrom && timestamp < Date.parse(`${dateFrom}T00:00:00.000`)) return false;
+        if (dateTo && timestamp > Date.parse(`${dateTo}T23:59:59.999`)) return false;
+        return true;
       });
     }
 
@@ -371,7 +438,54 @@ function TriageTab() {
     }
 
     return result;
-  }, [activePhotos, duplicateGroups, rejectedPhotoIds, selectedPhotoId, activeFilter, searchTerm, sortKey]);
+  }, [activePhotos, duplicateGroups, rejectedPhotoIds, selectedPhotoId, activeFilter, searchTerm, sortKey, userTags, dateFrom, dateTo]);
+
+  // A-20 : garder la sélection multiple cohérente avec la vue. Dès que la liste visible
+  // change (filtre, recherche, collection, tri…), on retire de la sélection les photos qui
+  // ne sont plus visibles, pour qu'une action en lot ne s'applique jamais à une photo hors vue.
+  useEffect(() => {
+    setTriageMultiSelection((prev) => {
+      if (prev.size === 0) return prev;
+      const visible = new Set(filteredPhotos.map((p) => p.id));
+      let changed = false;
+      const next = new Set<string>();
+      prev.forEach((id) => {
+        if (visible.has(id)) next.add(id);
+        else changed = true;
+      });
+      return changed ? next : prev;
+    });
+  }, [filteredPhotos]);
+
+  // A-55 : état vide contextualisé (filtre actif vs collection vide vs rien d'analysé).
+  const hasActiveFilters =
+    activeFilter !== 'all' || !!searchTerm.trim() || !!dateFrom || !!dateTo || !!activeSmartCollectionId;
+
+  const resetFilters = () => {
+    setActiveFilter('all');
+    setSearchTerm('');
+    setDateFrom('');
+    setDateTo('');
+    setActiveSmartCollection(null);
+  };
+
+  const emptyState = (() => {
+    if (hasActiveFilters) {
+      return {
+        title: 'Aucune photo ne correspond',
+        subtitle: 'Aucun résultat pour ce filtre, cette recherche ou cette collection dynamique.',
+        showReset: true,
+      };
+    }
+    const analyzedCount = activePhotos.filter((p) => p.analysis && !p.analysis.error).length;
+    if (activePhotos.length === 0) {
+      return { title: 'Collection vide', subtitle: 'Ajoutez des photos à cette collection pour les trier ici.', showReset: false };
+    }
+    if (analyzedCount === 0) {
+      return { title: 'Aucune photo analysée', subtitle: "Lancez l'analyse depuis l'onglet Ingestion pour voir vos photos ici.", showReset: false };
+    }
+    return { title: 'Aucune photo à afficher', subtitle: '', showReset: false };
+  })();
 
   const handleSelectPhoto = (id: string) => {
     setSelectedPhotoId(selectedPhotoId === id ? null : id);
@@ -414,7 +528,7 @@ function TriageTab() {
       const selectedPhotos = Array.from(developmentSelection)
         .map(id => filteredPhotos.find(p => p.id === id))
         .filter((p): p is Photo => p !== undefined);
-      
+
       if (selectedPhotos.length >= 2) {
         setComparisonPhotos([selectedPhotos[0], selectedPhotos[1]]);
         setComparisonOpen(true);
@@ -512,6 +626,8 @@ function TriageTab() {
   const stats = useMemo(() => {
     const analyzedPhotos = activePhotos.filter((p) => p.analysis && !p.analysis.error);
     const picksPhotos = analyzedPhotos.filter((p) => p.analysis?.isPick === true);
+    const favoritesPhotos = analyzedPhotos.filter(isFavoritePhoto);
+    const reviewPhotos = analyzedPhotos.filter((p) => isReviewPhoto(p, rejectedPhotoIds));
     const rejectedPhotos = analyzedPhotos.filter((p) => p.analysis?.isRejected === true || rejectedPhotoIds.has(p.id));
     const colorCounts = Object.fromEntries(
       COLOR_LABEL_KEYS.map((c) => [c, analyzedPhotos.filter((p) => p.analysis?.colorLabel === c).length])
@@ -522,6 +638,8 @@ function TriageTab() {
       duplicates: duplicateGroups.length,
       blurry: analyzedPhotos.filter((p) => p.analysis?.isBlurry === true).length,
       picks: picksPhotos.length,
+      favorites: favoritesPhotos.length,
+      review: reviewPhotos.length,
       rejected: rejectedPhotos.length,
       selected: selectedPhotoId ? 1 : 0,
       colorCounts,
@@ -575,24 +693,30 @@ function TriageTab() {
               duplicateGroups={stats.duplicates}
               blurryCount={stats.blurry}
               picksCount={stats.picks}
+              favoritesCount={stats.favorites}
+              reviewCount={stats.review}
               rejectedCount={stats.rejected}
               selectedCount={stats.selected}
               colorCounts={stats.colorCounts}
               activeFilter={activeFilter}
               searchTerm={searchTerm}
-              onFilterChange={(f) => setActiveFilter(f as FilterType)}
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onFilterChange={(f) => setActiveFilter(f as TriageFilterType)}
               onSearchChange={setSearchTerm}
+              onDateFromChange={setDateFrom}
+              onDateToChange={setDateTo}
             />
           </div>
           {/* Sort control */}
           <div className="shrink-0 pt-1">
             <select
               value={sortKey}
-              onChange={(e) => setSortKey(e.target.value as SortKey)}
+              onChange={(e) => setSortKey(e.target.value as TriageSortKey)}
               className="h-8 rounded-lg border border-border/60 bg-background text-xs px-2 text-foreground cursor-pointer"
               title="Trier les photos"
             >
-              {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => (
+              {(Object.keys(SORT_LABELS) as TriageSortKey[]).map((k) => (
                 <option key={k} value={k}>{SORT_LABELS[k]}</option>
               ))}
             </select>
@@ -646,12 +770,41 @@ function TriageTab() {
           >
             Développer les photos sélectionnées
           </Button>
+          {onOpenAutoFlow && (
+            <Button
+              onClick={() => onOpenAutoFlow(filteredPhotos.map((photo) => photo.id))}
+              disabled={filteredPhotos.length === 0}
+              className="gap-2 bg-amber-600 hover:bg-amber-700 text-white"
+              title="Ouvrir AutoFlow avec les photos actuellement visibles"
+            >
+              <Zap className="w-4 h-4" />
+              AutoFlow filtre
+              <Badge variant="secondary" className="h-5 px-1.5 text-xs">
+                {filteredPhotos.length}
+              </Badge>
+            </Button>
+          )}
         </div>
       </div>
 
       <div className="flex-1 min-h-0 flex gap-3 overflow-hidden">
         {/* Grille principale */}
         <div className="flex-1 min-w-0 flex flex-col min-h-0">
+          {filteredPhotos.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center p-8">
+              <div className="text-center max-w-sm">
+                <p className="text-sm font-semibold text-foreground">{emptyState.title}</p>
+                {emptyState.subtitle && (
+                  <p className="mt-1 text-xs text-muted-foreground">{emptyState.subtitle}</p>
+                )}
+                {emptyState.showReset && (
+                  <Button variant="outline" size="sm" className="mt-3" onClick={resetFilters}>
+                    Réinitialiser les filtres
+                  </Button>
+                )}
+              </div>
+            </div>
+          ) : (
           <VirtualizedPhotoGrid
             photos={filteredPhotos}
             selectedPhotoId={selectedPhotoId}
@@ -668,7 +821,7 @@ function TriageTab() {
             onToggleDevelopment={handleToggleDevelopment}
             multiSelection={triageMultiSelection}
             onToggleMultiSelect={handleToggleMultiSelect}
-            draggablePhotoIds={activeCollection ? new Set(activeCollection.photoIds) : undefined}
+            draggablePhotoIds={canReorderCollection ? new Set(activeCollection!.photoIds) : undefined}
             dragOverPhotoId={dragOverId}
             onPhotoDragStart={handlePhotoDragStart}
             onPhotoDragOver={handlePhotoDragOver}
@@ -676,6 +829,7 @@ function TriageTab() {
             onPhotoDrop={handlePhotoDrop}
             onPhotoDragEnd={handlePhotoDragEnd}
           />
+          )}
 
           {/* Barre d'actions en lot */}
           <BulkActionBar
@@ -741,7 +895,7 @@ function TriageTab() {
         onOpenChange={setBulkDeleteConfirmOpen}
         onConfirm={confirmBulkDelete}
         title="Supprimer les photos sélectionnées ?"
-        description={`Vous êtes sur le point de supprimer définitivement ${triageMultiSelection.size} photo${triageMultiSelection.size > 1 ? 's' : ''}. Cette action est irréversible.`}
+        description={`${triageMultiSelection.size} photo${triageMultiSelection.size > 1 ? 's' : ''} seront retirées du catalogue et de leurs collections. Vous pourrez annuler juste après (jusqu'au rechargement de la page).`}
         confirmText="Supprimer"
         cancelText="Annuler"
         variant="destructive"
@@ -754,11 +908,11 @@ function TriageTab() {
         onConfirm={() => {
           if (selectedPhotoId) {
             removePhoto(selectedPhotoId);
-            toast.success('Photo supprimée');
+            showDeletedToast(1);
           }
         }}
         title="Supprimer cette photo ?"
-        description="La photo sera définitivement supprimée. Cette action est irréversible."
+        description="La photo sera retirée du catalogue et de ses collections. Vous pourrez annuler juste après (jusqu'au rechargement de la page)."
         confirmText="Supprimer"
         cancelText="Annuler"
         variant="destructive"
@@ -813,6 +967,3 @@ function TriageTab() {
 }
 
 export default TriageTab;
-
-
-

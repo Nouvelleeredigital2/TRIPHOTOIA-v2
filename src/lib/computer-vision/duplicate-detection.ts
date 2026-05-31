@@ -43,7 +43,7 @@ export class DuplicateDetector {
    * Génère un hash perceptuel pHash pour une image
    */
   async generatePHash(imageData: Uint8Array): Promise<string> {
-    // Simulation d'un pHash - dans une vraie implémentation, 
+    // Simulation d'un pHash - dans une vraie implémentation,
     // on utiliserait une librairie comme sharp ou opencv
     const hash = this.simplePerceptualHash(imageData);
     return hash;
@@ -162,7 +162,7 @@ export class DuplicateDetector {
       if (photoIds.length > 1) {
         const representative = this.selectRepresentative(photoIds);
         const similarity = this.calculateGroupSimilarity(photoIds);
-        
+
         duplicateGroups.push({
           id: groupId,
           photos: photoIds,
@@ -219,7 +219,7 @@ export class DuplicateDetector {
       for (let j = i + 1; j < photoIds.length; j++) {
         const hash1 = this.photoHashes.get(photoIds[i]);
         const hash2 = this.photoHashes.get(photoIds[j]);
-        
+
         if (hash1?.perceptual && hash2?.perceptual) {
           totalSimilarity += this.calculateSimilarity(hash1.perceptual, hash2.perceptual);
           comparisons++;
@@ -253,7 +253,7 @@ export class DuplicateDetector {
       for (let j = i + 1; j < photoIds.length; j++) {
         const hash1 = this.photoHashes.get(photoIds[i]);
         const hash2 = this.photoHashes.get(photoIds[j]);
-        
+
         if (hash1?.perceptual && hash2?.perceptual) {
           similarities.push(this.calculateSimilarity(hash1.perceptual, hash2.perceptual));
         }
@@ -277,12 +277,12 @@ export class DuplicateDetector {
     // Simulation d'un pHash basique
     let hash = '';
     const step = Math.max(1, Math.floor(imageData.length / this.config.phashSize));
-    
+
     for (let i = 0; i < this.config.phashSize; i++) {
       const index = (i * step) % imageData.length;
       hash += imageData[index] > 128 ? '1' : '0';
     }
-    
+
     return hash;
   }
 
@@ -293,13 +293,13 @@ export class DuplicateDetector {
     // Simulation d'un dHash basique
     let hash = '';
     const step = Math.max(1, Math.floor(imageData.length / this.config.dhashSize));
-    
+
     for (let i = 0; i < this.config.dhashSize - 1; i++) {
       const index1 = (i * step) % imageData.length;
       const index2 = ((i + 1) * step) % imageData.length;
       hash += imageData[index1] > imageData[index2] ? '1' : '0';
     }
-    
+
     return hash;
   }
 
@@ -317,8 +317,8 @@ export class DuplicateDetector {
     const totalPhotos = this.photoHashes.size;
     const groups = Array.from(this.hashIndex.values()).filter(ids => ids.length > 1);
     const totalGroups = groups.length;
-    const averageGroupSize = totalGroups > 0 
-      ? groups.reduce((sum, ids) => sum + ids.length, 0) / totalGroups 
+    const averageGroupSize = totalGroups > 0
+      ? groups.reduce((sum, ids) => sum + ids.length, 0) / totalGroups
       : 0;
 
     return { totalPhotos, totalGroups, averageGroupSize };

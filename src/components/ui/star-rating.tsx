@@ -29,7 +29,7 @@ export function StarRating({
 
   const handleClick = (value: number) => {
     if (readonly || !onRatingChange) return;
-    
+
     // Si on clique sur la même étoile, on retire la note
     if (value === rating) {
       onRatingChange(0);
@@ -84,7 +84,7 @@ export function StarRating({
           </button>
         );
       })}
-      
+
       {showCount && rating > 0 && (
         <span className="ml-1 text-xs text-muted-foreground font-medium">
           ({rating})

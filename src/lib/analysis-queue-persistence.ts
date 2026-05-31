@@ -1,6 +1,6 @@
 import { Photo } from '../types';
 
-const DB_NAME = 'tri-photo-analysis';
+const DB_NAME = 'tree-photo-analysis';
 const DB_VERSION = 1;
 const PHOTO_STORE = 'pendingPhotos';
 const META_STORE = 'analysisMeta';

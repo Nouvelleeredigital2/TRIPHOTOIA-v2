@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 describe('Accessibility Tests', () => {
   it('should have proper button accessibility', () => {
     render(<Button>Click me</Button>);
-    
+
     const button = screen.getByRole('button', { name: 'Click me' });
     expect(button).toBeInTheDocument();
     expect(button).toBeEnabled();
@@ -45,7 +45,7 @@ describe('Accessibility Tests', () => {
         ×
       </Button>
     );
-    
+
     const button = screen.getByRole('button', { name: 'Close dialog' });
     expect(button).toBeInTheDocument();
     expect(button).toHaveAttribute('aria-label', 'Close dialog');
@@ -62,7 +62,7 @@ describe('Accessibility Tests', () => {
         </CardContent>
       </Card>
     );
-    
+
     const heading = screen.getByRole('heading', { name: 'Test Card' });
     expect(heading).toBeInTheDocument();
     expect(heading.tagName).toBe('H3');
@@ -70,10 +70,10 @@ describe('Accessibility Tests', () => {
 
   it('should have proper color contrast', () => {
     render(<Button>Test Button</Button>);
-    
+
     const button = screen.getByRole('button', { name: 'Test Button' });
     const styles = getComputedStyle(button);
-    
+
     // Check that the button has proper contrast
     expect(button).toHaveClass('text-primary-foreground');
   });
@@ -86,9 +86,9 @@ describe('Accessibility Tests', () => {
         <Button>Button 3</Button>
       </div>
     );
-    
+
     const buttons = screen.getAllByRole('button');
-    
+
     // Test that all buttons are focusable
     buttons.forEach(button => {
       button.focus();
@@ -104,7 +104,7 @@ describe('Accessibility Tests', () => {
         <Button type="submit">Submit</Button>
       </form>
     );
-    
+
     const input = screen.getByLabelText('Test Input');
     expect(input).toBeInTheDocument();
     expect(input).toHaveAttribute('id', 'test-input');
@@ -117,11 +117,11 @@ describe('Accessibility Tests', () => {
         <div id="error-message">This field is required</div>
       </div>
     );
-    
+
     const input = screen.getByRole('textbox');
     expect(input).toHaveAttribute('aria-invalid', 'true');
     expect(input).toHaveAttribute('aria-describedby', 'error-message');
-    
+
     const errorMessage = screen.getByText('This field is required');
     expect(errorMessage).toBeInTheDocument();
   });

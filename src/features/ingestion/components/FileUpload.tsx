@@ -65,7 +65,7 @@ export function FileUpload({ onFilesSelected, disabled }: FileUploadProps) {
     }
     try {
       setIsImportingDir(true);
-      // @ts-ignore — showDirectoryPicker is not yet in all TS lib defs
+      // @ts-expect-error — showDirectoryPicker is not yet in all TS lib defs
       const dirHandle: FileSystemDirectoryHandle = await window.showDirectoryPicker({ mode: 'read' });
       const toastId = toast.loading('Lecture du dossier…');
       const files = await collectImagesFromDir(dirHandle);

@@ -13,6 +13,7 @@ import {
   Trash2,
   Folder,
   Image as ImageIcon,
+  Sparkles,
   Zap,
   X,
 } from 'lucide-react';
@@ -45,6 +46,7 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
   const activeCollectionId = usePhotoStore((state) => state.activeCollectionId);
   const activeSmartCollectionId = usePhotoStore((state) => state.activeSmartCollectionId);
   const createCollection = usePhotoStore((state) => state.createCollection);
+  const applyWeddingTemplate = usePhotoStore((state) => state.applyWeddingTemplate);
   const renameCollection = usePhotoStore((state) => state.renameCollection);
   const deleteCollection = usePhotoStore((state) => state.deleteCollection);
   const setActiveCollection = usePhotoStore((state) => state.setActiveCollection);
@@ -84,7 +86,11 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
       return;
     }
 
-    renameCollection(renameCollectionId, trimmed);
+    const ok = renameCollection(renameCollectionId, trimmed);
+    if (!ok) {
+      setRenameMessage('Ce nom est déjà utilisé par une autre collection.');
+      return;
+    }
     toast.success(`Collection renommée en « ${trimmed} »`);
     setRenameCollectionName('');
     setRenameCollectionId('');
@@ -110,6 +116,16 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
     setRenameCollectionName(currentName);
     setRenameMessage('');
     setIsRenameDialogOpen(true);
+  };
+
+  const handleApplyWeddingTemplate = () => {
+    const createdIds = applyWeddingTemplate();
+    if (createdIds.length === 0) {
+      toast('Template mariage déjà appliqué');
+      return;
+    }
+
+    toast.success(`${createdIds.length} collections mariage créées`);
   };
 
   const sidebarContent = (
@@ -141,9 +157,9 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
             )}
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
+                <Button
+                  size="sm"
+                  variant="ghost"
                   className="h-7 w-7 p-0"
                   onClick={() => {
                     setNewCollectionName(`Collection ${collectionOrder.length + 1}`);
@@ -153,7 +169,7 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
                   <Plus className="w-4 h-4" />
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent description="Formulaire de création d'une nouvelle collection.">
                 <DialogHeader>
                   <DialogTitle>Créer une nouvelle collection</DialogTitle>
                 </DialogHeader>
@@ -188,6 +204,16 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
             </Dialog>
           </div>
         </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full justify-start gap-2"
+          onClick={handleApplyWeddingTemplate}
+        >
+          <Sparkles className="w-4 h-4" />
+          Template mariage
+        </Button>
       </div>
 
       {/* Collections List */}
@@ -268,8 +294,8 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
                     className={`
                       group relative flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer
                       transition-all duration-200
-                      ${isActive 
-                        ? 'bg-primary/10 text-primary font-medium' 
+                      ${isActive
+                        ? 'bg-primary/10 text-primary font-medium'
                         : 'hover:bg-muted text-foreground'
                       }
                     `}
@@ -278,7 +304,7 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
                     onMouseLeave={() => setHoveredCollection(null)}
                   >
                     {/* Icon */}
-                    <Folder 
+                    <Folder
                       className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`}
                     />
 
@@ -288,8 +314,8 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
                     </span>
 
                     {/* Badge */}
-                    <Badge 
-                      variant={isActive ? "default" : "secondary"} 
+                    <Badge
+                      variant={isActive ? "default" : "secondary"}
                       className="text-xs font-semibold h-5 min-w-[28px] flex items-center justify-center"
                     >
                       {photoCount}
@@ -374,7 +400,7 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
             >
               {/* Header */}
               <div className="p-4 border-b border-border/50 shrink-0">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <FolderOpen className="w-5 h-5 text-primary" />
                     <h2 className="font-semibold text-foreground">Collections</h2>
@@ -383,6 +409,19 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
                     <X className="w-4 h-4" />
                   </Button>
                 </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start gap-2"
+                  onClick={() => {
+                    handleApplyWeddingTemplate();
+                    onMobileClose?.();
+                  }}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Template mariage
+                </Button>
               </div>
               {/* Scrollable body — same as desktop */}
               <div className="flex-1 overflow-y-auto p-2">
@@ -424,6 +463,35 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
                       <Badge variant={isActive2 ? 'default' : 'secondary'} className="text-xs font-semibold h-5 min-w-[28px] flex items-center justify-center">
                         {col?.photoIds?.length || 0}
                       </Badge>
+                      {/* A-10 : actions toujours visibles sur mobile (pas de hover au tactile) */}
+                      {collectionOrder.length > 1 && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0 shrink-0"
+                            aria-label={`Renommer ${col?.name || 'la collection'}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openRenameDialog(cid, col?.name || '');
+                            }}
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0 shrink-0 text-destructive hover:text-destructive"
+                            aria-label={`Supprimer ${col?.name || 'la collection'}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteCollection(cid);
+                            }}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   );
                 })}
@@ -441,7 +509,7 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
 
       {/* Rename Dialog */}
       <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
-        <DialogContent>
+        <DialogContent description="Formulaire pour renommer la collection sélectionnée.">
           <DialogHeader>
             <DialogTitle>Renommer la collection</DialogTitle>
           </DialogHeader>

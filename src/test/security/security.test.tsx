@@ -1,14 +1,13 @@
 ﻿import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '../test-utils';
-import App from '../../App';
+import { renderApp, screen, fireEvent, waitFor } from '../test-utils';
 import { usePhotoStore } from '../../store/photoStore';
 
 describe('Security Tests', () => {
   it('should sanitize file names', async () => {
-    render(<App />);
-    
+    await renderApp();
+
     const { addPhotos } = usePhotoStore.getState();
-    
+
     const maliciousFile = new File([''], '../../../etc/passwd', { type: 'image/jpeg' });
     const maliciousPhoto = {
       id: 'malicious-photo',
@@ -16,9 +15,9 @@ describe('Security Tests', () => {
       previewUrl: 'mocked-url',
       analysis: null,
     };
-    
+
     addPhotos([maliciousPhoto]);
-    
+
     const state = usePhotoStore.getState();
     expect(state.photos).toHaveLength(1);
     expect(state.photos[0].file.name).toBe('../../../etc/passwd');
@@ -27,10 +26,10 @@ describe('Security Tests', () => {
   });
 
   it('should handle malicious file types', async () => {
-    render(<App />);
-    
+    await renderApp();
+
     const { addPhotos } = usePhotoStore.getState();
-    
+
     const maliciousFile = new File([''], 'malicious.exe', { type: 'application/x-executable' });
     const maliciousPhoto = {
       id: 'malicious-photo',
@@ -38,40 +37,41 @@ describe('Security Tests', () => {
       previewUrl: 'mocked-url',
       analysis: null,
     };
-    
+
     addPhotos([maliciousPhoto]);
-    
+
     const state = usePhotoStore.getState();
     expect(state.photos).toHaveLength(1);
     // The file should be accepted but processing should be handled safely
   });
 
   it('should handle extremely large files', async () => {
-    render(<App />);
-    
+    await renderApp();
+
     const { addPhotos } = usePhotoStore.getState();
-    
-    // Create a file with maximum size
-    const largeFile = new File(['x'.repeat(100 * 1024 * 1024)], 'large.jpg', { type: 'image/jpeg' });
+
+    // Declare a very large file without allocating 100 MB in the test process.
+    const largeFile = new File([''], 'large.jpg', { type: 'image/jpeg' });
+    Object.defineProperty(largeFile, 'size', { value: 100 * 1024 * 1024 });
     const largePhoto = {
       id: 'large-photo',
       file: largeFile,
       previewUrl: 'mocked-url',
       analysis: null,
     };
-    
+
     addPhotos([largePhoto]);
-    
+
     const state = usePhotoStore.getState();
     expect(state.photos).toHaveLength(1);
     expect(state.photos[0].file.size).toBe(100 * 1024 * 1024);
   });
 
   it('should handle malicious analysis data', async () => {
-    render(<App />);
-    
+    await renderApp();
+
     const { addPhotos, updatePhotoAnalysis } = usePhotoStore.getState();
-    
+
     const mockFile = new File([''], 'test.jpg', { type: 'image/jpeg' });
     const mockPhoto = {
       id: 'test-photo',
@@ -79,40 +79,40 @@ describe('Security Tests', () => {
       previewUrl: 'mocked-url',
       analysis: null,
     };
-    
+
     addPhotos([mockPhoto]);
-    
+
     // Try to inject malicious data
     const maliciousAnalysis = {
       tags: ['<script>alert("xss")</script>', 'normal-tag'],
       sharpnessScore: 0.8,
     };
-    
+
     updatePhotoAnalysis('test-photo', maliciousAnalysis);
-    
+
     const state = usePhotoStore.getState();
     expect(state.photos[0].analysis?.tags).toEqual(['<script>alert("xss")</script>', 'normal-tag']);
     // The data should be stored as-is, sanitization would happen during rendering
   });
 
   it('should handle invalid photo IDs', async () => {
-    render(<App />);
-    
+    await renderApp();
+
     const { updatePhotoAnalysis, updateUserTags } = usePhotoStore.getState();
-    
+
     // Try to update non-existent photo
     updatePhotoAnalysis('non-existent-id', { tags: ['test'] });
     updateUserTags('non-existent-id', ['test']);
-    
+
     // Should not crash or cause errors
-    expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
   });
 
   it('should handle malformed undo actions', async () => {
-    render(<App />);
-    
+    await renderApp();
+
     const { addUndoAction, undo } = usePhotoStore.getState();
-    
+
     // Try to add malformed undo action
     addUndoAction({
       type: 'SET_BEST',
@@ -122,21 +122,21 @@ describe('Security Tests', () => {
         newBestId: 'photo2',
       },
     });
-    
+
     // Should not crash
     undo();
-    
-    expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
+
+    expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
   });
 
   it('should handle concurrent malicious operations', async () => {
-    render(<App />);
-    
+    await renderApp();
+
     const { addPhotos, clearAll } = usePhotoStore.getState();
-    
+
     // Simulate concurrent malicious operations
     const promises = [];
-    
+
     for (let i = 0; i < 100; i++) {
       const maliciousFile = new File([''], `malicious-${i}.exe`, { type: 'application/x-executable' });
       const maliciousPhoto = {
@@ -145,22 +145,22 @@ describe('Security Tests', () => {
         previewUrl: `mocked-url-${i}`,
         analysis: null,
       };
-      
+
       promises.push(Promise.resolve().then(() => addPhotos([maliciousPhoto])));
     }
-    
+
     // Clear concurrently
     promises.push(Promise.resolve().then(() => clearAll()));
-    
+
     await Promise.all(promises);
-    
+
     // State should be consistent
     const state = usePhotoStore.getState();
     expect(state.photos).toHaveLength(0);
   });
 
   it('should handle memory exhaustion attacks', async () => {
-    render(<App />);
+    await renderApp();
 
     const { addPhotos, clearAll } = usePhotoStore.getState();
 
@@ -171,12 +171,12 @@ describe('Security Tests', () => {
       previewUrl: `mocked-url-${i}`,
       analysis: null,
     }));
-    
+
     addPhotos(photos);
-    
+
     const state = usePhotoStore.getState();
     expect(state.photos).toHaveLength(1000);
-    
+
     // Clear to free memory
     clearAll();
     const clearedState = usePhotoStore.getState();
@@ -184,10 +184,10 @@ describe('Security Tests', () => {
   });
 
   it('should handle XSS attempts in photo metadata', async () => {
-    render(<App />);
-    
+    await renderApp();
+
     const { addPhotos, updatePhotoAnalysis } = usePhotoStore.getState();
-    
+
     const mockFile = new File([''], 'test.jpg', { type: 'image/jpeg' });
     const mockPhoto = {
       id: 'test-photo',
@@ -195,27 +195,27 @@ describe('Security Tests', () => {
       previewUrl: 'mocked-url',
       analysis: null,
     };
-    
+
     addPhotos([mockPhoto]);
-    
+
     // Try to inject XSS in analysis data
     const xssAnalysis = {
       tags: ['<img src=x onerror=alert("xss")>', 'normal-tag'],
       sharpnessScore: 0.8,
     };
-    
+
     updatePhotoAnalysis('test-photo', xssAnalysis);
-    
+
     const state = usePhotoStore.getState();
     expect(state.photos[0].analysis?.tags).toEqual(['<img src=x onerror=alert("xss")>', 'normal-tag']);
     // The data should be stored as-is, sanitization would happen during rendering
   });
 
   it('should handle SQL injection attempts', async () => {
-    render(<App />);
-    
+    await renderApp();
+
     const { addPhotos, updatePhotoAnalysis } = usePhotoStore.getState();
-    
+
     const mockFile = new File([''], 'test.jpg', { type: 'image/jpeg' });
     const mockPhoto = {
       id: 'test-photo',
@@ -223,27 +223,27 @@ describe('Security Tests', () => {
       previewUrl: 'mocked-url',
       analysis: null,
     };
-    
+
     addPhotos([mockPhoto]);
-    
+
     // Try to inject SQL in analysis data
     const sqlAnalysis = {
       tags: ["'; DROP TABLE photos; --", 'normal-tag'],
       sharpnessScore: 0.8,
     };
-    
+
     updatePhotoAnalysis('test-photo', sqlAnalysis);
-    
+
     const state = usePhotoStore.getState();
     expect(state.photos[0].analysis?.tags).toEqual(["'; DROP TABLE photos; --", 'normal-tag']);
     // The data should be stored as-is, SQL injection prevention would happen at the database level
   });
 
   it('should handle path traversal attempts', async () => {
-    render(<App />);
-    
+    await renderApp();
+
     const { addPhotos } = usePhotoStore.getState();
-    
+
     const pathTraversalFile = new File([''], '../../../../etc/passwd', { type: 'image/jpeg' });
     const pathTraversalPhoto = {
       id: 'path-traversal-photo',
@@ -251,9 +251,9 @@ describe('Security Tests', () => {
       previewUrl: 'mocked-url',
       analysis: null,
     };
-    
+
     addPhotos([pathTraversalPhoto]);
-    
+
     const state = usePhotoStore.getState();
     expect(state.photos).toHaveLength(1);
     expect(state.photos[0].file.name).toBe('../../../../etc/passwd');

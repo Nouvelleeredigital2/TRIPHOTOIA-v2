@@ -15,8 +15,13 @@ import { RealTimeAnalysis } from '../../components/RealTimeAnalysis';
 import { DuplicateTest } from '../../components/DuplicateTest';
 import { AutoRatingPanel } from '../../components/AutoRatingPanel';
 import { AutoFlowImportScreen } from '../../components/autoflow/AutoFlowImportScreen';
+import { useCloudProjectStore } from '../../store/cloudProjectStore';
+import { uploadPhotosToCloud } from '../cloud-projects/cloudUpload';
+import toast from 'react-hot-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 function IngestionTab() {
+  const queryClient = useQueryClient();
   const analyzingPhotoIds = usePhotoStore((state) => state.analyzingPhotoIds);
   const addPhotos = usePhotoStore((state) => state.addPhotos);
   const addPhotosToCollection = usePhotoStore((state) => state.addPhotosToCollection);
@@ -24,6 +29,7 @@ function IngestionTab() {
   const activeCollectionId = usePhotoStore((state) => state.activeCollectionId);
   const collections = usePhotoStore((state) => state.collections);
   const allPhotos = usePhotoStore((state) => state.photos);
+  const activeCloudProject = useCloudProjectStore((state) => state.activeProject);
 
   // Calculer les valeurs dérivées avec useMemo pour éviter les boucles infinies
   const activeCollection = useMemo(() =>
@@ -56,6 +62,7 @@ function IngestionTab() {
         return {
           id: `${file.name}-${file.lastModified}-${file.size}`,
           file,
+          fileHash,  // niveau Photo — clé cross-device pour le cloud
           previewUrl: URL.createObjectURL(file),
           analysis: {
             fileHash, // Add the cryptographic hash immediately
@@ -67,6 +74,27 @@ function IngestionTab() {
     );
 
     addPhotos(photosWithHashes);
+
+    if (activeCloudProject) {
+      const toastId = toast.loading(`Upload cloud 0 % · ${activeCloudProject.name}`);
+      uploadPhotosToCloud({
+        activeProject: activeCloudProject,
+        files,
+        localPhotoIds: photosWithHashes.map((photo) => photo.id),
+        onProgress: (progress) => {
+          toast.loading(`Upload cloud ${progress} % · ${activeCloudProject.name}`, { id: toastId });
+        },
+      })
+        .then((result) => {
+          useCloudProjectStore.getState().linkCloudPhotos(result.mappings);
+          void queryClient.invalidateQueries({ queryKey: ['cloud-project-photos', activeCloudProject.id] });
+          toast.success(`${result.uploaded} photo${result.uploaded > 1 ? 's' : ''} uploadée${result.uploaded > 1 ? 's' : ''} dans le projet cloud`, { id: toastId });
+        })
+        .catch((error) => {
+          const message = error instanceof Error ? error.message : 'Upload cloud impossible';
+          toast.error(message, { id: toastId });
+        });
+    }
   };
 
   const handleToggleCollectionPhoto = (photoId: string) => {
@@ -152,8 +180,6 @@ function IngestionTab() {
 }
 
 export default IngestionTab;
-
-
 
 
 

@@ -14,6 +14,16 @@ import { SwipeMode } from './SwipeMode';
 import { AutoFlowGallery } from './AutoFlowGallery';
 import { AutoFlowDupCompare } from './AutoFlowDupCompare';
 
+type AutoFlowDecision = 'pick' | 'reject' | 'favorite' | 'review';
+
+interface DecisionHistoryEntry {
+  id: string;
+  name: string;
+  action: AutoFlowDecision;
+  previous: Partial<AfPhoto>;
+  current: Partial<AfPhoto>;
+}
+
 type Screen =
   | 'dashboard'
   | 'swipe'
@@ -22,12 +32,26 @@ type Screen =
 
 interface AutoFlowModeProps {
   photos: AfPhoto[];
+  initialPhotoIds?: string[];
   onMutation: (id: string, changes: Partial<AfPhoto>) => void;
+  onDecision?: (id: string, decision: AutoFlowDecision, previous: Partial<AfPhoto>) => void;
+  onRating?: (id: string, rating: number, previous: Partial<AfPhoto>) => void;
+  onExportPicks?: () => void;
   onClose: () => void;
 }
 
-export const AutoFlowMode: React.FC<AutoFlowModeProps> = ({ photos, onMutation, onClose }) => {
+export const AutoFlowMode: React.FC<AutoFlowModeProps> = ({
+  photos,
+  initialPhotoIds,
+  onMutation,
+  onDecision,
+  onRating,
+  onExportPicks,
+  onClose,
+}) => {
   const [screen, setScreen] = useState<Screen>('dashboard');
+  const [swipeQueue, setSwipeQueue] = useState<AfPhoto[]>([]);
+  const [decisionHistory, setDecisionHistory] = useState<DecisionHistoryEntry[]>([]);
   /** Local overrides — merged on top of incoming photos */
   const [overrides, setOverrides] = useState<Map<string, Partial<AfPhoto>>>(new Map());
 
@@ -48,27 +72,125 @@ export const AutoFlowMode: React.FC<AutoFlowModeProps> = ({ photos, onMutation, 
     }),
   [photos, overrides]);
 
-  /** Only review-class photos go into swipe mode */
-  const swipePhotos = useMemo(
-    () => mergedPhotos.filter((p) => p.cls === 'review'),
-    [mergedPhotos]
-  );
+  const sessionPhotos = useMemo(() => {
+    if (!initialPhotoIds || initialPhotoIds.length === 0) {
+      return mergedPhotos;
+    }
+    const ids = new Set(initialPhotoIds);
+    return mergedPhotos.filter((photo) => ids.has(photo.id));
+  }, [initialPhotoIds, mergedPhotos]);
 
-  const handleSwipeDecision = (id: string, action: 'pick' | 'reject' | 'star') => {
+  const orderedSwipePhotos = useMemo(() => {
+    const order: Record<AfClass, number> = { review: 0, keep: 1, reject: 2 };
+    return [...sessionPhotos].sort((a, b) => {
+      const byClass = order[a.cls] - order[b.cls];
+      return byClass !== 0 ? byClass : b.score - a.score;
+    });
+  }, [sessionPhotos]);
+
+  const startSwipe = () => {
+    setSwipeQueue(orderedSwipePhotos);
+    setScreen('swipe');
+  };
+
+  const snapshotDecisionState = (photo: AfPhoto): Partial<AfPhoto> => ({
+    cls: photo.cls,
+    isPick: photo.isPick,
+    isRejected: photo.isRejected,
+    isFavorite: photo.isFavorite,
+    rating: photo.rating,
+  });
+
+  const inferDecisionFromState = (state: Partial<AfPhoto>): AutoFlowDecision | null => {
+    if (state.isRejected === true || state.cls === 'reject') return 'reject';
+    if (state.isFavorite === true) return 'favorite';
+    if (state.isPick === true || state.cls === 'keep') return 'pick';
+    if (state.cls === 'review') return 'review';
+    return null;
+  };
+
+  const handleSwipeDecision = (id: string, action: AutoFlowDecision) => {
+    const previousPhoto = mergedPhotos.find((p) => p.id === id);
+    const previous = previousPhoto ? snapshotDecisionState(previousPhoto) : {};
     const changes: Partial<AfPhoto> =
       action === 'reject'
-        ? { isRejected: true, isPick: false, cls: 'reject' }
-        : action === 'pick'
-          ? { isPick: true, isRejected: false, cls: 'keep' }
-          : { rating: 5, isPick: true, cls: 'keep' };
+        ? { isRejected: true, isPick: false, isFavorite: false, cls: 'reject' }
+        : action === 'review'
+          ? { isRejected: false, isPick: false, isFavorite: false, cls: 'review' }
+          : action === 'favorite'
+            ? { rating: 5, isPick: true, isRejected: false, isFavorite: true, cls: 'keep' }
+            : { isPick: true, isRejected: false, isFavorite: false, cls: 'keep' };
+    if (previousPhoto) {
+      const current = snapshotDecisionState({ ...previousPhoto, ...changes });
+      setDecisionHistory((prev) => [
+        {
+          id,
+          name: previousPhoto.name,
+          action,
+          previous,
+          current,
+        },
+        ...prev,
+      ].slice(0, 5));
+    }
     applyOverride(id, changes);
+    onDecision?.(id, action, previous);
+  };
+
+  const handleSwipeRating = (id: string, rating: number) => {
+    const previousPhoto = mergedPhotos.find((p) => p.id === id);
+    const previous = previousPhoto ? snapshotDecisionState(previousPhoto) : {};
+    applyOverride(id, { rating });
+    onRating?.(id, rating, previous);
+  };
+
+  const inferDecisionFromChanges = (changes: Partial<AfPhoto>): AutoFlowDecision | null => {
+    if (changes.isRejected === true || changes.cls === 'reject') return 'reject';
+    if (changes.isFavorite === true) return 'favorite';
+    if (changes.isPick === true || changes.cls === 'keep') return 'pick';
+    if (changes.isPick === false && changes.isRejected === false) return 'review';
+    if (changes.cls === 'review') return 'review';
+    return null;
+  };
+
+  const handleDirectDecisionMutation = (id: string, changes: Partial<AfPhoto>) => {
+    const previousPhoto = mergedPhotos.find((p) => p.id === id);
+    const previous = previousPhoto ? snapshotDecisionState(previousPhoto) : {};
+    applyOverride(id, changes);
+
+    const decision = inferDecisionFromChanges(changes);
+    if (decision) {
+      onDecision?.(id, decision, previous);
+    }
+  };
+
+  const handleUndoLastDecision = () => {
+    const lastDecision = decisionHistory[0];
+    if (!lastDecision) return false;
+
+    setDecisionHistory((prev) => prev.slice(1));
+    applyOverride(lastDecision.id, lastDecision.previous);
+    const restoredDecision = inferDecisionFromState(lastDecision.previous);
+    if (restoredDecision) {
+      onDecision?.(lastDecision.id, restoredDecision, lastDecision.current);
+    }
+    if (
+      typeof lastDecision.previous.rating === 'number' &&
+      lastDecision.previous.rating !== lastDecision.current.rating
+    ) {
+      onRating?.(lastDecision.id, lastDecision.previous.rating, lastDecision.current);
+    }
+    return true;
   };
 
   if (screen === 'swipe') {
     return (
       <SwipeMode
-        photos={swipePhotos}
+        photos={swipeQueue}
         onDecision={handleSwipeDecision}
+        onRate={handleSwipeRating}
+        onUndoLast={handleUndoLastDecision}
+        decisionHistory={decisionHistory}
         onDone={() => setScreen('dashboard')}
       />
     );
@@ -77,22 +199,22 @@ export const AutoFlowMode: React.FC<AutoFlowModeProps> = ({ photos, onMutation, 
   if (screen === 'dup-compare') {
     return (
       <AutoFlowDupCompare
-        photos={mergedPhotos}
-        onDecision={applyOverride}
+        photos={sessionPhotos}
+        onDecision={handleDirectDecisionMutation}
         onBack={() => setScreen('dashboard')}
       />
     );
   }
 
   if (typeof screen === 'object' && screen.type === 'gallery') {
-    const galleryPhotos = mergedPhotos.filter((p) => p.cls === screen.cls);
+    const galleryPhotos = sessionPhotos.filter((p) => p.cls === screen.cls);
     return (
       <AutoFlowGallery
         photos={galleryPhotos}
         title={screen.title}
         cls={screen.cls}
         onBack={() => setScreen('dashboard')}
-        onDecision={applyOverride}
+        onDecision={handleDirectDecisionMutation}
       />
     );
   }
@@ -100,8 +222,8 @@ export const AutoFlowMode: React.FC<AutoFlowModeProps> = ({ photos, onMutation, 
   // Default: dashboard
   return (
     <AutoFlowDashboard
-      photos={mergedPhotos}
-      onStartSwipe={() => setScreen('swipe')}
+      photos={sessionPhotos}
+      onStartSwipe={startSwipe}
       onGrid={(cls) => {
         const titles: Record<AfClass, string> = {
           keep:   'Picks automatiques',
@@ -111,6 +233,7 @@ export const AutoFlowMode: React.FC<AutoFlowModeProps> = ({ photos, onMutation, 
         setScreen({ type: 'gallery', cls, title: titles[cls] });
       }}
       onDupCompare={() => setScreen('dup-compare')}
+      onExportPicks={onExportPicks}
       onClose={onClose}
       onPhotoOpen={() => {}}
     />

@@ -188,20 +188,20 @@ export class PhotoScorer {
   private calculateExposureScore(grayscale: number[]): number {
     const mean = grayscale.reduce((sum, value) => sum + value, 0) / grayscale.length;
     const histogram = this.calculateHistogram(grayscale);
-    
+
     // Score basé sur la distribution de l'histogramme
     const underExposed = histogram.slice(0, 64).reduce((sum, count) => sum + count, 0);
     const wellExposed = histogram.slice(64, 192).reduce((sum, count) => sum + count, 0);
     const overExposed = histogram.slice(192, 256).reduce((sum, count) => sum + count, 0);
-    
+
     const total = underExposed + wellExposed + overExposed;
     const wellExposedRatio = wellExposed / total;
-    
+
     // Pénaliser les images sous/surexposées
     let score = wellExposedRatio * 100;
     if (underExposed / total > 0.3) score *= 0.7;
     if (overExposed / total > 0.3) score *= 0.7;
-    
+
     return Math.min(100, Math.max(0, score));
   }
 
@@ -238,18 +238,18 @@ export class PhotoScorer {
     // Dans une vraie implémentation, on utiliserait face-api.js ou TensorFlow
     const grayscale = this.convertToGrayscale(imageData, width, height);
     const mean = grayscale.reduce((sum, value) => sum + value, 0) / grayscale.length;
-    
+
     // Simulation basée sur la luminosité et les variations
     const variance = this.calculateVariance(grayscale);
     let score = 50;
-    
+
     // Plus de variation = potentiellement plus d'expression
     if (variance > 1000) score += 20;
     if (variance > 2000) score += 20;
-    
+
     // Luminosité modérée = meilleure expression
     if (mean > 100 && mean < 200) score += 10;
-    
+
     return Math.min(100, Math.max(0, score));
   }
 
@@ -337,7 +337,7 @@ export class PhotoScorer {
     color: number;
   }): number {
     const weights = this.config.weights;
-    
+
     return (
       scores.sharpness * weights.sharpness +
       scores.exposure * weights.exposure +
@@ -421,7 +421,7 @@ export class PhotoScorer {
     // Simulation de l'analyse de la règle des tiers
     const thirdWidth = width / 3;
     const thirdHeight = height / 3;
-    
+
     // Vérifier les points d'intersection des lignes de tiers
     const points = [
       { x: thirdWidth, y: thirdHeight },
@@ -471,7 +471,7 @@ export class PhotoScorer {
     for (let y = 1; y < height - 1; y++) {
       for (let x = 1; x < width - 1; x++) {
         let gx = 0, gy = 0;
-        
+
         for (let ky = 0; ky < 3; ky++) {
           for (let kx = 0; kx < 3; kx++) {
             const pixelIndex = (y + ky - 1) * width + (x + kx - 1);
@@ -522,11 +522,11 @@ export class PhotoScorer {
       const r = channels.red[i];
       const g = channels.green[i];
       const b = channels.blue[i];
-      
+
       const max = Math.max(r, g, b);
       const min = Math.min(r, g, b);
       const saturation = max === 0 ? 0 : (max - min) / max;
-      
+
       totalSaturation += saturation;
     }
 

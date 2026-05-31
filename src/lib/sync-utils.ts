@@ -1,0 +1,470 @@
+import { supabase } from './supabase';
+import type { Photo, PhotoCollection } from '../types';
+
+// ── Types DB ──────────────────────────────────────────────────────────────────
+
+export interface DbPhotoMetadata {
+  id?: string;
+  user_id: string;
+  file_hash: string;
+  file_name: string;
+  file_size: number | null;
+  rating: number;
+  is_pick: boolean;
+  is_rejected: boolean;
+  color_label: string | null;
+  user_tags: string[];
+  notes: string | null;
+  analysis: Record<string, unknown> | null;
+  updated_at?: string;
+}
+
+export interface DbShareLink {
+  id: string;
+  user_id: string;
+  token: string;
+  name: string | null;
+  photo_file_hashes: string[];
+  created_at: string;
+  expires_at: string | null;
+}
+
+export interface DbSessionStats {
+  session_date: string;
+  photos_imported: number;
+  photos_rated: number;
+  picks_count: number;
+  rejects_count: number;
+  exports_count: number;
+}
+
+export type ShareApprovalStatus = 'approved' | 'rejected' | 'favorite';
+
+export interface DbShareApproval {
+  file_hash: string;
+  status: ShareApprovalStatus;
+  client_note: string | null;
+  updated_at: string;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Calcule le SHA-256 d'un fichier (hex string) */
+export async function computeFileHash(file: File): Promise<string> {
+  try {
+    const buffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+  } catch {
+    // Fallback si le fichier n'est plus accessible (e.g. rechargement de page)
+    return `${file.name}-${file.size}-${file.lastModified}`;
+  }
+}
+
+// ── Photo metadata sync ───────────────────────────────────────────────────────
+
+/**
+ * Upsert les métadonnées d'une photo dans Supabase.
+ * Nécessite que photo.fileHash soit défini.
+ */
+export async function syncPhotoMetadata(
+  userId: string,
+  photo: Photo,
+  userTags?: string[],
+  notes?: string,
+): Promise<void> {
+  if (!supabase || !photo.fileHash) return;
+
+  const row: DbPhotoMetadata = {
+    user_id: userId,
+    file_hash: photo.fileHash,
+    file_name: photo.file.name,
+    file_size: photo.file.size,
+    rating: photo.analysis?.rating ?? 0,
+    is_pick: photo.analysis?.isPick ?? false,
+    is_rejected: photo.analysis?.isRejected ?? false,
+    color_label: photo.analysis?.colorLabel ?? null,
+    user_tags: userTags ?? [],
+    notes: notes ?? null,
+    analysis: photo.analysis ? (photo.analysis as unknown as Record<string, unknown>) : null,
+  };
+
+  await supabase
+    .from('photo_metadata')
+    .upsert(row, { onConflict: 'user_id,file_hash', ignoreDuplicates: false });
+}
+
+/**
+ * Synchronise en lot les métadonnées d'un ensemble de photos avant un partage.
+ * Garantit que les lignes photo_metadata existent côté cloud, sinon la galerie
+ * publique serait vide même si le lien est créé (A-04).
+ *
+ * Retourne le nombre de photos réellement synchronisées (avec un fileHash valide).
+ */
+export async function syncPhotosForShare(
+  userId: string,
+  photos: Photo[],
+  userTags: Record<string, string[]>,
+  photoNotes: Record<string, string>,
+): Promise<{ synced: number; skipped: number; error: string | null }> {
+  if (!supabase) return { synced: 0, skipped: photos.length, error: 'Supabase non configuré' };
+
+  const rows: DbPhotoMetadata[] = [];
+  let skipped = 0;
+  for (const photo of photos) {
+    if (!photo.fileHash) {
+      skipped += 1;
+      continue;
+    }
+    rows.push({
+      user_id: userId,
+      file_hash: photo.fileHash,
+      file_name: photo.file.name,
+      file_size: photo.file.size,
+      rating: photo.analysis?.rating ?? 0,
+      is_pick: photo.analysis?.isPick ?? false,
+      is_rejected: photo.analysis?.isRejected ?? false,
+      color_label: photo.analysis?.colorLabel ?? null,
+      user_tags: userTags[photo.id] ?? [],
+      notes: photoNotes[photo.id] ?? null,
+      analysis: photo.analysis ? (photo.analysis as unknown as Record<string, unknown>) : null,
+    });
+  }
+
+  if (rows.length === 0) {
+    return { synced: 0, skipped, error: null };
+  }
+
+  const { error } = await supabase
+    .from('photo_metadata')
+    .upsert(rows, { onConflict: 'user_id,file_hash', ignoreDuplicates: false });
+
+  if (error) {
+    return { synced: 0, skipped, error: error.message };
+  }
+  return { synced: rows.length, skipped, error: null };
+}
+
+/**
+ * Charge toutes les métadonnées cloud pour un utilisateur.
+ */
+export async function loadCloudMetadata(
+  userId: string,
+): Promise<DbPhotoMetadata[]> {
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from('photo_metadata')
+    .select('*')
+    .eq('user_id', userId)
+    .order('updated_at', { ascending: false });
+
+  if (error) {
+    console.warn('[sync] loadCloudMetadata error:', error.message);
+    return [];
+  }
+  return (data as DbPhotoMetadata[]) ?? [];
+}
+
+// ── Shared photo storage (A-02) ─────────────────────────────────────────────────
+
+const SHARED_BUCKET = 'shared-photos';
+
+/** Chemin objet déterministe d'une image partagée. */
+function sharedPhotoPath(userId: string, fileHash: string): string {
+  return `${userId}/${fileHash}`;
+}
+
+/**
+ * URL publique d'une image partagée (bucket public). Construite côté client à partir
+ * de user_id + file_hash — utilisable par un destinataire anonyme. Renvoie null si
+ * Supabase n'est pas configuré.
+ */
+export function getSharedPhotoUrl(userId: string, fileHash: string): string | null {
+  if (!supabase) return null;
+  const { data } = supabase.storage.from(SHARED_BUCKET).getPublicUrl(sharedPhotoPath(userId, fileHash));
+  return data.publicUrl ?? null;
+}
+
+/**
+ * Upload (idempotent, upsert) les images des photos partagées vers le bucket public,
+ * sous le préfixe du propriétaire. À appeler avant createShareLink pour que la galerie
+ * publique affiche les vraies images (A-02).
+ */
+export async function uploadSharedPhotos(
+  userId: string,
+  photos: Photo[],
+): Promise<{ uploaded: number; failed: number; failedNames: string[] }> {
+  if (!supabase) return { uploaded: 0, failed: 0, failedNames: [] };
+
+  let uploaded = 0;
+  const failedNames: string[] = [];
+
+  for (const photo of photos) {
+    if (!photo.fileHash) {
+      failedNames.push(photo.file.name);
+      continue;
+    }
+    try {
+      const { error } = await supabase.storage
+        .from(SHARED_BUCKET)
+        .upload(sharedPhotoPath(userId, photo.fileHash), photo.file, {
+          upsert: true,
+          contentType: photo.file.type || 'image/jpeg',
+        });
+      if (error) {
+        failedNames.push(photo.file.name);
+      } else {
+        uploaded += 1;
+      }
+    } catch {
+      failedNames.push(photo.file.name);
+    }
+  }
+
+  return { uploaded, failed: failedNames.length, failedNames };
+}
+
+// ── Share links ───────────────────────────────────────────────────────────────
+
+/**
+ * Crée un lien de partage pour une liste de photos (identifiées par fileHash).
+ */
+export async function createShareLink(
+  userId: string,
+  name: string,
+  photoFileHashes: string[],
+): Promise<DbShareLink | null> {
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from('share_links')
+    .insert({ user_id: userId, name, photo_file_hashes: photoFileHashes })
+    .select()
+    .single();
+
+  if (error) {
+    console.warn('[sync] createShareLink error:', error.message);
+    return null;
+  }
+  return data as DbShareLink;
+}
+
+/**
+ * Récupère tous les liens de partage d'un utilisateur.
+ */
+export async function getUserShareLinks(userId: string): Promise<DbShareLink[]> {
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from('share_links')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) return [];
+  return (data as DbShareLink[]) ?? [];
+}
+
+/**
+ * Charge un lien de partage par token (public, sans auth).
+ */
+export async function getShareLinkByToken(token: string): Promise<DbShareLink | null> {
+  if (!supabase) return null;
+
+  // Token-scoped RPC: the share_links table is no longer publicly readable, so a
+  // recipient resolves exactly one (non-expired) link via this security-definer function.
+  const { data, error } = await supabase.rpc('get_shared_link', { target_token: token });
+
+  if (error) return null;
+  const link = Array.isArray(data) ? data[0] : data;
+  return (link as DbShareLink | undefined) ?? null;
+}
+
+/**
+ * Charge les métadonnées photos pour un share link (public, sans auth).
+ *
+ * Utilise la RPC security-definer `get_shared_photos`, car `photo_metadata` est en
+ * RLS propriétaire : un client anonyme ne peut pas faire de select direct. La RPC
+ * ne renvoie que les photos du lien (non expiré) et n'expose pas les notes privées.
+ *
+ * Repli : si la RPC n'est pas encore déployée (migration non appliquée), on tente
+ * l'ancien select direct — utile pour le propriétaire qui prévisualise son propre
+ * partage en étant connecté.
+ */
+export async function getSharedPhotos(
+  shareLink: DbShareLink,
+): Promise<DbPhotoMetadata[]> {
+  if (!supabase || !shareLink.photo_file_hashes.length) return [];
+
+  const { data, error } = await supabase.rpc('get_shared_photos', {
+    target_token: shareLink.token,
+  });
+
+  if (!error && Array.isArray(data)) {
+    return (data as Array<Omit<DbPhotoMetadata, 'user_id' | 'notes'>>).map((row) => ({
+      ...row,
+      user_id: shareLink.user_id,
+      notes: null,
+    }));
+  }
+
+  // Repli (RPC absente) : select direct — ne fonctionne que pour le propriétaire connecté.
+  const fallback = await supabase
+    .from('photo_metadata')
+    .select('*')
+    .eq('user_id', shareLink.user_id)
+    .in('file_hash', shareLink.photo_file_hashes);
+
+  if (fallback.error) {
+    console.warn('[sync] getSharedPhotos error:', error?.message ?? fallback.error.message);
+    return [];
+  }
+  return (fallback.data as DbPhotoMetadata[]) ?? [];
+}
+
+/**
+ * Enregistre/MAJ la validation client d'une photo, scopée par token (public).
+ * Retourne true en cas de succès.
+ */
+export async function setShareApproval(
+  token: string,
+  fileHash: string,
+  status: ShareApprovalStatus,
+  clientNote?: string | null,
+): Promise<boolean> {
+  if (!supabase) return false;
+  const { error } = await supabase.rpc('set_share_approval', {
+    target_token: token,
+    target_file_hash: fileHash,
+    target_status: status,
+    target_note: clientNote ?? null,
+  });
+  if (error) {
+    console.warn('[sync] setShareApproval error:', error.message);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Charge les validations déjà enregistrées pour un lien (public, côté client).
+ */
+export async function getShareApprovals(token: string): Promise<DbShareApproval[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.rpc('get_share_approvals', { target_token: token });
+  if (error || !Array.isArray(data)) return [];
+  return data as DbShareApproval[];
+}
+
+/**
+ * Charge les validations d'un lien côté propriétaire (photographe, authentifié).
+ */
+export async function getShareApprovalsForOwner(linkId: string): Promise<DbShareApproval[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.rpc('get_share_approvals_for_owner', {
+    target_link_id: linkId,
+  });
+  if (error || !Array.isArray(data)) return [];
+  return data as DbShareApproval[];
+}
+
+/**
+ * Supprime un lien de partage.
+ */
+export async function deleteShareLink(linkId: string): Promise<void> {
+  if (!supabase) return;
+  await supabase.from('share_links').delete().eq('id', linkId);
+}
+
+// ── Session stats ─────────────────────────────────────────────────────────────
+
+/**
+ * Incrémente les stats du jour (upsert par user_id + session_date).
+ */
+export async function trackStats(
+  userId: string,
+  delta: Partial<Omit<DbSessionStats, 'session_date'>>,
+): Promise<void> {
+  if (!supabase) return;
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Récupérer les stats existantes du jour
+  const { data: existing } = await supabase
+    .from('session_stats')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('session_date', today)
+    .single();
+
+  const current = existing as DbSessionStats | null;
+
+  const updated = {
+    user_id: userId,
+    session_date: today,
+    photos_imported: (current?.photos_imported ?? 0) + (delta.photos_imported ?? 0),
+    photos_rated: (current?.photos_rated ?? 0) + (delta.photos_rated ?? 0),
+    picks_count: (current?.picks_count ?? 0) + (delta.picks_count ?? 0),
+    rejects_count: (current?.rejects_count ?? 0) + (delta.rejects_count ?? 0),
+    exports_count: (current?.exports_count ?? 0) + (delta.exports_count ?? 0),
+  };
+
+  await supabase
+    .from('session_stats')
+    .upsert(updated, { onConflict: 'user_id,session_date' });
+}
+
+/**
+ * Charge les stats des N derniers jours.
+ */
+export async function loadSessionStats(
+  userId: string,
+  days = 30,
+): Promise<DbSessionStats[]> {
+  if (!supabase) return [];
+
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+  const sinceISO = since.toISOString().slice(0, 10);
+
+  const { data, error } = await supabase
+    .from('session_stats')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('session_date', sinceISO)
+    .order('session_date', { ascending: true });
+
+  if (error) return [];
+  return (data as DbSessionStats[]) ?? [];
+}
+
+// ── Collections cloud ─────────────────────────────────────────────────────────
+
+export async function syncCollections(
+  userId: string,
+  collections: Record<string, PhotoCollection>,
+  collectionOrder: string[],
+): Promise<void> {
+  if (!supabase) return;
+
+  const rows = collectionOrder.map((id, index) => {
+    const col = collections[id];
+    if (!col) return null;
+    return {
+      user_id: userId,
+      name: col.name,
+      description: col.description ?? null,
+      photo_file_hashes: [] as string[], // Les hashes sont résolus via photo_metadata
+      display_order: index,
+    };
+  }).filter(Boolean);
+
+  if (rows.length === 0) return;
+
+  // Upsert simple — on ne gère pas le renommage cross-device dans cette version
+  await supabase
+    .from('cloud_collections')
+    .upsert(rows, { onConflict: 'id', ignoreDuplicates: false });
+}

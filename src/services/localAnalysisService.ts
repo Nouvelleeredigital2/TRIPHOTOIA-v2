@@ -44,7 +44,7 @@ export class LocalAnalysisService {
    */
   private async analyzeSinglePhoto(file: File): Promise<PhotoAnalysis> {
     const fileKey = `${file.name}-${file.size}-${file.lastModified}`;
-    
+
     // Vérifier le cache
     if (this.analysisCache.has(fileKey)) {
       return this.analysisCache.get(fileKey)!;
@@ -52,7 +52,7 @@ export class LocalAnalysisService {
 
     try {
       const analysis = await this.imageProcessor.analyzeImage(file);
-      
+
       // Convertir le résultat en format PhotoAnalysis
       const photoAnalysis: PhotoAnalysis = {
         isBlurry: analysis.isBlurry,
@@ -66,7 +66,7 @@ export class LocalAnalysisService {
 
       // Mettre en cache
       this.analysisCache.set(fileKey, photoAnalysis);
-      
+
       return photoAnalysis;
     } catch (error) {
       console.error(`Erreur lors de l'analyse de ${file.name}:`, error);
@@ -179,11 +179,11 @@ export class LocalAnalysisService {
     averageSharpness: number;
   } {
     const validAnalyses = analyses.filter(a => !a.error);
-    
+
     const blurry = validAnalyses.filter(a => a.isBlurry).length;
     const sharp = validAnalyses.filter(a => !a.isBlurry).length;
     const withEyes = validAnalyses.filter(a => a.hasOpenEyes).length;
-    
+
     const averageSharpness = validAnalyses.length > 0
       ? validAnalyses.reduce((sum, a) => sum + (a.sharpnessScore || 0), 0) / validAnalyses.length
       : 0;

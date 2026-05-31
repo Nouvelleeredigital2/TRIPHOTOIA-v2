@@ -118,6 +118,7 @@ export interface RetouchPreset {
 export interface Photo {
   id: string;
   file: File;
+  fileHash?: string;
   previewUrl: string;
   analysis: PhotoAnalysis | null;
   name?: string;
@@ -192,6 +193,18 @@ type SetNoteAction = {
   payload: { photoId: string; previousNote: string };
 };
 
+type DeletePhotoAction = {
+  type: 'DELETE_PHOTO';
+  payload: {
+    photo: Photo;
+    index: number;
+    collectionIds: string[];
+    wasRejected: boolean;
+    /** Overrides « meilleur du groupe » qui pointaient sur cette photo (groupId → photoId). */
+    bestOverrides: Record<string, string>;
+  };
+};
+
 export type UndoAction =
   | SetBestAction
   | ToggleRejectAction
@@ -200,7 +213,8 @@ export type UndoAction =
   | SetRejectAction
   | SetColorLabelAction
   | UnflagAction
-  | SetNoteAction;
+  | SetNoteAction
+  | DeletePhotoAction;
 
 export interface PhotoCollection {
   id: string;
@@ -212,10 +226,16 @@ export interface PhotoCollection {
 }
 
 export type SmartCollectionRule =
+  | { type: 'all' }
+  | { type: 'unreviewed' }
+  | { type: 'review' }
   | { type: 'rating'; minValue: number }
   | { type: 'isPick' }
+  | { type: 'isFavorite' }
   | { type: 'isRejected' }
+  | { type: 'isDuplicate' }
   | { type: 'isBlurry' }
+  | { type: 'readyToExport' }
   | { type: 'hasTag'; tag: string }
   | { type: 'colorLabel'; label: ColorLabel };
 

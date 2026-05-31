@@ -1,9 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AfPhoto } from './afUtils';
 
+type SwipeDecision = 'pick' | 'reject' | 'favorite' | 'review';
+
 interface SwipeModeProps {
   photos: AfPhoto[];
-  onDecision: (id: string, action: 'pick' | 'reject' | 'star') => void;
+  onDecision: (id: string, action: SwipeDecision) => void;
+  onRate?: (id: string, rating: number) => void;
+  onUndoLast?: () => boolean;
+  decisionHistory?: Array<{ id: string; name: string; action: SwipeDecision }>;
   onDone: () => void;
 }
 
@@ -59,11 +64,19 @@ const CardBackground: React.FC<{ photo: AfPhoto; style?: React.CSSProperties }> 
   }} />
 );
 
-export const SwipeMode: React.FC<SwipeModeProps> = ({ photos, onDecision, onDone }) => {
+export const SwipeMode: React.FC<SwipeModeProps> = ({
+  photos,
+  onDecision,
+  onRate,
+  onUndoLast,
+  decisionHistory = [],
+  onDone,
+}) => {
   const [idx, setIdx] = useState(0);
   const [offset, setOffset] = useState(0);
   const [exiting, setExiting] = useState<'left' | 'right' | null>(null);
   const [finished, setFinished] = useState(false);
+  const [localHistory, setLocalHistory] = useState<Array<{ id: string; index: number }>>([]);
   const dragStart = useRef<number | null>(null);
   const isDragging = useRef(false);
 
@@ -71,11 +84,12 @@ export const SwipeMode: React.FC<SwipeModeProps> = ({ photos, onDecision, onDone
   const nextPh = photos[idx + 1];
   const next2Ph = photos[idx + 2];
 
-  const decide = useCallback((action: 'pick' | 'reject' | 'star') => {
+  const decide = useCallback((action: SwipeDecision) => {
     if (exiting || finished || !photo) return;
     const dir = action === 'reject' ? 'left' : 'right';
     setExiting(dir);
     setTimeout(() => {
+      setLocalHistory((prev) => [{ id: photo.id, index: idx }, ...prev].slice(0, 5));
       onDecision(photo.id, action);
       if (idx >= photos.length - 1) {
         setFinished(true);
@@ -88,16 +102,38 @@ export const SwipeMode: React.FC<SwipeModeProps> = ({ photos, onDecision, onDone
     }, 270);
   }, [exiting, finished, photo, idx, photos.length, onDecision, onDone]);
 
+  const undoLast = useCallback(() => {
+    const lastLocalDecision = localHistory[0];
+    if (!lastLocalDecision) return;
+
+    const restored = onUndoLast?.();
+    if (restored === false) return;
+
+    setLocalHistory((prev) => prev.slice(1));
+    setFinished(false);
+    setExiting(null);
+    setOffset(0);
+    setIdx(lastLocalDecision.index);
+  }, [localHistory, onUndoLast]);
+
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft')  decide('reject');
       if (e.key === 'ArrowRight') decide('pick');
-      if (e.key === 'ArrowUp')    decide('star');
+      if (e.key === 'ArrowUp')    decide('favorite');
+      if (/^[1-5]$/.test(e.key) && photo) {
+        e.preventDefault();
+        onRate?.(photo.id, Number(e.key));
+      }
+      if (e.key === 'Backspace' || (e.key.toLowerCase() === 'z' && (e.ctrlKey || e.metaKey))) {
+        e.preventDefault();
+        undoLast();
+      }
       if (e.key === 'Escape')     onDone();
     };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
-  }, [decide, onDone]);
+  }, [decide, onDone, onRate, photo, undoLast]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
@@ -182,6 +218,20 @@ export const SwipeMode: React.FC<SwipeModeProps> = ({ photos, onDecision, onDone
         <span style={{ fontSize: 12, color: 'var(--af-t3)', fontWeight: 600, flexShrink: 0 }}>
           {idx + 1} <span style={{ color: 'rgba(255,255,255,0.15)' }}>/ {photos.length}</span>
         </span>
+
+        <button
+          onClick={undoLast}
+          disabled={localHistory.length === 0}
+          style={{
+            padding: '5px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700,
+            cursor: localHistory.length > 0 ? 'pointer' : 'not-allowed',
+            border: '1px solid rgba(255,255,255,0.08)',
+            background: localHistory.length > 0 ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.025)',
+            color: localHistory.length > 0 ? 'var(--af-t2)' : 'rgba(255,255,255,0.2)',
+          }}
+        >
+          Annuler
+        </button>
       </div>
 
       {/* ── Swipe Arena ── */}
@@ -322,13 +372,30 @@ export const SwipeMode: React.FC<SwipeModeProps> = ({ photos, onDecision, onDone
       </div>
 
       {/* ── Action buttons ── */}
+      {decisionHistory.length > 0 && (
+        <div style={{
+          padding: '8px 20px 0', display: 'flex', justifyContent: 'center', gap: 8, flexShrink: 0,
+        }}>
+          {decisionHistory.slice(0, 3).map((entry) => (
+            <div key={`${entry.id}-${entry.action}`} style={{
+              maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              padding: '4px 8px', borderRadius: 7, fontSize: 10,
+              background: 'rgba(255,255,255,0.045)', color: 'rgba(255,255,255,0.34)',
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}>
+              {entry.action.toUpperCase()} · {entry.name}
+            </div>
+          ))}
+        </div>
+      )}
+
       <div style={{
         padding: '14px 20px', borderTop: '1px solid rgba(255,255,255,0.05)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexShrink: 0,
       }}>
         {([
           { action: 'reject' as const, label: 'REJETER', sub: '← drag', col: 'var(--af-reject)', icon: 'x' },
-          { action: 'star'   as const, label: 'FAVORI',  sub: '↑',      col: 'var(--af-ai)',    icon: 'star' },
+          { action: 'favorite'   as const, label: 'FAVORI',  sub: '↑',      col: 'var(--af-ai)',    icon: 'star' },
           { action: 'pick'   as const, label: 'PICK',    sub: '→ drag', col: 'var(--af-pick)',  icon: 'check' },
         ]).map((b) => (
           <button key={b.action} onClick={() => decide(b.action)} style={{
@@ -351,7 +418,7 @@ export const SwipeMode: React.FC<SwipeModeProps> = ({ photos, onDecision, onDone
       <div style={{
         padding: '3px 0 8px', display: 'flex', gap: 16, justifyContent: 'center', flexShrink: 0,
       }}>
-        {([['←', 'Rejeter'], ['→', 'Pick'], ['↑', 'Favori 5★'], ['Esc', 'Retour']] as [string, string][]).map(([k, l]) => (
+        {([['←', 'Rejeter'], ['→', 'Pick'], ['↑', 'Favori 5★'], ['1-5', 'Note'], ['Backspace', 'Annuler'], ['Esc', 'Retour']] as [string, string][]).map(([k, l]) => (
           <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <span style={{
               padding: '1px 5px', background: 'rgba(255,255,255,0.07)',

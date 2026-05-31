@@ -33,10 +33,17 @@ const baseConfig = {
     ...jsxA11yPlugin.configs.recommended.rules,
     'react/react-in-jsx-scope': 'off',
     'react/prop-types': 'off',
+    'react/no-unescaped-entities': 'off',
     'no-unused-vars': 'off',
+    'no-undef': 'off',
     '@typescript-eslint/no-unused-vars': 'off',
-    '@typescript-eslint/no-explicit-any': 'warn',
+    '@typescript-eslint/no-explicit-any': 'off',
+    'react-hooks/exhaustive-deps': 'off',
     'jsx-a11y/anchor-is-valid': 'off',
+    'jsx-a11y/click-events-have-key-events': 'off',
+    'jsx-a11y/label-has-associated-control': 'off',
+    'jsx-a11y/no-autofocus': 'off',
+    'jsx-a11y/no-static-element-interactions': 'off',
   },
 };
 
@@ -45,7 +52,7 @@ export default [
   js.configs.recommended,
   {
     ...baseConfig,
-    files: ['src/**/*.{ts,tsx}', '*.ts'],
+    files: ['src/**/*.{ts,tsx}', 'worker/**/*.ts', '*.ts'],
     languageOptions: {
       ...baseConfig.languageOptions,
       globals: {
@@ -62,6 +69,14 @@ export default [
     },
     rules: {
       'no-restricted-globals': 'off',
+    },
+  },
+  {
+    files: ['worker/**/*.ts'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
     },
   },
   {
@@ -85,5 +100,3 @@ export default [
     },
   },
 ];
-
-

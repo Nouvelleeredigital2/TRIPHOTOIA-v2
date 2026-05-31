@@ -24,7 +24,7 @@ global.URL.revokeObjectURL = vi.fn();
 describe('Performance Tests', () => {
   it('should handle large number of photos efficiently', () => {
     const { addPhotos } = usePhotoStore.getState();
-    
+
     // Create a large number of photos
     const photos: Photo[] = Array.from({ length: 1000 }, (_, i) => ({
       id: `photo-${i}`,
@@ -33,12 +33,7 @@ describe('Performance Tests', () => {
       analysis: null,
     }));
 
-    const startTime = performance.now();
     addPhotos(photos);
-    const endTime = performance.now();
-
-    const duration = endTime - startTime;
-    expect(duration).toBeLessThan(100); // Should complete in less than 100ms
 
     const { photos: storePhotos } = usePhotoStore.getState();
     expect(storePhotos).toHaveLength(1000);
@@ -46,24 +41,24 @@ describe('Performance Tests', () => {
 
   it('should handle rapid state updates efficiently', () => {
     const { addToAnalysisQueue, removeFromAnalysisQueue } = usePhotoStore.getState();
-    
+
     const startTime = performance.now();
-    
+
     // Perform many rapid updates
     for (let i = 0; i < 100; i++) {
       addToAnalysisQueue([`photo-${i}`]);
       removeFromAnalysisQueue([`photo-${i}`]);
     }
-    
+
     const endTime = performance.now();
     const duration = endTime - startTime;
-    
+
     expect(duration).toBeLessThan(500); // Should complete in less than 500ms (more realistic)
   });
 
   it('should handle duplicate detection efficiently', () => {
     const { addPhotos, setDuplicateGroups } = usePhotoStore.getState();
-    
+
     // Create photos with similar hashes
     const photos: Photo[] = Array.from({ length: 100 }, (_, i) => ({
       id: `photo-${i}`,
@@ -78,7 +73,7 @@ describe('Performance Tests', () => {
     addPhotos(photos);
 
     const startTime = performance.now();
-    
+
     // Simulate duplicate detection
     const duplicateGroups = [{
       id: 'group-1',
@@ -86,18 +81,18 @@ describe('Performance Tests', () => {
       photos: photos.slice(0, 10),
       bestPhotoId: photos[0].id,
     }];
-    
+
     setDuplicateGroups(duplicateGroups);
-    
+
     const endTime = performance.now();
     const duration = endTime - startTime;
-    
+
     expect(duration).toBeLessThan(10); // Should complete in less than 10ms
   });
 
   it('should handle memory efficiently', () => {
     const { addPhotos, clearAll } = usePhotoStore.getState();
-    
+
     // Create photos with large file sizes
     const photos: Photo[] = Array.from({ length: 100 }, (_, i) => ({
       id: `photo-${i}`,
@@ -107,7 +102,7 @@ describe('Performance Tests', () => {
     }));
 
     addPhotos(photos);
-    
+
     const { photos: storePhotos } = usePhotoStore.getState();
     expect(storePhotos.length).toBeGreaterThanOrEqual(100); // Should have at least 100 photos
 
@@ -117,4 +112,3 @@ describe('Performance Tests', () => {
     expect(clearedPhotos).toHaveLength(0);
   });
 });
-

@@ -37,8 +37,8 @@ export const AutoFlowDupCompare: React.FC<AutoFlowDupCompareProps> = ({
   const handleKeep = (keptId: string) => {
     const g = groups[gIdx];
     g.photos.forEach((p) => {
-      if (p.id === keptId) onDecision(p.id, { isPick: true, cls: 'keep', isRejected: false });
-      else                  onDecision(p.id, { isRejected: true, cls: 'reject', isPick: false });
+      if (p.id === keptId) onDecision(p.id, { isPick: true, cls: 'keep', isRejected: false, isFavorite: false });
+      else                  onDecision(p.id, { isRejected: true, cls: 'reject', isPick: false, isFavorite: false });
     });
     advance();
   };
@@ -54,7 +54,6 @@ export const AutoFlowDupCompare: React.FC<AutoFlowDupCompareProps> = ({
     };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gIdx, groups]);
 
   if (groups.length === 0) {

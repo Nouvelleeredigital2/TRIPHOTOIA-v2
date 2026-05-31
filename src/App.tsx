@@ -1,6 +1,11 @@
 import React, { Suspense, lazy, useMemo, useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { UserMenu } from './components/auth/UserMenu';
+import { ShareView } from './components/ShareView';
+import { ShareDialog } from './components/ShareDialog';
+import { useAuthStore } from './store/authStore';
+import { useCloudSync } from './hooks/useCloudSync';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider } from './components/ToastProvider';
 import { CollectionSidebar } from './components/CollectionSidebar';
@@ -12,9 +17,10 @@ import { Badge } from './components/ui/badge';
 import { ConfirmationDialog } from './components/ui/confirmation-dialog';
 import { PerformanceDebugDialog } from './components/performance/PerformanceDebugDialog';
 import { AnalysisReportDialog } from './components/AnalysisReportDialog';
-import { BarChart2, Sun, Moon, Trash2, HelpCircle, Menu, Palette, Zap } from 'lucide-react';
+import { BarChart2, Sun, Moon, Trash2, HelpCircle, Menu, Palette, Share2 } from 'lucide-react';
 import { useAiErrorNotifications } from './hooks/useAiErrorNotifications';
 import { useCataloguePersistence } from './hooks/useCataloguePersistence';
+import { clearFullCatalogue } from './lib/catalogue-persistence';
 import { useTheme } from './hooks/useTheme';
 import { useAccentColor } from './hooks/useAccentColor';
 import { PhotoGridSkeleton } from './components/PhotoGridSkeleton';
@@ -25,11 +31,20 @@ import { AutoFlowMode } from './components/autoflow/AutoFlowMode';
 import { AutoFlowAnalyzing } from './components/autoflow/AutoFlowAnalyzing';
 import { toAfPhotos } from './components/autoflow/afUtils';
 import type { AfPhoto } from './components/autoflow/afUtils';
+import { useCloudProjectStore } from './store/cloudProjectStore';
+import {
+  persistCloudAutoFlowDecision,
+  persistCloudAutoFlowRating,
+  type CloudAutoFlowDecision,
+} from './features/cloud-projects/cloudDecisions';
 
 // Lazy load tabs for better performance
 const IngestionTab = lazy(() => import('./features/ingestion/IngestionTab'));
 const TriageTab = lazy(() => import('./features/triage/TriageTab'));
 const ExportTab = lazy(() => import('./features/export/ExportTab'));
+// Développement/Retouche : ouvert en overlay plein écran (déclenché par
+// startRetouchSession depuis le Triage), pas comme onglet permanent.
+const DevelopmentTab = lazy(() => import('./features/development/DevelopmentTab'));
 
 // Create a client
 const queryClient = new QueryClient({
@@ -43,9 +58,24 @@ const queryClient = new QueryClient({
 
 type Tab = 'ingestion' | 'triage' | 'export';
 
+/** Détecte si l'URL est une page de partage (#/share/TOKEN) */
+function getShareToken(): string | null {
+  const hash = typeof window !== 'undefined' ? window.location.hash : '';
+  const match = hash.match(/^#\/share\/([a-f0-9]+)$/);
+  return match ? match[1] : null;
+}
+
 function App() {
   useAiErrorNotifications();
+  useCloudSync();
   const { lastSavedAt } = useCataloguePersistence();
+
+  // Init auth store (subscribe to Supabase session)
+  const initAuth = useAuthStore((s) => s._init);
+  useEffect(() => { return initAuth(); }, [initAuth]);
+
+  // Share page routing (hash-based, no React Router needed)
+  const [shareToken] = useState<string | null>(getShareToken);
 
   const { theme, toggleTheme } = useTheme();
   const { accentId, setAccentId, options: accentOptions } = useAccentColor();
@@ -55,6 +85,8 @@ function App() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [autoFlowOpen, setAutoFlowOpen] = useState(false);
+  const [autoFlowPhotoIds, setAutoFlowPhotoIds] = useState<string[] | null>(null);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
   // Raccourci global '?' pour la cheat sheet — fonctionne depuis n'importe quel onglet
   useEffect(() => {
@@ -109,6 +141,8 @@ function App() {
   // Sélecteurs optimisés pour éviter les boucles infinies
   const collections = usePhotoStore((state) => state.collections);
   const activeCollectionId = usePhotoStore((state) => state.activeCollectionId);
+  // Session de retouche active → overlay Développement plein écran
+  const retouchSessionPhotoIds = usePhotoStore((state) => state.retouchSessionPhotoIds);
 
   // Calculer les valeurs dérivées avec useMemo
   const activeCollection = useMemo(() =>
@@ -148,15 +182,15 @@ function App() {
       variant={activeTab === tab ? 'default' : 'ghost'}
       onClick={() => setActiveTab(tab)}
       className={`relative flex-1 font-medium transition-all ${
-        activeTab === tab 
-          ? 'bg-background shadow-sm' 
+        activeTab === tab
+          ? 'bg-background shadow-sm'
           : 'hover:bg-background/50'
       }`}
     >
       {label}
       {badge !== undefined && badge > 0 && (
-        <Badge 
-          variant="secondary" 
+        <Badge
+          variant="secondary"
           className="ml-2 text-xs font-semibold min-w-[24px] h-5 flex items-center justify-center"
         >
           {badge}
@@ -170,7 +204,7 @@ function App() {
       case 'ingestion':
         return <IngestionTab />;
       case 'triage':
-        return <TriageTab />;
+        return <TriageTab onOpenAutoFlow={openAutoFlow} />;
       case 'export':
         return <ExportTab />;
       default:
@@ -187,6 +221,18 @@ function App() {
     [photos, duplicateGroups]
   );
   const analyzedCount = photos.filter((p) => p.analysis && !p.analysis.error).length;
+
+  const openAutoFlow = (photoIds?: string[]) => {
+    setAutoFlowPhotoIds(photoIds && photoIds.length > 0 ? photoIds : null);
+    setAutoFlowOpen(true);
+  };
+
+  const openExportFromAutoFlow = () => {
+    usePhotoStore.getState().setPendingExportFilterMode('picks-only');
+    setAutoFlowOpen(false);
+    setAutoFlowPhotoIds(null);
+    setActiveTab('export');
+  };
 
   /** Apply an AutoFlow mutation back to the store */
   const handleAfMutation = (id: string, changes: Partial<AfPhoto>) => {
@@ -206,6 +252,42 @@ function App() {
     }
   };
 
+  const handleAfDecision = (
+    id: string,
+    decision: CloudAutoFlowDecision,
+    previous: Partial<AfPhoto>,
+  ) => {
+    const cloudState = useCloudProjectStore.getState();
+
+    void persistCloudAutoFlowDecision({
+      localPhotoId: id,
+      decision,
+      previous,
+      activeProject: cloudState.activeProject,
+      getCloudPhotoId: cloudState.getCloudPhotoId,
+      onPersisted: (projectId) =>
+        queryClient.invalidateQueries({ queryKey: ['cloud-project-photos', projectId] }),
+      onRollback: handleAfMutation,
+      onError: (message) => toast.error(message),
+    });
+  };
+
+  const handleAfRating = (id: string, rating: number, previous: Partial<AfPhoto>) => {
+    const cloudState = useCloudProjectStore.getState();
+
+    void persistCloudAutoFlowRating({
+      localPhotoId: id,
+      rating,
+      previous,
+      activeProject: cloudState.activeProject,
+      getCloudPhotoId: cloudState.getCloudPhotoId,
+      onPersisted: (projectId) =>
+        queryClient.invalidateQueries({ queryKey: ['cloud-project-photos', projectId] }),
+      onRollback: handleAfMutation,
+      onError: (message) => toast.error(message),
+    });
+  };
+
   const globalStats = useMemo(() => {
     const analyzed = photos.filter((p) => p.analysis && !p.analysis.error);
     return {
@@ -213,6 +295,10 @@ function App() {
       rejected: analyzed.filter((p) => p.analysis!.isRejected).length,
     };
   }, [photos]);
+
+  if (shareToken) {
+    return <ShareView token={shareToken} />;
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -266,7 +352,7 @@ function App() {
                       <div style={{
                         fontSize: 13, fontWeight: 800, letterSpacing: '0.04em',
                         color: '#f0f0f7', lineHeight: 1,
-                      }}>TRIPHOTOIA</div>
+                      }}>Tree Photo IA</div>
                       <div style={{
                         fontSize: 9, fontWeight: 600, letterSpacing: '0.08em',
                         color: '#f59e0b', textTransform: 'uppercase', lineHeight: 1.4,
@@ -364,7 +450,7 @@ function App() {
                   {/* ⚡ AutoFlow CTA */}
                   {analyzedCount > 0 && (
                     <button
-                      onClick={() => setAutoFlowOpen(true)}
+                      onClick={() => openAutoFlow()}
                       title="Ouvrir AutoFlow v2"
                       style={{
                         display: 'flex', alignItems: 'center', gap: 6,
@@ -422,6 +508,17 @@ function App() {
                     <HelpCircle className="w-4 h-4" />
                   </Button>
 
+                  {/* Partager */}
+                  {photos.length > 0 && (
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0"
+                      onClick={() => setShareDialogOpen(true)} title="Partager avec un client">
+                      <Share2 className="w-4 h-4" />
+                    </Button>
+                  )}
+
+                  {/* User menu / cloud */}
+                  <UserMenu />
+
                   <PerformanceDebugDialog />
 
                   {/* Undo */}
@@ -476,26 +573,30 @@ function App() {
             </header>
 
             <main className="flex-grow px-6 py-8 overflow-hidden">
-            <Suspense
-              fallback={
-                <div className="pt-4">
-                  <PhotoGridSkeleton count={12} label="Chargement…" />
-                </div>
-              }
-            >
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="h-full"
+              {/* PAS d'AnimatePresence ici. Dans ce setup (React 19 + StrictMode +
+                  framer-motion v11), le cycle exit d'AnimatePresence ne se termine
+                  jamais (onExitComplete ne se déclenche pas) : avec mode="wait" le
+                  changement d'onglet se fige, sans mode les motion.div s'accumulent.
+                  Un motion.div keyé SANS AnimatePresence laisse React démonter/monter
+                  proprement à chaque changement de clé ; l'animation d'entrée joue,
+                  aucun suivi d'exit n'est requis. Suspense par onglet à l'intérieur. */}
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="h-full"
+              >
+                <Suspense
+                  fallback={
+                    <div className="pt-4">
+                      <PhotoGridSkeleton count={12} label="Chargement…" />
+                    </div>
+                  }
                 >
                   {renderTabContent()}
-                </motion.div>
-              </AnimatePresence>
-            </Suspense>
+                </Suspense>
+              </motion.div>
             </main>
 
             {/* Status Bar minimaliste */}
@@ -562,14 +663,20 @@ function App() {
         </div>
         <ToastProvider />
         <Onboarding />
+        <ShareDialog open={shareDialogOpen} onClose={() => setShareDialogOpen(false)} />
         <AnalysisReportDialog open={reportOpen} onOpenChange={setReportOpen} />
         <KeyboardShortcutsHelp open={helpOpen} onOpenChange={setHelpOpen} />
         <ConfirmationDialog
           open={clearConfirmOpen}
           onOpenChange={setClearConfirmOpen}
-          onConfirm={() => {
+          onConfirm={async () => {
             clearAll();
-            toast.success('Catalogue effacé');
+            const ok = await clearFullCatalogue();
+            if (ok) {
+              toast.success('Catalogue effacé');
+            } else {
+              toast.error("Échec de l'effacement du stockage local. Vos données peuvent réapparaître au rechargement — réessayez.");
+            }
           }}
           title="Effacer tout le catalogue ?"
           description={`Cette action supprimera définitivement les ${photos.length} photo${photos.length > 1 ? 's' : ''} et toutes les données associées (analyses, collections, tags). Irréversible.`}
@@ -590,9 +697,33 @@ function App() {
         {autoFlowOpen && (
           <AutoFlowMode
             photos={afPhotos}
+            initialPhotoIds={autoFlowPhotoIds ?? undefined}
             onMutation={handleAfMutation}
-            onClose={() => setAutoFlowOpen(false)}
+            onDecision={handleAfDecision}
+            onRating={handleAfRating}
+            onExportPicks={openExportFromAutoFlow}
+            onClose={() => {
+              setAutoFlowOpen(false);
+              setAutoFlowPhotoIds(null);
+            }}
           />
+        )}
+
+        {/* Overlay Développement / Retouche — déclenché par startRetouchSession
+            (bouton « Développer » du Triage). Se ferme via endRetouchSession,
+            qui vide retouchSessionPhotoIds et démonte l'overlay. */}
+        {retouchSessionPhotoIds.length > 0 && (
+          <div className="fixed inset-0 z-[200] overflow-auto bg-background p-6">
+            <Suspense
+              fallback={
+                <div className="pt-4">
+                  <PhotoGridSkeleton count={8} label="Chargement de l'atelier…" />
+                </div>
+              }
+            >
+              <DevelopmentTab />
+            </Suspense>
+          </div>
         )}
       </ErrorBoundary>
     </QueryClientProvider>
@@ -600,11 +731,4 @@ function App() {
 }
 
 export default App;
-
-
-
-
-
-
-
 

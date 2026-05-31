@@ -23,6 +23,7 @@ export interface AfPhoto {
   isBlurry: boolean;
   isPick: boolean;
   isRejected: boolean;
+  isFavorite: boolean;
   rating: number;
   dims?: string;
   iso?: string;
@@ -139,6 +140,7 @@ export function toAfPhotos(photos: Photo[], duplicateGroups: DuplicateGroup[]): 
       isBlurry: a?.isBlurry ?? false,
       isPick: a?.isPick ?? false,
       isRejected: a?.isRejected ?? false,
+      isFavorite: Boolean(a?.isPick && (a?.rating ?? 0) >= 5),
       rating: a?.rating ?? 0,
       dims: undefined,
       iso: undefined,

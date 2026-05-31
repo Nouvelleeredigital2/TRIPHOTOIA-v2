@@ -6,10 +6,15 @@ import { AuthModal } from './AuthModal';
 import { AnalyticsDashboard } from '../AnalyticsDashboard';
 import { CloudProjectsDashboard } from '../../features/cloud-projects/CloudProjectsDashboard';
 import { useCloudProjectStore } from '../../store/cloudProjectStore';
+import { usePhotoStore } from '../../store/photoStore';
+import { clearFullCatalogue } from '../../lib/catalogue-persistence';
+import { Button } from '../ui/button';
+import toast from 'react-hot-toast';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '../ui/dialog';
@@ -25,11 +30,35 @@ const SYNC_ICONS = {
 export function UserMenu() {
   const { user, syncStatus, signOut, loading } = useAuthStore();
   const activeCloudProject = useCloudProjectStore((state) => state.activeProject);
+  const clearActiveProject = useCloudProjectStore((state) => state.clearActiveProject);
+  const clearLocalCatalogue = usePhotoStore((state) => state.clearAll);
   const [authOpen, setAuthOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // A-51 : déconnexion simple vs déconnexion + effacement des données locales
+  // (catalogue, collections, IDB) — important sur un poste partagé.
+  const handleLogout = async (clearLocal: boolean) => {
+    setLoggingOut(true);
+    try {
+      if (clearLocal) {
+        clearLocalCatalogue();
+        await clearFullCatalogue();
+        clearActiveProject();
+      }
+      await signOut();
+      toast.success(clearLocal ? 'Déconnecté — données locales effacées.' : 'Déconnecté.');
+    } catch {
+      toast.error('Échec de la déconnexion.');
+    } finally {
+      setLoggingOut(false);
+      setLogoutOpen(false);
+    }
+  };
 
   // Fermer le menu en cliquant à l'extérieur
   useEffect(() => {
@@ -117,7 +146,7 @@ export function UserMenu() {
 
             {/* Déconnexion */}
             <button
-              onClick={() => { setMenuOpen(false); signOut(); }}
+              onClick={() => { setMenuOpen(false); setLogoutOpen(true); }}
               className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-muted transition-colors text-left text-red-500"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -139,6 +168,26 @@ export function UserMenu() {
         </DialogContent>
       </Dialog>
       <AnalyticsDashboard open={analyticsOpen} onClose={() => setAnalyticsOpen(false)} />
+
+      <Dialog open={logoutOpen} onOpenChange={(o) => { if (!loggingOut) setLogoutOpen(o); }}>
+        <DialogContent description="Choisissez le type de déconnexion.">
+          <DialogHeader>
+            <DialogTitle>Se déconnecter</DialogTitle>
+            <DialogDescription>
+              Vos photos et métadonnées locales restent sur cet appareil après déconnexion.
+              Sur un poste partagé, vous pouvez aussi les effacer.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col gap-2 sm:flex-col sm:items-stretch">
+            <Button variant="outline" disabled={loggingOut} onClick={() => handleLogout(false)}>
+              Se déconnecter seulement
+            </Button>
+            <Button variant="destructive" disabled={loggingOut} onClick={() => handleLogout(true)}>
+              Se déconnecter et effacer les données locales
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

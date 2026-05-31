@@ -9,7 +9,7 @@ async function downloadPicksAsZip(
   onProgress: (pct: number) => void,
 ): Promise<void> {
   const zip = new JSZip();
-  const folder = zip.folder('TRIPHOTOIA_picks');
+  const folder = zip.folder('TreePhoto_picks');
   if (!folder) throw new Error('Impossible de créer le dossier ZIP');
 
   const withUrl = picks.filter((p) => p.previewUrl);
@@ -50,7 +50,7 @@ async function downloadPicksAsZip(
   const url = URL.createObjectURL(content);
   const a   = document.createElement('a');
   a.href     = url;
-  a.download = `TRIPHOTOIA_picks_${withUrl.length}_photos.zip`;
+  a.download = `TreePhoto_picks_${withUrl.length}_photos.zip`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -73,7 +73,7 @@ const MiniPh: React.FC<MiniPhProps> = ({ photo, size = 46 }) => {
       background: photo.previewUrl
         ? `url(${photo.previewUrl}) center/cover`
         : `linear-gradient(135deg,${photo.gradient[0]},${photo.gradient[1]})`,
-      border: '1.5px solid rgba(255,255,255,0.06)',
+      border: '1.5px solid rgba(var(--af-overlay-rgb),0.06)',
       position: 'relative', overflow: 'hidden',
     }}>
       <div style={{
@@ -120,8 +120,8 @@ const PileCard: React.FC<PileCardProps> = ({
       style={{
         flex: 1, borderRadius: 16, padding: '22px 20px',
         display: 'flex', flexDirection: 'column', gap: 18, minHeight: 0,
-        background: hov ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)',
-        border: `1px solid rgba(255,255,255,${hov ? 0.1 : 0.05})`,
+        background: hov ? 'rgba(var(--af-overlay-rgb),0.04)' : 'rgba(var(--af-overlay-rgb),0.02)',
+        border: `1px solid rgba(var(--af-overlay-rgb),${hov ? 0.1 : 0.05})`,
         transition: 'all 0.15s',
       }}
     >
@@ -130,7 +130,7 @@ const PileCard: React.FC<PileCardProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
             width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-            background: 'rgba(255,255,255,0.08)',
+            background: 'rgba(var(--af-overlay-rgb),0.08)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <svg width={17} height={17} viewBox="0 0 24 24"
@@ -139,12 +139,12 @@ const PileCard: React.FC<PileCardProps> = ({
               <path d={iconPaths[icon] ?? ''} />
             </svg>
           </div>
-          <span style={{ fontSize: 14, fontWeight: 700, color: '#ccd0da' }}>{title}</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--af-t1)' }}>{title}</span>
         </div>
         {confidence != null && (
           <div style={{
             padding: '2px 9px', borderRadius: 20, fontSize: 11, fontWeight: 600,
-            background: 'rgba(255,255,255,0.06)', color: 'var(--af-t2)',
+            background: 'rgba(var(--af-overlay-rgb),0.06)', color: 'var(--af-t2)',
           }}>
             Conf. {confidence}%
           </div>
@@ -153,7 +153,7 @@ const PileCard: React.FC<PileCardProps> = ({
           <div style={{
             display: 'flex', alignItems: 'center', gap: 4,
             padding: '2px 9px', borderRadius: 20, fontSize: 11, fontWeight: 600,
-            background: 'rgba(255,255,255,0.06)', color: 'var(--af-t2)',
+            background: 'rgba(var(--af-overlay-rgb),0.06)', color: 'var(--af-t2)',
           }}>
             ~{timeEst}
           </div>
@@ -164,21 +164,21 @@ const PileCard: React.FC<PileCardProps> = ({
       <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', minHeight: 30 }}>
         {photos.length > 0
           ? photos.slice(0, 9).map((p) => <MiniPh key={p.id} photo={p} size={46} />)
-          : <span style={{ fontSize: 12, color: '#2a2a2a', fontStyle: 'italic', alignSelf: 'center' }}>Aucune photo</span>
+          : <span style={{ fontSize: 12, color: 'var(--af-t3)', fontStyle: 'italic', alignSelf: 'center' }}>Aucune photo</span>
         }
         {photos.length > 9 && (
           <div style={{
             width: 46, height: 31, borderRadius: 4, flexShrink: 0,
-            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#444',
+            background: 'rgba(var(--af-overlay-rgb),0.04)', border: '1px solid rgba(var(--af-overlay-rgb),0.07)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--af-t3)',
           }}>+{photos.length - 9}</div>
         )}
       </div>
 
       {/* Big count */}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-        <span style={{ fontSize: 40, fontWeight: 800, color: '#f0f0f7', lineHeight: 1 }}>{count}</span>
-        <span style={{ fontSize: 14, color: '#444' }}>photos</span>
+        <span style={{ fontSize: 40, fontWeight: 800, color: 'var(--af-t1)', lineHeight: 1 }}>{count}</span>
+        <span style={{ fontSize: 14, color: 'var(--af-t3)' }}>photos</span>
       </div>
 
       {/* Buttons */}
@@ -188,9 +188,9 @@ const PileCard: React.FC<PileCardProps> = ({
             <button onClick={primary} style={{
               flex: 1, padding: '10px 0', borderRadius: 9, fontSize: 13, fontWeight: 700,
               cursor: 'pointer', outline: 'none',
-              background: 'rgba(255,255,255,0.08)',
-              border: '1px solid rgba(255,255,255,0.14)',
-              color: '#e8e8f0',
+              background: 'rgba(var(--af-overlay-rgb),0.08)',
+              border: '1px solid rgba(var(--af-overlay-rgb),0.14)',
+              color: 'var(--af-t1)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
               transition: 'background 0.1s',
             }}>{primaryLabel}</button>
@@ -198,7 +198,7 @@ const PileCard: React.FC<PileCardProps> = ({
           {secondary && (
             <button onClick={secondary} style={{
               padding: '10px 14px', borderRadius: 9, fontSize: 12, fontWeight: 500,
-              cursor: 'pointer', border: '1px solid rgba(255,255,255,0.07)',
+              cursor: 'pointer', border: '1px solid rgba(var(--af-overlay-rgb),0.07)',
               background: 'transparent', color: 'var(--af-t3)', outline: 'none',
             }}>{secondaryLabel}</button>
           )}
@@ -216,7 +216,7 @@ const Filmstrip: React.FC<{
   const sorted = useMemo(() => [...photos].sort((a, b) => b.score - a.score), [photos]);
   return (
     <div style={{
-      borderTop: '1px solid rgba(255,255,255,0.05)',
+      borderTop: '1px solid rgba(var(--af-overlay-rgb),0.05)',
       background: 'rgba(13,13,20,0.8)',
       padding: '8px 12px', display: 'flex', gap: 4, overflowX: 'auto',
       flexShrink: 0, alignItems: 'center',
@@ -232,13 +232,13 @@ const Filmstrip: React.FC<{
             ? `url(${p.previewUrl}) center/cover`
             : `linear-gradient(135deg,${p.gradient[0]},${p.gradient[1]})`,
           border: `2px solid ${p.isPick
-            ? 'rgba(134,239,172,0.65)'
-            : p.isRejected ? 'rgba(252,165,165,0.4)' : 'rgba(255,255,255,0.07)'}`,
+            ? 'rgba(var(--af-pick-rgb),0.65)'
+            : p.isRejected ? 'rgba(var(--af-reject-rgb),0.4)' : 'rgba(var(--af-overlay-rgb),0.07)'}`,
           opacity: p.isRejected ? 0.32 : 1, transition: 'border-color 0.1s',
         }}>
           <div style={{
             position: 'absolute', bottom: 2, right: 3, fontSize: 8, fontWeight: 800, lineHeight: 1.3,
-            color: 'rgba(255,255,255,0.75)', background: 'rgba(0,0,0,0.55)',
+            color: 'rgba(var(--af-overlay-rgb),0.75)', background: 'rgba(0,0,0,0.55)',
             borderRadius: 2, padding: '1px 3px',
           }}>{p.score}</div>
         </div>
@@ -274,11 +274,11 @@ const DownloadZipButton: React.FC<{ picks: AfPhoto[] }> = ({ picks }) => {
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10,
         padding: '10px 16px', borderRadius: 9,
-        background: 'rgba(134,239,172,0.08)', border: '1px solid rgba(134,239,172,0.2)',
+        background: 'rgba(var(--af-pick-rgb),0.08)', border: '1px solid rgba(var(--af-pick-rgb),0.2)',
       }}>
         <div style={{
           width: 13, height: 13, borderRadius: '50%',
-          border: '2px solid rgba(134,239,172,0.3)',
+          border: '2px solid rgba(var(--af-pick-rgb),0.3)',
           borderTopColor: 'var(--af-pick)',
           animation: 'af-spin 0.7s linear infinite', flexShrink: 0,
         }} />
@@ -286,10 +286,10 @@ const DownloadZipButton: React.FC<{ picks: AfPhoto[] }> = ({ picks }) => {
           <div style={{ fontSize: 11, color: 'var(--af-pick)', fontWeight: 600, marginBottom: 3 }}>
             Compression… {progress}%
           </div>
-          <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{ height: 3, background: 'rgba(var(--af-overlay-rgb),0.06)', borderRadius: 3, overflow: 'hidden' }}>
             <div style={{
               height: '100%', width: `${progress}%`, borderRadius: 3,
-              background: 'linear-gradient(90deg, var(--af-pick), #34d399)',
+              background: 'linear-gradient(90deg, var(--af-pick), var(--af-pick))',
               transition: 'width 0.2s ease',
             }} />
           </div>
@@ -303,7 +303,7 @@ const DownloadZipButton: React.FC<{ picks: AfPhoto[] }> = ({ picks }) => {
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
         padding: '10px 0', borderRadius: 9,
-        background: 'rgba(134,239,172,0.1)', border: '1px solid rgba(134,239,172,0.3)',
+        background: 'rgba(var(--af-pick-rgb),0.1)', border: '1px solid rgba(var(--af-pick-rgb),0.3)',
         color: 'var(--af-pick)', fontSize: 13, fontWeight: 700,
       }}>
         <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
@@ -320,7 +320,7 @@ const DownloadZipButton: React.FC<{ picks: AfPhoto[] }> = ({ picks }) => {
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
         padding: '10px 0', borderRadius: 9,
-        background: 'rgba(252,165,165,0.08)', border: '1px solid rgba(252,165,165,0.2)',
+        background: 'rgba(var(--af-reject-rgb),0.08)', border: '1px solid rgba(var(--af-reject-rgb),0.2)',
         color: 'var(--af-reject)', fontSize: 12, fontWeight: 600,
       }}>
         Erreur — réessayez
@@ -338,12 +338,12 @@ const DownloadZipButton: React.FC<{ picks: AfPhoto[] }> = ({ picks }) => {
         cursor: hasPicks ? 'pointer' : 'not-allowed',
         outline: 'none', transition: 'all 0.15s',
         background: hasPicks
-          ? 'linear-gradient(135deg, rgba(134,239,172,0.15), rgba(52,211,153,0.08))'
-          : 'rgba(255,255,255,0.02)',
+          ? 'linear-gradient(135deg, rgba(var(--af-pick-rgb),0.15), rgba(var(--af-pick-rgb),0.08))'
+          : 'rgba(var(--af-overlay-rgb),0.02)',
         border: hasPicks
-          ? '1px solid rgba(134,239,172,0.35)'
-          : '1px solid rgba(255,255,255,0.05)',
-        color: hasPicks ? 'var(--af-pick)' : '#333',
+          ? '1px solid rgba(var(--af-pick-rgb),0.35)'
+          : '1px solid rgba(var(--af-overlay-rgb),0.05)',
+        color: hasPicks ? 'var(--af-pick)' : 'var(--af-t3)',
         opacity: hasPicks ? 1 : 0.4,
       }}
     >
@@ -354,8 +354,8 @@ const DownloadZipButton: React.FC<{ picks: AfPhoto[] }> = ({ picks }) => {
       </svg>
       Télécharger les picks ({picks.filter((p) => p.previewUrl).length})
       <svg width={10} height={10} viewBox="0 0 24 24" fill="none"
-        stroke="rgba(134,239,172,0.5)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="rgba(134,239,172,0.2)" stroke="none" />
+        stroke="rgba(var(--af-pick-rgb),0.5)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="rgba(var(--af-pick-rgb),0.2)" stroke="none" />
       </svg>
     </button>
   );
@@ -398,9 +398,9 @@ export const AutoFlowDashboard: React.FC<AutoFlowDashboardProps> = ({
     }}>
       {/* ── Top bar ── */}
       <div style={{
-        padding: '12px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)',
+        padding: '12px 24px', borderBottom: '1px solid rgba(var(--af-overlay-rgb),0.05)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        background: 'rgba(7,7,12,0.9)', backdropFilter: 'blur(12px)',
+        background: 'rgba(var(--af-bg-rgb),0.9)', backdropFilter: 'blur(12px)',
         flexShrink: 0,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -416,8 +416,8 @@ export const AutoFlowDashboard: React.FC<AutoFlowDashboardProps> = ({
             </svg>
           </div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.04em', color: '#f0f0f7', lineHeight: 1 }}>
-              TRIPHOTOIA
+            <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.04em', color: 'var(--af-t1)', lineHeight: 1 }}>
+              Tree Photo IA
             </div>
             <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.08em', color: 'var(--af-review)', textTransform: 'uppercase', lineHeight: 1.4 }}>
               AutoFlow v2
@@ -428,13 +428,13 @@ export const AutoFlowDashboard: React.FC<AutoFlowDashboardProps> = ({
         {/* Live counters */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {[
-            { label: `${photos.length} photos`,   col: 'rgba(255,255,255,0.5)' },
+            { label: `${photos.length} photos`,   col: 'rgba(var(--af-overlay-rgb),0.5)' },
             { label: `${keeps.length} picks`,      col: 'var(--af-pick)' },
             { label: `${rejects.length} rejetées`, col: 'var(--af-reject)' },
           ].map(({ label, col }) => (
             <div key={label} style={{
               padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
-              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)',
+              background: 'rgba(var(--af-overlay-rgb),0.05)', border: '1px solid rgba(var(--af-overlay-rgb),0.07)',
               color: col,
             }}>{label}</div>
           ))}
@@ -447,8 +447,8 @@ export const AutoFlowDashboard: React.FC<AutoFlowDashboardProps> = ({
               <button onClick={onExportPicks} style={{
                 padding: '8px 14px', borderRadius: 9, fontSize: 12, fontWeight: 700,
                 cursor: 'pointer', outline: 'none',
-                background: 'linear-gradient(135deg, rgba(134,239,172,0.16), rgba(52,211,153,0.08))',
-                border: '1px solid rgba(134,239,172,0.35)',
+                background: 'linear-gradient(135deg, rgba(var(--af-pick-rgb),0.16), rgba(var(--af-pick-rgb),0.08))',
+                border: '1px solid rgba(var(--af-pick-rgb),0.35)',
                 color: 'var(--af-pick)',
                 display: 'flex', alignItems: 'center', gap: 8,
               }}>
@@ -464,8 +464,8 @@ export const AutoFlowDashboard: React.FC<AutoFlowDashboardProps> = ({
           )}
           <button onClick={onClose} style={{
             padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600,
-            cursor: 'pointer', border: '1px solid rgba(255,255,255,0.12)',
-            background: 'rgba(255,255,255,0.05)', color: 'var(--af-t2)', outline: 'none',
+            cursor: 'pointer', border: '1px solid rgba(var(--af-overlay-rgb),0.12)',
+            background: 'rgba(var(--af-overlay-rgb),0.05)', color: 'var(--af-t2)', outline: 'none',
           }}>
             Retour application
           </button>
@@ -519,12 +519,12 @@ export const AutoFlowDashboard: React.FC<AutoFlowDashboardProps> = ({
                 cursor: keeps.length > 0 ? 'pointer' : 'not-allowed',
                 outline: 'none', transition: 'all 0.15s',
                 background: keeps.length > 0
-                  ? 'linear-gradient(135deg, rgba(134,239,172,0.15), rgba(52,211,153,0.08))'
-                  : 'rgba(255,255,255,0.02)',
+                  ? 'linear-gradient(135deg, rgba(var(--af-pick-rgb),0.15), rgba(var(--af-pick-rgb),0.08))'
+                  : 'rgba(var(--af-overlay-rgb),0.02)',
                 border: keeps.length > 0
-                  ? '1px solid rgba(134,239,172,0.35)'
-                  : '1px solid rgba(255,255,255,0.05)',
-                color: keeps.length > 0 ? 'var(--af-pick)' : '#333',
+                  ? '1px solid rgba(var(--af-pick-rgb),0.35)'
+                  : '1px solid rgba(var(--af-overlay-rgb),0.05)',
+                color: keeps.length > 0 ? 'var(--af-pick)' : 'var(--af-t3)',
                 opacity: keeps.length > 0 ? 1 : 0.4,
               }}
             >
@@ -557,18 +557,18 @@ export const AutoFlowDashboard: React.FC<AutoFlowDashboardProps> = ({
       {/* ── Stats bar ── */}
       <div style={{
         margin: '14px 28px 0',
-        display: 'flex', background: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, overflow: 'hidden',
+        display: 'flex', background: 'rgba(var(--af-overlay-rgb),0.02)',
+        border: '1px solid rgba(var(--af-overlay-rgb),0.05)', borderRadius: 12, overflow: 'hidden',
       }}>
         {[
           { label: 'Score moyen IA',     val: avgScore,                                     col: 'var(--af-review)', action: undefined },
-          { label: 'Doublons détectés',  val: photos.filter((p) => p.isDup).length,         col: 'rgba(255,255,255,0.55)', action: onDupCompare },
-          { label: 'Photos floues',      val: photos.filter((p) => p.isBlurry).length,      col: 'rgba(255,255,255,0.55)', action: undefined },
-          { label: 'Picks automatiques', val: keeps.length,                                 col: 'rgba(255,255,255,0.55)', action: undefined },
+          { label: 'Doublons détectés',  val: photos.filter((p) => p.isDup).length,         col: 'rgba(var(--af-overlay-rgb),0.55)', action: onDupCompare },
+          { label: 'Photos floues',      val: photos.filter((p) => p.isBlurry).length,      col: 'rgba(var(--af-overlay-rgb),0.55)', action: undefined },
+          { label: 'Picks automatiques', val: keeps.length,                                 col: 'rgba(var(--af-overlay-rgb),0.55)', action: undefined },
         ].map(({ label, val, col, action }, i, arr) => (
           <div key={label} onClick={action} style={{
             flex: 1, padding: '14px 0', textAlign: 'center',
-            borderRight: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+            borderRight: i < arr.length - 1 ? '1px solid rgba(var(--af-overlay-rgb),0.05)' : 'none',
             cursor: action ? 'pointer' : 'default', transition: 'background 0.1s',
           }}>
             <div style={{ fontSize: 26, fontWeight: 800, color: col, lineHeight: 1, marginBottom: 4 }}>{val}</div>

@@ -5,6 +5,7 @@ import { Badge } from '../../../components/ui/badge';
 import { Input } from '../../../components/ui/input';
 import { RetouchOptions, RetouchPreset } from '../../../types';
 import { usePresetsStore } from '../../../store/presetsStore';
+import { ConfirmationDialog } from '../../../components/ui/confirmation-dialog';
 import toast from 'react-hot-toast';
 
 interface PresetsPanelProps {
@@ -67,6 +68,7 @@ export function PresetsPanel({ currentOptions, onApplyPreset, onApplyPresetToAll
   const [userOpen, setUserOpen] = useState(true);
   const [saving, setSaving] = useState(false);
   const [presetName, setPresetName] = useState('');
+  const [presetToDelete, setPresetToDelete] = useState<RetouchPreset | null>(null);
 
   const handleSave = () => {
     const name = presetName.trim();
@@ -93,8 +95,14 @@ export function PresetsPanel({ currentOptions, onApplyPreset, onApplyPresetToAll
   };
 
   const handleDelete = (preset: RetouchPreset) => {
-    deletePreset(preset.id);
-    toast.success(`Preset « ${preset.name} » supprimé`);
+    setPresetToDelete(preset);
+  };
+
+  const confirmDelete = () => {
+    if (!presetToDelete) return;
+    deletePreset(presetToDelete.id);
+    toast.success(`Preset « ${presetToDelete.name} » supprimé`);
+    setPresetToDelete(null);
   };
 
   return (
@@ -210,6 +218,17 @@ export function PresetsPanel({ currentOptions, onApplyPreset, onApplyPresetToAll
           </div>
         )}
       </div>
+
+      <ConfirmationDialog
+        open={presetToDelete !== null}
+        onOpenChange={(o) => { if (!o) setPresetToDelete(null); }}
+        onConfirm={confirmDelete}
+        title="Supprimer ce preset ?"
+        description={`Le preset « ${presetToDelete?.name ?? ''} » sera définitivement supprimé. Cette action est irréversible.`}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        variant="destructive"
+      />
     </div>
   );
 }

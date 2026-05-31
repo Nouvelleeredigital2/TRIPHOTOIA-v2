@@ -7,7 +7,7 @@
 
 import { ExportFormData } from '../features/export/ExportTab';
 
-const STORAGE_KEY = 'triphotoia-export-presets';
+const STORAGE_KEY = 'treephoto-export-presets';
 
 export interface ExportPreset {
   id: string;

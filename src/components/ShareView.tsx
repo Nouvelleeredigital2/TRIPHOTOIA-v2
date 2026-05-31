@@ -1,24 +1,62 @@
 import React, { useEffect, useState } from 'react';
-import { Camera, Star, Target, AlertCircle, CheckCircle } from 'lucide-react';
-import { getShareLinkByToken, getSharedPhotos } from '../lib/sync-utils';
-import type { DbShareLink, DbPhotoMetadata } from '../lib/sync-utils';
+import { Camera, Star, Target, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import {
+  getShareLinkByToken,
+  getSharedPhotos,
+  getShareApprovals,
+  setShareApproval,
+  getSharedPhotoUrl,
+} from '../lib/sync-utils';
+import type { DbShareLink, DbPhotoMetadata, ShareApprovalStatus } from '../lib/sync-utils';
 import { COLOR_LABEL_META } from '../types';
 import type { ColorLabel } from '../types';
 
-const STORAGE_KEY = 'triphotoia_approvals';
+type ApprovalMap = Record<string, ShareApprovalStatus>;
 
-function getApprovals(): Record<string, boolean> {
+// Cache local (par token) : repli hors-ligne et affichage immédiat. La source de vérité
+// reste Supabase via les RPC set_share_approval / get_share_approvals.
+function localCacheKey(token: string): string {
+  return `treephoto_approvals_${token}`;
+}
+
+function getCachedApprovals(token: string): ApprovalMap {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
+    return JSON.parse(localStorage.getItem(localCacheKey(token)) ?? '{}');
   } catch {
     return {};
   }
 }
 
-function setApproval(fileHash: string, approved: boolean) {
-  const approvals = getApprovals();
-  approvals[fileHash] = approved;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(approvals));
+function cacheApprovals(token: string, approvals: ApprovalMap) {
+  try {
+    localStorage.setItem(localCacheKey(token), JSON.stringify(approvals));
+  } catch {
+    /* quota / mode privé — on ignore, la source de vérité est le cloud */
+  }
+}
+
+/** Miniature partagée : vraie image (bucket public) avec repli placeholder si absente/erreur. */
+function SharedThumb({ url, label }: { url: string | null; label: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!url || failed) {
+    return (
+      <>
+        <Camera className="w-8 h-8 text-white/10" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-[10px] text-white/20 text-center px-2 leading-tight">{label}</span>
+        </div>
+      </>
+    );
+  }
+  return (
+    <img
+      src={url}
+      alt={label}
+      loading="lazy"
+      className="absolute inset-0 h-full w-full object-cover"
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 interface ShareViewProps {
@@ -30,11 +68,15 @@ export function ShareView({ token }: ShareViewProps) {
   const [photos, setPhotos] = useState<DbPhotoMetadata[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [approvals, setApprovals] = useState<Record<string, boolean>>(getApprovals);
+  const [approvals, setApprovals] = useState<ApprovalMap>({});
+  const [savingHash, setSavingHash] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
     setLoading(true);
+    // Affichage immédiat depuis le cache local, puis rafraîchi par le cloud.
+    setApprovals(getCachedApprovals(token));
     getShareLinkByToken(token)
       .then(async (l) => {
         if (!l) { setError('Lien introuvable ou expiré.'); return; }
@@ -42,19 +84,40 @@ export function ShareView({ token }: ShareViewProps) {
           setError('Ce lien de partage a expiré.'); return;
         }
         setLink(l);
-        const p = await getSharedPhotos(l);
+        const [p, serverApprovals] = await Promise.all([
+          getSharedPhotos(l),
+          getShareApprovals(token),
+        ]);
         setPhotos(p);
+        if (serverApprovals.length > 0) {
+          const map: ApprovalMap = {};
+          serverApprovals.forEach((a) => { map[a.file_hash] = a.status; });
+          setApprovals(map);
+          cacheApprovals(token, map);
+        }
       })
       .catch(() => setError('Erreur lors du chargement.'))
       .finally(() => setLoading(false));
   }, [token]);
 
-  const handleApproval = (fileHash: string, approved: boolean) => {
-    setApproval(fileHash, approved);
-    setApprovals((prev) => ({ ...prev, [fileHash]: approved }));
+  const handleApproval = async (fileHash: string, status: ShareApprovalStatus) => {
+    // MAJ optimiste fonctionnelle (clics rapides successifs ne s'écrasent pas) + cache.
+    setApprovals((prev) => {
+      const next: ApprovalMap = { ...prev, [fileHash]: status };
+      cacheApprovals(token, next);
+      return next;
+    });
+    setSaveError(null);
+    setSavingHash(fileHash);
+
+    const ok = await setShareApproval(token, fileHash, status);
+    setSavingHash(null);
+    if (!ok) {
+      setSaveError("Votre choix n'a pas pu être enregistré en ligne. Il est conservé localement — réessayez plus tard.");
+    }
   };
 
-  const approvedCount = Object.values(approvals).filter(Boolean).length;
+  const approvedCount = Object.values(approvals).filter((s) => s === 'approved').length;
 
   if (loading) {
     return (
@@ -105,12 +168,17 @@ export function ShareView({ token }: ShareViewProps) {
       </header>
 
       {/* Instructions */}
-      <div className="max-w-6xl mx-auto px-6 py-4">
+      <div className="max-w-6xl mx-auto px-6 py-4 space-y-2">
         <p className="text-xs text-white/30 bg-white/5 rounded-lg px-4 py-3 border border-white/5">
           📸 Votre photographe vous partage cette sélection. Cliquez sur{' '}
           <span className="text-green-400 font-medium">✓ Approuver</span> pour valider les photos
-          que vous souhaitez recevoir. Vos choix sont sauvegardés localement.
+          que vous souhaitez recevoir. Vos choix sont transmis à votre photographe.
         </p>
+        {saveError && (
+          <p className="text-xs text-amber-400 bg-amber-500/10 rounded-lg px-4 py-2 border border-amber-500/20 flex items-center gap-2">
+            <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {saveError}
+          </p>
+        )}
       </div>
 
       {/* Grille photos */}
@@ -123,8 +191,9 @@ export function ShareView({ token }: ShareViewProps) {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {photos.map((photo) => {
-              const isApproved = approvals[photo.file_hash] === true;
-              const isRejected = approvals[photo.file_hash] === false;
+              const isApproved = approvals[photo.file_hash] === 'approved';
+              const isRejected = approvals[photo.file_hash] === 'rejected';
+              const isSaving = savingHash === photo.file_hash;
               const colorLabel = photo.color_label as ColorLabel | null;
               const labelMeta = colorLabel ? COLOR_LABEL_META[colorLabel] : null;
 
@@ -139,14 +208,9 @@ export function ShareView({ token }: ShareViewProps) {
                         : 'border-white/10'
                   }`}
                 >
-                  {/* Placeholder image */}
+                  {/* Vraie image (bucket public) — repli placeholder si indisponible */}
                   <div className="aspect-[4/3] bg-white/5 flex items-center justify-center relative">
-                    <Camera className="w-8 h-8 text-white/10" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-[10px] text-white/20 text-center px-2 leading-tight">
-                        {photo.file_name}
-                      </span>
-                    </div>
+                    <SharedThumb url={getSharedPhotoUrl(photo.user_id, photo.file_hash)} label={photo.file_name} />
                     {isApproved && (
                       <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
                         <CheckCircle className="w-4 h-4 text-white" />
@@ -201,10 +265,11 @@ export function ShareView({ token }: ShareViewProps) {
                     )}
 
                     {/* Approval buttons */}
-                    <div className="flex gap-1.5 pt-1">
+                    <div className="flex items-center gap-1.5 pt-1">
                       <button
-                        onClick={() => handleApproval(photo.file_hash, true)}
-                        className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        onClick={() => handleApproval(photo.file_hash, 'approved')}
+                        disabled={isSaving}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-60 ${
                           isApproved
                             ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                             : 'bg-white/5 text-white/40 hover:bg-green-500/10 hover:text-green-400 border border-white/5'
@@ -213,8 +278,9 @@ export function ShareView({ token }: ShareViewProps) {
                         ✓ Approuver
                       </button>
                       <button
-                        onClick={() => handleApproval(photo.file_hash, false)}
-                        className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        onClick={() => handleApproval(photo.file_hash, 'rejected')}
+                        disabled={isSaving}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-60 ${
                           isRejected
                             ? 'bg-red-500/20 text-red-400 border border-red-500/30'
                             : 'bg-white/5 text-white/40 hover:bg-red-500/10 hover:text-red-400 border border-white/5'
@@ -222,6 +288,7 @@ export function ShareView({ token }: ShareViewProps) {
                       >
                         ✕ Passer
                       </button>
+                      {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin text-white/40 shrink-0" />}
                     </div>
                   </div>
                 </div>
@@ -233,7 +300,7 @@ export function ShareView({ token }: ShareViewProps) {
 
       {/* Footer */}
       <footer className="text-center py-6 text-xs text-white/20">
-        Propulsé par <span className="font-semibold text-amber-400/60">TRIPHOTOIA</span>
+        Propulsé par <span className="font-semibold text-amber-400/60">Tree Photo IA</span>
       </footer>
     </div>
   );

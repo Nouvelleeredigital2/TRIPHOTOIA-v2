@@ -105,7 +105,7 @@ describe('Security Tests', () => {
     updateUserTags('non-existent-id', ['test']);
 
     // Should not crash or cause errors
-    expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
   });
 
   it('should handle malformed undo actions', async () => {
@@ -126,7 +126,7 @@ describe('Security Tests', () => {
     // Should not crash
     undo();
 
-    expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
   });
 
   it('should handle concurrent malicious operations', async () => {

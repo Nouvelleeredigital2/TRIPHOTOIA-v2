@@ -86,7 +86,11 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
       return;
     }
 
-    renameCollection(renameCollectionId, trimmed);
+    const ok = renameCollection(renameCollectionId, trimmed);
+    if (!ok) {
+      setRenameMessage('Ce nom est déjà utilisé par une autre collection.');
+      return;
+    }
     toast.success(`Collection renommée en « ${trimmed} »`);
     setRenameCollectionName('');
     setRenameCollectionId('');
@@ -459,6 +463,35 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
                       <Badge variant={isActive2 ? 'default' : 'secondary'} className="text-xs font-semibold h-5 min-w-[28px] flex items-center justify-center">
                         {col?.photoIds?.length || 0}
                       </Badge>
+                      {/* A-10 : actions toujours visibles sur mobile (pas de hover au tactile) */}
+                      {collectionOrder.length > 1 && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0 shrink-0"
+                            aria-label={`Renommer ${col?.name || 'la collection'}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openRenameDialog(cid, col?.name || '');
+                            }}
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0 shrink-0 text-destructive hover:text-destructive"
+                            aria-label={`Supprimer ${col?.name || 'la collection'}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteCollection(cid);
+                            }}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   );
                 })}

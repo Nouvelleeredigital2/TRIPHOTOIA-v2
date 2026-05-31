@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Link, Copy, Trash2, Share2, Loader2, ExternalLink } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
@@ -7,8 +7,11 @@ import {
   createShareLink,
   getUserShareLinks,
   deleteShareLink,
+  syncPhotosForShare,
+  uploadSharedPhotos,
 } from '../lib/sync-utils';
 import type { DbShareLink } from '../lib/sync-utils';
+import { ConfirmationDialog } from './ui/confirmation-dialog';
 import toast from 'react-hot-toast';
 
 interface ShareDialogProps {
@@ -27,10 +30,20 @@ export function ShareDialog({ open, onClose }: ShareDialogProps) {
   const [creating, setCreating] = useState(false);
   const [linkName, setLinkName] = useState('');
 
-  const picks = usePhotoStore((s) =>
-    s.photos.filter((p) => p.analysis?.isPick && p.fileHash),
+  // Sélectionner la référence stable du tableau, puis dériver avec useMemo.
+  // Filtrer DANS le sélecteur zustand retourne un nouveau tableau à chaque rendu,
+  // ce qui casse le cache de getSnapshot → boucle de rendu infinie (React #185).
+  const photos = usePhotoStore((s) => s.photos);
+  const userTags = usePhotoStore((s) => s.userTags);
+  const photoNotes = usePhotoStore((s) => s.photoNotes);
+  const picks = useMemo(
+    () => photos.filter((p) => p.analysis?.isPick && p.fileHash),
+    [photos],
   );
   const multiSelection = usePhotoStore((s) => s.selectedPhotoId);
+
+  const [deleteTarget, setDeleteTarget] = useState<DbShareLink | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Charger les liens existants
   useEffect(() => {
@@ -46,15 +59,40 @@ export function ShareDialog({ open, onClose }: ShareDialogProps) {
 
     setCreating(true);
     try {
+      // A-04 : synchroniser les métadonnées des picks AVANT de créer le lien, sinon la
+      // galerie publique peut être vide (photo_metadata absente côté cloud).
+      const sync = await syncPhotosForShare(user.id, picks, userTags, photoNotes);
+      if (sync.error) {
+        toast.error(`Synchronisation impossible : ${sync.error}`);
+        return;
+      }
+      if (sync.synced === 0) {
+        toast.error('Aucune photo synchronisable (hash manquant). Lien non créé.');
+        return;
+      }
+
+      // A-02 : uploader les images vers le bucket public pour que la galerie cliente
+      // affiche les vraies photos (et non un placeholder).
+      const upload = await uploadSharedPhotos(user.id, picks);
+
       const name = linkName.trim() || `Sélection du ${new Date().toLocaleDateString('fr-FR')}`;
       const link = await createShareLink(user.id, name, hashes);
-      if (link) {
-        setLinks((prev) => [link, ...prev]);
-        const url = `${BASE_URL}#/share/${link.token}`;
-        await navigator.clipboard.writeText(url);
-        toast.success('Lien copié dans le presse-papier !');
-        setLinkName('');
+      if (!link) {
+        toast.error('Erreur lors de la création du lien');
+        return;
       }
+      setLinks((prev) => [link, ...prev]);
+      const url = `${BASE_URL}#/share/${link.token}`;
+      await navigator.clipboard.writeText(url);
+      const warnings: string[] = [];
+      if (sync.skipped > 0) warnings.push(`${sync.skipped} sans hash`);
+      if (upload.failed > 0) warnings.push(`${upload.failed} image(s) non envoyée(s)`);
+      toast.success(
+        warnings.length > 0
+          ? `Lien copié ! (${warnings.join(', ')})`
+          : 'Lien copié dans le presse-papier !',
+      );
+      setLinkName('');
     } catch {
       toast.error('Erreur lors de la création du lien');
     } finally {
@@ -68,13 +106,24 @@ export function ShareDialog({ open, onClose }: ShareDialogProps) {
     toast.success('Lien copié !');
   };
 
-  const handleDelete = async (linkId: string) => {
-    await deleteShareLink(linkId);
-    setLinks((prev) => prev.filter((l) => l.id !== linkId));
-    toast.success('Lien supprimé');
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const linkId = deleteTarget.id;
+    setDeletingId(linkId);
+    try {
+      await deleteShareLink(linkId);
+      setLinks((prev) => prev.filter((l) => l.id !== linkId));
+      toast.success('Lien supprimé');
+    } catch {
+      toast.error('Échec de la suppression du lien');
+    } finally {
+      setDeletingId(null);
+      setDeleteTarget(null);
+    }
   };
 
   return (
+    <>
     <AnimatePresence>
       {open && (
         <motion.div
@@ -178,11 +227,14 @@ export function ShareDialog({ open, onClose }: ShareDialogProps) {
                                 <Copy className="w-3.5 h-3.5" />
                               </button>
                               <button
-                                onClick={() => handleDelete(link.id)}
-                                className="text-muted-foreground hover:text-destructive transition-colors p-1"
+                                onClick={() => setDeleteTarget(link)}
+                                disabled={deletingId === link.id}
+                                className="text-muted-foreground hover:text-destructive transition-colors p-1 disabled:opacity-50"
                                 title="Supprimer"
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                {deletingId === link.id
+                                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  : <Trash2 className="w-3.5 h-3.5" />}
                               </button>
                             </div>
                           );
@@ -197,5 +249,20 @@ export function ShareDialog({ open, onClose }: ShareDialogProps) {
         </motion.div>
       )}
     </AnimatePresence>
+
+    <ConfirmationDialog
+      open={deleteTarget !== null}
+      onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}
+      onConfirm={confirmDelete}
+      title="Supprimer ce lien de partage ?"
+      description={
+        `Le lien « ${deleteTarget?.name || 'Sans titre'} » sera définitivement supprimé. ` +
+        `Toute personne possédant l'URL n'y aura plus accès. Cette action est irréversible.`
+      }
+      confirmText="Supprimer"
+      cancelText="Annuler"
+      variant="destructive"
+    />
+    </>
   );
 }

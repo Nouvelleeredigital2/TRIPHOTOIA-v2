@@ -23,6 +23,9 @@ import { Badge } from './ui/badge';
 import { StarRating } from './ui/star-rating';
 import { RGBHistogram } from './RGBHistogram';
 
+// Référence de tableau vide partagée et stable (voir usage dans le sélecteur tags).
+const EMPTY_TAGS: string[] = [];
+
 // ── Section repliable ────────────────────────────────────────────────────────
 
 function Section({
@@ -104,7 +107,9 @@ export function PhotoDetailPanel({ photo, onClose }: PhotoDetailPanelProps) {
   const updateUserTags = usePhotoStore((s) => s.updateUserTags);
   const setPhotoNote = usePhotoStore((s) => s.setPhotoNote);
 
-  const userTags = usePhotoStore((s) => s.userTags[photo.id] ?? []);
+  // Référence vide STABLE : `?? []` créerait un nouveau tableau à chaque rendu,
+  // ce qui casse le cache de getSnapshot (zustand) → boucle de rendu infinie (#185).
+  const userTags = usePhotoStore((s) => s.userTags[photo.id] ?? EMPTY_TAGS);
   const photoNote = usePhotoStore((s) => s.photoNotes[photo.id] ?? '');
 
   const analysis = photo.analysis;
@@ -113,29 +118,63 @@ export function PhotoDetailPanel({ photo, onClose }: PhotoDetailPanelProps) {
   // Note locale (debounce vers store)
   const [noteLocal, setNoteLocal] = useState(photoNote);
   const noteTimerRef = useRef<number | null>(null);
+  // A-24 : note en attente de persistance (id + valeur), pour pouvoir « flusher »
+  // immédiatement au blur, au changement de photo, au démontage et avant unload.
+  const pendingNoteRef = useRef<{ id: string; value: string } | null>(null);
+
+  const flushNote = useCallback(() => {
+    if (noteTimerRef.current !== null) {
+      window.clearTimeout(noteTimerRef.current);
+      noteTimerRef.current = null;
+    }
+    const pending = pendingNoteRef.current;
+    if (pending) {
+      setPhotoNote(pending.id, pending.value);
+      pendingNoteRef.current = null;
+    }
+  }, [setPhotoNote]);
 
   // Sync note si photo change
   useEffect(() => {
     setNoteLocal(photoNote);
   }, [photo.id, photoNote]);
 
+  // Flush de la note en attente quand on change de photo ou qu'on démonte le panneau.
+  // Le cleanup s'exécute avec l'ancien `photo.id` ; pendingNoteRef porte le bon id.
+  useEffect(() => () => flushNote(), [photo.id, flushNote]);
+
+  // Flush avant fermeture/rechargement de l'onglet.
+  useEffect(() => {
+    const handler = () => flushNote();
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [flushNote]);
+
   const handleNoteChange = useCallback((val: string) => {
     setNoteLocal(val);
+    pendingNoteRef.current = { id: photo.id, value: val };
     if (noteTimerRef.current !== null) window.clearTimeout(noteTimerRef.current);
     noteTimerRef.current = window.setTimeout(() => {
       setPhotoNote(photo.id, val);
+      pendingNoteRef.current = null;
+      noteTimerRef.current = null;
     }, 600);
   }, [photo.id, setPhotoNote]);
 
   // Tag inline editor
   const [tagInput, setTagInput] = useState('');
+  const addTag = useCallback(() => {
+    const tag = tagInput.trim().toLowerCase();
+    if (!tag) return;
+    if (!userTags.includes(tag)) {
+      updateUserTags(photo.id, [...userTags, tag]);
+    }
+    setTagInput('');
+  }, [tagInput, userTags, photo.id, updateUserTags]);
+
   const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && tagInput.trim()) {
-      const tag = tagInput.trim().toLowerCase();
-      if (!userTags.includes(tag)) {
-        updateUserTags(photo.id, [...userTags, tag]);
-      }
-      setTagInput('');
+      addTag();
       e.preventDefault();
     }
   };
@@ -457,14 +496,24 @@ export function PhotoDetailPanel({ photo, onClose }: PhotoDetailPanelProps) {
                   </button>
                 ))}
               </div>
-              <input
-                type="text"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={handleAddTag}
-                placeholder="Ajouter tag (Entrée)"
-                className="w-full text-xs bg-muted/40 border border-border/40 rounded px-2 py-1.5 outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-muted-foreground/50"
-              />
+              <div className="flex gap-1">
+                <input
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={handleAddTag}
+                  placeholder="Ajouter tag…"
+                  className="flex-1 text-xs bg-muted/40 border border-border/40 rounded px-2 py-1.5 outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-muted-foreground/50"
+                />
+                <button
+                  type="button"
+                  onClick={addTag}
+                  disabled={!tagInput.trim()}
+                  className="shrink-0 px-2 py-1.5 rounded text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-40"
+                >
+                  Ajouter
+                </button>
+              </div>
             </Section>
 
             {/* Notes */}
@@ -472,6 +521,7 @@ export function PhotoDetailPanel({ photo, onClose }: PhotoDetailPanelProps) {
               <textarea
                 value={noteLocal}
                 onChange={(e) => handleNoteChange(e.target.value)}
+                onBlur={flushNote}
                 placeholder="Ajoutez une note…"
                 rows={3}
                 className="w-full text-xs bg-muted/40 border border-border/40 rounded px-2 py-1.5 outline-none resize-none focus:ring-1 focus:ring-primary/50 placeholder:text-muted-foreground/50"

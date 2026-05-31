@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useMemo, useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { UserMenu } from './components/auth/UserMenu';
 import { ShareView } from './components/ShareView';
 import { ShareDialog } from './components/ShareDialog';
@@ -20,6 +20,7 @@ import { AnalysisReportDialog } from './components/AnalysisReportDialog';
 import { BarChart2, Sun, Moon, Trash2, HelpCircle, Menu, Palette, Share2 } from 'lucide-react';
 import { useAiErrorNotifications } from './hooks/useAiErrorNotifications';
 import { useCataloguePersistence } from './hooks/useCataloguePersistence';
+import { clearFullCatalogue } from './lib/catalogue-persistence';
 import { useTheme } from './hooks/useTheme';
 import { useAccentColor } from './hooks/useAccentColor';
 import { PhotoGridSkeleton } from './components/PhotoGridSkeleton';
@@ -41,6 +42,9 @@ import {
 const IngestionTab = lazy(() => import('./features/ingestion/IngestionTab'));
 const TriageTab = lazy(() => import('./features/triage/TriageTab'));
 const ExportTab = lazy(() => import('./features/export/ExportTab'));
+// Développement/Retouche : ouvert en overlay plein écran (déclenché par
+// startRetouchSession depuis le Triage), pas comme onglet permanent.
+const DevelopmentTab = lazy(() => import('./features/development/DevelopmentTab'));
 
 // Create a client
 const queryClient = new QueryClient({
@@ -137,6 +141,8 @@ function App() {
   // Sélecteurs optimisés pour éviter les boucles infinies
   const collections = usePhotoStore((state) => state.collections);
   const activeCollectionId = usePhotoStore((state) => state.activeCollectionId);
+  // Session de retouche active → overlay Développement plein écran
+  const retouchSessionPhotoIds = usePhotoStore((state) => state.retouchSessionPhotoIds);
 
   // Calculer les valeurs dérivées avec useMemo
   const activeCollection = useMemo(() =>
@@ -346,7 +352,7 @@ function App() {
                       <div style={{
                         fontSize: 13, fontWeight: 800, letterSpacing: '0.04em',
                         color: '#f0f0f7', lineHeight: 1,
-                      }}>TRIPHOTOIA</div>
+                      }}>Tree Photo IA</div>
                       <div style={{
                         fontSize: 9, fontWeight: 600, letterSpacing: '0.08em',
                         color: '#f59e0b', textTransform: 'uppercase', lineHeight: 1.4,
@@ -567,26 +573,30 @@ function App() {
             </header>
 
             <main className="flex-grow px-6 py-8 overflow-hidden">
-            <Suspense
-              fallback={
-                <div className="pt-4">
-                  <PhotoGridSkeleton count={12} label="Chargement…" />
-                </div>
-              }
-            >
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="h-full"
+              {/* PAS d'AnimatePresence ici. Dans ce setup (React 19 + StrictMode +
+                  framer-motion v11), le cycle exit d'AnimatePresence ne se termine
+                  jamais (onExitComplete ne se déclenche pas) : avec mode="wait" le
+                  changement d'onglet se fige, sans mode les motion.div s'accumulent.
+                  Un motion.div keyé SANS AnimatePresence laisse React démonter/monter
+                  proprement à chaque changement de clé ; l'animation d'entrée joue,
+                  aucun suivi d'exit n'est requis. Suspense par onglet à l'intérieur. */}
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="h-full"
+              >
+                <Suspense
+                  fallback={
+                    <div className="pt-4">
+                      <PhotoGridSkeleton count={12} label="Chargement…" />
+                    </div>
+                  }
                 >
                   {renderTabContent()}
-                </motion.div>
-              </AnimatePresence>
-            </Suspense>
+                </Suspense>
+              </motion.div>
             </main>
 
             {/* Status Bar minimaliste */}
@@ -659,9 +669,14 @@ function App() {
         <ConfirmationDialog
           open={clearConfirmOpen}
           onOpenChange={setClearConfirmOpen}
-          onConfirm={() => {
+          onConfirm={async () => {
             clearAll();
-            toast.success('Catalogue effacé');
+            const ok = await clearFullCatalogue();
+            if (ok) {
+              toast.success('Catalogue effacé');
+            } else {
+              toast.error("Échec de l'effacement du stockage local. Vos données peuvent réapparaître au rechargement — réessayez.");
+            }
           }}
           title="Effacer tout le catalogue ?"
           description={`Cette action supprimera définitivement les ${photos.length} photo${photos.length > 1 ? 's' : ''} et toutes les données associées (analyses, collections, tags). Irréversible.`}
@@ -692,6 +707,23 @@ function App() {
               setAutoFlowPhotoIds(null);
             }}
           />
+        )}
+
+        {/* Overlay Développement / Retouche — déclenché par startRetouchSession
+            (bouton « Développer » du Triage). Se ferme via endRetouchSession,
+            qui vide retouchSessionPhotoIds et démonte l'overlay. */}
+        {retouchSessionPhotoIds.length > 0 && (
+          <div className="fixed inset-0 z-[200] overflow-auto bg-background p-6">
+            <Suspense
+              fallback={
+                <div className="pt-4">
+                  <PhotoGridSkeleton count={8} label="Chargement de l'atelier…" />
+                </div>
+              }
+            >
+              <DevelopmentTab />
+            </Suspense>
+          </div>
         )}
       </ErrorBoundary>
     </QueryClientProvider>

@@ -106,6 +106,17 @@ export function PhotoCard({
             onSelect();
           }
         }}
+        role="button"
+        tabIndex={0}
+        aria-pressed={isSelected}
+        aria-label={`Photo ${photo.file.name}${isSelected ? ' (sélectionnée)' : ''}${isRejected ? ' (rejetée)' : ''}`}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (e.ctrlKey || e.metaKey) onToggleMultiSelect?.();
+            else onSelect();
+          }
+        }}
       >
         <div className="aspect-square relative overflow-hidden">
           <img

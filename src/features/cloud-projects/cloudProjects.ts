@@ -148,24 +148,76 @@ export async function createCloudProject(
     throw new Error('Le nom du projet est obligatoire');
   }
 
-  const organization = await ensureDefaultOrganization(userId, db);
-  const { data: project, error } = await db
-    .from('projects')
-    .insert({
-      organization_id: organization.id,
-      name: trimmedName,
-      project_type: 'wedding',
-      created_by: userId,
-    })
-    .select('id, organization_id, name, project_type, status, face_analysis_enabled, created_at, updated_at')
-    .single();
+  // Sur les nouvelles instances Supabase (ES256/JWKS), PostgREST ne bascule pas
+  // vers le rôle 'authenticated', ce qui empêche les INSERTs directs via RLS.
+  // On passe par des RPCs SECURITY DEFINER qui font les inserts côté serveur
+  // après avoir vérifié l'identité via auth.uid().
+  const { data, error } = await db.rpc('create_user_project', {
+    p_name: trimmedName,
+    p_project_type: 'wedding',
+  });
 
   if (error) throw error;
 
+  const project = Array.isArray(data) ? data[0] : data;
+  const projectRow = project as CloudProjectRow;
+
   return {
-    ...(project as CloudProjectRow),
-    stats: buildProjectStats((project as CloudProjectRow).id, []),
+    ...projectRow,
+    stats: buildProjectStats(projectRow.id, []),
   };
+}
+
+/** A-39 : renommer un projet cloud (RPC SECURITY DEFINER, unicité du nom côté serveur). */
+export async function renameCloudProject(
+  projectId: string,
+  name: string,
+  client: SupabaseClient | null = supabase,
+): Promise<CloudProjectRow> {
+  const db = requireSupabase(client);
+  const { data, error } = await db.rpc('rename_user_project', {
+    p_project_id: projectId,
+    p_name: name.trim(),
+  });
+  if (error) throw error;
+  return (Array.isArray(data) ? data[0] : data) as CloudProjectRow;
+}
+
+/** A-39 : archiver un projet cloud (soft-delete — disparaît de la liste active). */
+export async function archiveCloudProject(
+  projectId: string,
+  client: SupabaseClient | null = supabase,
+): Promise<void> {
+  const db = requireSupabase(client);
+  const { error } = await db.rpc('archive_user_project', { p_project_id: projectId });
+  if (error) throw error;
+}
+
+/** A-42 : suppression logique d'une photo cloud (is_deleted = true). */
+export async function setCloudPhotoDeleted(
+  photoId: string,
+  deleted: boolean,
+  client: SupabaseClient | null = supabase,
+): Promise<void> {
+  const db = requireSupabase(client);
+  const { error } = await db.rpc('set_cloud_photo_deleted', {
+    p_photo_id: photoId,
+    p_deleted: deleted,
+  });
+  if (error) throw error;
+}
+
+/**
+ * A-40 : message d'erreur lisible pour les exceptions des RPC projet.
+ */
+export function describeCloudProjectError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.includes('duplicate_name')) return 'Un projet porte déjà ce nom.';
+  if (message.includes('empty_name')) return 'Le nom du projet est obligatoire.';
+  if (message.includes('not_authorized')) return "Vous n'avez pas accès à ce projet.";
+  if (message.includes('project_not_found')) return 'Projet introuvable.';
+  if (message.includes('photo_not_found')) return 'Photo introuvable.';
+  return message;
 }
 
 export async function fetchCloudProjectPhotos(
@@ -185,46 +237,7 @@ export async function fetchCloudProjectPhotos(
   return mapCloudPhotoRows((data ?? []) as CloudPhotoRow[]);
 }
 
-async function ensureDefaultOrganization(
-  userId: string,
-  db: SupabaseClient
-): Promise<CloudOrganizationRow> {
-  const { data: memberships, error: membershipError } = await db
-    .from('organization_members')
-    .select('organization_id, organizations(id, name, owner_id)')
-    .eq('user_id', userId)
-    .limit(1);
-
-  if (membershipError) throw membershipError;
-
-  const existingOrganization = memberships?.[0]?.organizations;
-  if (existingOrganization) {
-    return Array.isArray(existingOrganization)
-      ? existingOrganization[0] as CloudOrganizationRow
-      : existingOrganization as CloudOrganizationRow;
-  }
-
-  const { data: organization, error: organizationError } = await db
-    .from('organizations')
-    .insert({
-      name: 'Espace TreePhoto',
-      owner_id: userId,
-    })
-    .select('id, name, owner_id')
-    .single();
-
-  if (organizationError) throw organizationError;
-
-  const typedOrganization = organization as CloudOrganizationRow;
-  const { error: memberError } = await db
-    .from('organization_members')
-    .insert({
-      organization_id: typedOrganization.id,
-      user_id: userId,
-      role: 'owner',
-    });
-
-  if (memberError) throw memberError;
-
-  return typedOrganization;
-}
+// ensureDefaultOrganization est remplacé par la RPC create_user_project /
+// ensure_user_organization côté serveur (SECURITY DEFINER) — nécessaire car
+// les nouvelles instances Supabase ES256 ne basculent pas vers le rôle
+// 'authenticated' dans PostgREST, empêchant les INSERTs directs via RLS.

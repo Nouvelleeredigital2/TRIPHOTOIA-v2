@@ -58,7 +58,7 @@ export const usePresetsStore = create<PresetsState>()(
       },
     }),
     {
-      name: 'triphotoia-presets',
+      name: 'treephoto-presets',
       partialize: (state) => ({ userPresets: state.userPresets }),
     }
   )

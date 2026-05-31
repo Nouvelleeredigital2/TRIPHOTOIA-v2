@@ -24,7 +24,7 @@ export const ACCENT_OPTIONS: AccentOption[] = [
   { id: 'amber',   label: 'Ambre',           hue: 38,  hex: '#f59e0b' },
 ];
 
-const STORAGE_KEY = 'triphotoia-accent';
+const STORAGE_KEY = 'treephoto-accent';
 const DEFAULT_ACCENT = 'violet';
 
 function applyAccent(hue: number) {

@@ -26,6 +26,7 @@ import {
   ExportPreset,
 } from '../../lib/export-presets';
 import { BookmarkPlus, Trash2, Download } from 'lucide-react';
+import { ConfirmationDialog } from '../../components/ui/confirmation-dialog';
 import { ExportFilterBar } from './components/ExportFilterBar';
 import { RenamePanel } from './components/RenamePanel';
 import { buildExportChapters } from './exportChapters';
@@ -148,7 +149,14 @@ function ExportTab() {
     setShowSaveInput(false);
   }, [savePresetName, selectedPresetId, presets, form, refreshPresets]);
 
+  const [presetDeleteOpen, setPresetDeleteOpen] = useState(false);
+
   const handleDeletePreset = useCallback(() => {
+    if (!selectedPresetId) return;
+    setPresetDeleteOpen(true);
+  }, [selectedPresetId]);
+
+  const confirmDeletePreset = useCallback(() => {
     if (!selectedPresetId) return;
     const preset = presets.find((p) => p.id === selectedPresetId);
     deletePreset(selectedPresetId);
@@ -156,6 +164,8 @@ function ExportTab() {
     setSelectedPresetId('');
     toast.success(`Preset "${preset?.name ?? ''}" supprimé`);
   }, [selectedPresetId, presets, refreshPresets]);
+
+  const presetToDeleteName = presets.find((p) => p.id === selectedPresetId)?.name ?? '';
 
   const {
     includeRejected,
@@ -222,7 +232,45 @@ function ExportTab() {
     return { count: photos.length, totalSize, duplicates: duplicatesCount, rejected: rejectedCount };
   }, [activePhotos, duplicateGroups, rejectedPhotoIds, includeRejected, includeDuplicates, filterModeWatch, minRatingWatch]);
 
+  // A-31 : nombre réel de photos exportables par chapitres (selon les filtres courants),
+  // pour ne pas activer le bouton si rien n'est exportable.
+  const exportableChapterCount = useMemo(() => {
+    const chapters = buildExportChapters({
+      photos: allPhotos,
+      collections,
+      collectionOrder,
+      duplicateGroups,
+      rejectedPhotoIds,
+      options: {
+        includeRejected,
+        includeDuplicates,
+        filterMode: filterModeWatch,
+        minRating: minRatingWatch,
+      },
+    });
+    return chapters.reduce((sum, c) => sum + c.photos.length, 0);
+  }, [allPhotos, collections, collectionOrder, duplicateGroups, rejectedPhotoIds, includeRejected, includeDuplicates, filterModeWatch, minRatingWatch]);
+
   // ── Handle submit ─────────────────────────────────────────────────────────
+
+  // A-29 : feedback honnête succès complet / partiel / échec total.
+  const reportExportResult = (
+    result: { exported: number; failed: number; failedNames: string[] },
+    mode: 'ZIP' | 'dossier' | 'chapitres',
+  ) => {
+    if (result.failed === 0) {
+      toast.success(`Export ${mode} terminé : ${result.exported} photo${result.exported > 1 ? 's' : ''}.`);
+    } else if (result.exported === 0) {
+      toast.error(`Échec de l'export : aucune des ${result.failed} photos n'a pu être traitée.`);
+    } else {
+      const sample = result.failedNames.slice(0, 3).join(', ');
+      const more = result.failedNames.length > 3 ? ` (+${result.failedNames.length - 3})` : '';
+      toast(
+        `Export ${mode} terminé avec ${result.failed} erreur(s) — ${result.exported} réussie(s). Échecs : ${sample}${more}`,
+        { icon: '⚠️', duration: 7000 },
+      );
+    }
+  };
 
   const handleExport = async (data: ExportFormData) => {
     const photosToExport = buildPhotosToExportFromForm(data);
@@ -252,15 +300,15 @@ function ExportTab() {
     };
 
     try {
+      let result: { exported: number; failed: number; failedNames: string[] };
       if (fsaAvailable) {
-        await exportPhotosToDirectory(photosToExport, options, (p) => setExportProgress(p));
-        toast.success(`Export terminé ! ${photosToExport.length} photos écrites dans le dossier.`);
+        result = await exportPhotosToDirectory(photosToExport, options, (p) => setExportProgress(p));
       } else {
-        const zipBlob = await exportPhotosAsZip(photosToExport, options, (p) => setExportProgress(p));
-        const fileName = generateZipFileName(activeCollection?.name);
-        downloadBlob(zipBlob, fileName);
-        toast.success(`Export terminé ! ${photosToExport.length} photos exportées.`);
+        const zipResult = await exportPhotosAsZip(photosToExport, options, (p) => setExportProgress(p));
+        downloadBlob(zipResult.blob, generateZipFileName(activeCollection?.name));
+        result = zipResult;
       }
+      reportExportResult(result, fsaAvailable ? 'dossier' : 'ZIP');
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return;
       toast.error("Erreur lors de l'export");
@@ -311,14 +359,12 @@ function ExportTab() {
         : undefined,
     };
 
-    const photoCount = chapters.reduce((sum, chapter) => sum + chapter.photos.length, 0);
-
     try {
       setIsExporting(true);
       setExportProgress(0);
-      const zipBlob = await exportPhotoChaptersAsZip(chapters, options, (p) => setExportProgress(p));
-      downloadBlob(zipBlob, generateZipFileName('chapitres-mariage'));
-      toast.success(`Export par chapitres terminé : ${photoCount} photos dans ${chapters.length} dossiers.`);
+      const result = await exportPhotoChaptersAsZip(chapters, options, (p) => setExportProgress(p));
+      downloadBlob(result.blob, generateZipFileName('chapitres-mariage'));
+      reportExportResult(result, 'chapitres');
     } catch (error) {
       toast.error("Erreur lors de l'export par chapitres");
       console.error('Chapter export error:', error);
@@ -739,12 +785,13 @@ function ExportTab() {
         <Button
           type="button"
           variant="outline"
-          disabled={isExporting || allPhotos.length === 0}
+          disabled={isExporting || exportableChapterCount === 0}
           onClick={handleExportByChapters}
           className="min-w-[210px] gap-2"
+          title={exportableChapterCount === 0 ? 'Aucune photo exportable par chapitres avec les filtres actuels' : undefined}
         >
           <Download className="w-4 h-4" />
-          Exporter par chapitres
+          Exporter par chapitres{exportableChapterCount > 0 ? ` (${exportableChapterCount})` : ''}
         </Button>
         <Button
           form="export-form"
@@ -781,6 +828,17 @@ function ExportTab() {
           </CardContent>
         </Card>
       )}
+
+      <ConfirmationDialog
+        open={presetDeleteOpen}
+        onOpenChange={setPresetDeleteOpen}
+        onConfirm={confirmDeletePreset}
+        title="Supprimer ce preset d'export ?"
+        description={`Le preset « ${presetToDeleteName} » sera définitivement supprimé. Cette action est irréversible.`}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        variant="destructive"
+      />
     </motion.div>
   );
 }

@@ -92,7 +92,10 @@ export function CollectionManager() {
       return;
     }
 
-    renameCollection(renameCollectionId, trimmed);
+    if (!renameCollection(renameCollectionId, trimmed)) {
+      setRenameMessage('Ce nom est déjà utilisé par une autre collection.');
+      return;
+    }
     toast.success(`Collection renommée en «� ${trimmed}� »`);
     setRenameCollectionName('');
     setRenameCollectionId('');

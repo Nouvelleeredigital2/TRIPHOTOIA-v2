@@ -15,12 +15,12 @@ describe('Regression Tests', () => {
       fireEvent.click(tabs[i % 3]);
     }
 
-    expect(screen.getByText('TRIPHOTOIA')).toBeInTheDocument();
+    expect(screen.getByText('Tree Photo IA')).toBeInTheDocument();
   }, 10000);
 
   it('should render empty state without crashing', async () => {
     await renderApp();
-    expect(screen.getByText('TRIPHOTOIA')).toBeInTheDocument();
+    expect(screen.getByText('Tree Photo IA')).toBeInTheDocument();
     const zeros = screen.getAllByText('0');
     expect(zeros.length).toBeGreaterThan(0);
   });
@@ -48,7 +48,7 @@ describe('Regression Tests', () => {
     }
 
     await waitFor(() => {
-      expect(screen.getByText('TRIPHOTOIA')).toBeInTheDocument();
+      expect(screen.getByText('Tree Photo IA')).toBeInTheDocument();
     });
   });
 
@@ -63,12 +63,12 @@ describe('Regression Tests', () => {
 
     // Click through tabs — header must survive each switch
     fireEvent.click(screen.getByRole('button', { name: /triage/i }));
-    expect(screen.getByText('TRIPHOTOIA')).toBeInTheDocument();
+    expect(screen.getByText('Tree Photo IA')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /exportation/i }));
-    expect(screen.getByText('TRIPHOTOIA')).toBeInTheDocument();
+    expect(screen.getByText('Tree Photo IA')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /ingestion/i }));
-    expect(screen.getByText('TRIPHOTOIA')).toBeInTheDocument();
+    expect(screen.getByText('Tree Photo IA')).toBeInTheDocument();
   });
 });

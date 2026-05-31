@@ -67,6 +67,7 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
   const togglePhotoReject = usePhotoStore((state) => state.togglePhotoReject);
   const unflagPhoto = usePhotoStore((state) => state.unflagPhoto);
   const removePhoto = usePhotoStore((state) => state.removePhoto);
+  const undo = usePhotoStore((state) => state.undo);
   const setColorLabel = usePhotoStore((state) => state.setColorLabel);
   const setActiveTab = usePhotoStore((state) => state.setActiveTab);
   const pasteMetadata = usePhotoStore((state) => state.pasteMetadata);
@@ -141,7 +142,7 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
 
   // Auto-avance (Caps Lock mode) — persisté en localStorage
   const [autoAdvance, setAutoAdvance] = useState<boolean>(
-    () => localStorage.getItem('triphotoia_autoAdvance') === 'true'
+    () => localStorage.getItem('treephoto_autoAdvance') === 'true'
   );
   const autoAdvanceRef = useRef(autoAdvance);
   useEffect(() => { autoAdvanceRef.current = autoAdvance; }, [autoAdvance]);
@@ -174,6 +175,12 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
   const [metaClipboard, setMetaClipboard] = useState<MetaClipboard | null>(null);
 
   // Drag-and-drop reorder (collection mode only)
+  // A-12 : la réorganisation n'a de sens que sur la collection COMPLÈTE et ordonnée.
+  // Dès qu'un filtre, une recherche ou une smart collection est actif, la vue est un
+  // sous-ensemble : réordonner modifierait l'ordre global de façon trompeuse. On désactive
+  // donc le glisser-déposer dans ces cas.
+  const canReorderCollection =
+    activeFilter === 'all' && !searchTerm.trim() && !activeSmartCollectionId && !!activeCollection;
   const dragIdRef = useRef<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
@@ -192,7 +199,7 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
     const sourceId = dragIdRef.current;
     setDragOverId(null);
     dragIdRef.current = null;
-    if (!sourceId || sourceId === targetId || !activeCollectionId) return;
+    if (!sourceId || sourceId === targetId || !activeCollectionId || !canReorderCollection) return;
     const collections = usePhotoStore.getState().collections;
     const col = collections[activeCollectionId];
     if (!col) return;
@@ -227,7 +234,7 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
   // Actions batch
   // Persistance auto-avance
   useEffect(() => {
-    localStorage.setItem('triphotoia_autoAdvance', String(autoAdvance));
+    localStorage.setItem('treephoto_autoAdvance', String(autoAdvance));
   }, [autoAdvance]);
 
   // Copier / coller métadonnées
@@ -280,12 +287,15 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
 
   const handleBulkColorLabel = (label: ColorLabel | null) => {
     // force=true ensures consistent apply (no toggle) across all selected photos
+    const count = triageMultiSelection.size;
     triageMultiSelection.forEach((id) => setColorLabel(id, label, true));
     toast.success(
       label
-        ? `Label ${label} appliqué à ${triageMultiSelection.size} photo(s)`
-        : `Label retiré de ${triageMultiSelection.size} photo(s)`
+        ? `Label ${label} appliqué à ${count} photo(s)`
+        : `Label retiré de ${count} photo(s)`
     );
+    // A-21 : cohérence avec les autres actions en lot — on vide la sélection après application.
+    handleClearMultiSelection();
   };
 
   const handleBulkDelete = () => {
@@ -295,8 +305,37 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
   const confirmBulkDelete = () => {
     const count = triageMultiSelection.size;
     triageMultiSelection.forEach((id) => removePhoto(id));
-    toast.success(`${count} photo${count > 1 ? 's' : ''} supprimée${count > 1 ? 's' : ''}`);
     handleClearMultiSelection();
+    showDeletedToast(count);
+  };
+
+  // Toast « Annuler » exploitant la pile undo (A-22). Une suppression en lot empile
+  // `count` actions DELETE_PHOTO ; l'annulation les rejoue toutes.
+  const showDeletedToast = (count: number) => {
+    toast(
+      (t) => (
+        <span className="flex items-center gap-3">
+          {count} photo{count > 1 ? 's' : ''} supprimée{count > 1 ? 's' : ''}
+          <button
+            onClick={() => {
+              // N'annule que les suppressions, et seulement si elles sont encore au sommet
+              // de la pile (si l'utilisateur a fait d'autres actions entre-temps, on
+              // n'écrase pas ces actions — voir audit).
+              for (let i = 0; i < count; i++) {
+                const stack = usePhotoStore.getState().undoStack;
+                if (stack[stack.length - 1]?.type !== 'DELETE_PHOTO') break;
+                undo();
+              }
+              toast.dismiss(t.id);
+            }}
+            className="px-2 py-0.5 rounded bg-white/15 hover:bg-white/25 text-xs font-medium"
+          >
+            Annuler
+          </button>
+        </span>
+      ),
+      { duration: 6000, icon: '🗑️' },
+    );
   };
 
   const handleBulkAddToCollection = () => {
@@ -400,6 +439,53 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
 
     return result;
   }, [activePhotos, duplicateGroups, rejectedPhotoIds, selectedPhotoId, activeFilter, searchTerm, sortKey, userTags, dateFrom, dateTo]);
+
+  // A-20 : garder la sélection multiple cohérente avec la vue. Dès que la liste visible
+  // change (filtre, recherche, collection, tri…), on retire de la sélection les photos qui
+  // ne sont plus visibles, pour qu'une action en lot ne s'applique jamais à une photo hors vue.
+  useEffect(() => {
+    setTriageMultiSelection((prev) => {
+      if (prev.size === 0) return prev;
+      const visible = new Set(filteredPhotos.map((p) => p.id));
+      let changed = false;
+      const next = new Set<string>();
+      prev.forEach((id) => {
+        if (visible.has(id)) next.add(id);
+        else changed = true;
+      });
+      return changed ? next : prev;
+    });
+  }, [filteredPhotos]);
+
+  // A-55 : état vide contextualisé (filtre actif vs collection vide vs rien d'analysé).
+  const hasActiveFilters =
+    activeFilter !== 'all' || !!searchTerm.trim() || !!dateFrom || !!dateTo || !!activeSmartCollectionId;
+
+  const resetFilters = () => {
+    setActiveFilter('all');
+    setSearchTerm('');
+    setDateFrom('');
+    setDateTo('');
+    setActiveSmartCollection(null);
+  };
+
+  const emptyState = (() => {
+    if (hasActiveFilters) {
+      return {
+        title: 'Aucune photo ne correspond',
+        subtitle: 'Aucun résultat pour ce filtre, cette recherche ou cette collection dynamique.',
+        showReset: true,
+      };
+    }
+    const analyzedCount = activePhotos.filter((p) => p.analysis && !p.analysis.error).length;
+    if (activePhotos.length === 0) {
+      return { title: 'Collection vide', subtitle: 'Ajoutez des photos à cette collection pour les trier ici.', showReset: false };
+    }
+    if (analyzedCount === 0) {
+      return { title: 'Aucune photo analysée', subtitle: "Lancez l'analyse depuis l'onglet Ingestion pour voir vos photos ici.", showReset: false };
+    }
+    return { title: 'Aucune photo à afficher', subtitle: '', showReset: false };
+  })();
 
   const handleSelectPhoto = (id: string) => {
     setSelectedPhotoId(selectedPhotoId === id ? null : id);
@@ -704,6 +790,21 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
       <div className="flex-1 min-h-0 flex gap-3 overflow-hidden">
         {/* Grille principale */}
         <div className="flex-1 min-w-0 flex flex-col min-h-0">
+          {filteredPhotos.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center p-8">
+              <div className="text-center max-w-sm">
+                <p className="text-sm font-semibold text-foreground">{emptyState.title}</p>
+                {emptyState.subtitle && (
+                  <p className="mt-1 text-xs text-muted-foreground">{emptyState.subtitle}</p>
+                )}
+                {emptyState.showReset && (
+                  <Button variant="outline" size="sm" className="mt-3" onClick={resetFilters}>
+                    Réinitialiser les filtres
+                  </Button>
+                )}
+              </div>
+            </div>
+          ) : (
           <VirtualizedPhotoGrid
             photos={filteredPhotos}
             selectedPhotoId={selectedPhotoId}
@@ -720,7 +821,7 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
             onToggleDevelopment={handleToggleDevelopment}
             multiSelection={triageMultiSelection}
             onToggleMultiSelect={handleToggleMultiSelect}
-            draggablePhotoIds={activeCollection ? new Set(activeCollection.photoIds) : undefined}
+            draggablePhotoIds={canReorderCollection ? new Set(activeCollection!.photoIds) : undefined}
             dragOverPhotoId={dragOverId}
             onPhotoDragStart={handlePhotoDragStart}
             onPhotoDragOver={handlePhotoDragOver}
@@ -728,6 +829,7 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
             onPhotoDrop={handlePhotoDrop}
             onPhotoDragEnd={handlePhotoDragEnd}
           />
+          )}
 
           {/* Barre d'actions en lot */}
           <BulkActionBar
@@ -793,7 +895,7 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
         onOpenChange={setBulkDeleteConfirmOpen}
         onConfirm={confirmBulkDelete}
         title="Supprimer les photos sélectionnées ?"
-        description={`Vous êtes sur le point de supprimer définitivement ${triageMultiSelection.size} photo${triageMultiSelection.size > 1 ? 's' : ''}. Cette action est irréversible.`}
+        description={`${triageMultiSelection.size} photo${triageMultiSelection.size > 1 ? 's' : ''} seront retirées du catalogue et de leurs collections. Vous pourrez annuler juste après (jusqu'au rechargement de la page).`}
         confirmText="Supprimer"
         cancelText="Annuler"
         variant="destructive"
@@ -806,11 +908,11 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
         onConfirm={() => {
           if (selectedPhotoId) {
             removePhoto(selectedPhotoId);
-            toast.success('Photo supprimée');
+            showDeletedToast(1);
           }
         }}
         title="Supprimer cette photo ?"
-        description="La photo sera définitivement supprimée. Cette action est irréversible."
+        description="La photo sera retirée du catalogue et de ses collections. Vous pourrez annuler juste après (jusqu'au rechargement de la page)."
         confirmText="Supprimer"
         cancelText="Annuler"
         variant="destructive"

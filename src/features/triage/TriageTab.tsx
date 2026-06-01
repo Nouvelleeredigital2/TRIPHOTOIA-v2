@@ -67,6 +67,7 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
   const togglePhotoReject = usePhotoStore((state) => state.togglePhotoReject);
   const unflagPhoto = usePhotoStore((state) => state.unflagPhoto);
   const removePhoto = usePhotoStore((state) => state.removePhoto);
+  const requeueForAnalysis = usePhotoStore((state) => state.requeueForAnalysis);
   const undo = usePhotoStore((state) => state.undo);
   const setColorLabel = usePhotoStore((state) => state.setColorLabel);
   const setActiveTab = usePhotoStore((state) => state.setActiveTab);
@@ -379,6 +380,9 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
     } else if (activeFilter.startsWith('stars:')) {
       const minStars = parseInt(activeFilter.slice(6));
       result = analyzedPhotos.filter((photo) => (photo.analysis?.rating ?? 0) >= minStars);
+    } else if (activeFilter === 'errors') {
+      // A-19 : les photos en erreur sont exclues de `analyzedPhotos` — on repart d'activePhotos.
+      result = activePhotos.filter((photo) => !!photo.analysis?.error);
     } else {
       result = analyzedPhotos;
     }
@@ -642,6 +646,7 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
       review: reviewPhotos.length,
       rejected: rejectedPhotos.length,
       selected: selectedPhotoId ? 1 : 0,
+      errors: activePhotos.filter((p) => !!p.analysis?.error).length,
       colorCounts,
     };
   }, [activePhotos, duplicateGroups, rejectedPhotoIds, selectedPhotoId]);
@@ -675,6 +680,7 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
           <span className="text-muted-foreground">
             {activePhotos.length} photo{activePhotos.length > 1 ? 's' : ''}
           </span>
+          <span className="text-xs text-muted-foreground italic">— collection dynamique, lecture seule</span>
           <button
             className="ml-auto flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
             onClick={() => setActiveSmartCollection(null)}
@@ -682,6 +688,27 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
             <X className="w-3 h-3" />
             Quitter
           </button>
+        </div>
+      )}
+
+      {/* A-19 : bandeau de réanalyse quand le filtre « Erreurs » est actif */}
+      {activeFilter === 'errors' && filteredPhotos.length > 0 && (
+        <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-destructive/10 border border-destructive/30 text-sm">
+          <span className="font-medium text-destructive">
+            {filteredPhotos.length} photo{filteredPhotos.length > 1 ? 's' : ''} en échec d'analyse
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            className="ml-auto gap-1"
+            onClick={() => {
+              requeueForAnalysis(filteredPhotos.map((p) => p.id));
+              toast.success('Réanalyse lancée');
+              setActiveFilter('all');
+            }}
+          >
+            Réanalyser
+          </Button>
         </div>
       )}
 
@@ -697,6 +724,7 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
               reviewCount={stats.review}
               rejectedCount={stats.rejected}
               selectedCount={stats.selected}
+              errorsCount={stats.errors}
               colorCounts={stats.colorCounts}
               activeFilter={activeFilter}
               searchTerm={searchTerm}

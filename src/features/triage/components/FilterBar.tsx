@@ -16,6 +16,7 @@ interface FilterBarProps {
   picksCount: number;
   favoritesCount: number;
   reviewCount: number;
+  errorsCount: number;
   colorCounts: Record<ColorLabel, number>;
   activeFilter: FilterType;
   searchTerm: string;
@@ -38,6 +39,7 @@ export function FilterBar({
   picksCount,
   favoritesCount,
   reviewCount,
+  errorsCount,
   colorCounts,
   activeFilter,
   searchTerm,
@@ -184,6 +186,7 @@ export function FilterBar({
         {btn('duplicates', 'Doublons', duplicateGroups)}
         {btn('blurry', 'Floues', blurryCount)}
         {btn('rejected', '❌ Rejetées', rejectedCount)}
+        {errorsCount > 0 && btn('errors', '⚠️ Erreurs', errorsCount, 'text-destructive')}
         {selectedCount > 0 && btn('selected', 'Sélection', selectedCount)}
       </div>
 

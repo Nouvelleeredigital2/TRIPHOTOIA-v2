@@ -240,6 +240,7 @@ interface PhotoState {
   setAnalysisQueue: (queue: string[]) => void;
   addToAnalysisQueue: (photoIds: string[]) => void;
   removeFromAnalysisQueue: (photoIds: string[]) => void;
+  requeueForAnalysis: (photoIds: string[]) => void;
   setAnalyzingPhotoIds: (ids: Set<string>) => void;
   addAnalyzingPhotoIds: (ids: string[]) => void;
   removeAnalyzingPhotoIds: (ids: string[]) => void;
@@ -740,6 +741,28 @@ export const usePhotoStore = create<PhotoState>()(
             state.analysisQueue = state.analysisQueue.filter(
               (id) => !photoIds.includes(id)
             );
+          }),
+
+        // A-17 / A-19 : (re)mettre des photos dans la file d'analyse — réinitialise une
+        // éventuelle erreur/analyse partielle (en gardant le fileHash) et relance le
+        // traitement. Sert au « relancer les non analysées » et au « réanalyser » des erreurs.
+        requeueForAnalysis: (photoIds) =>
+          set((state) => {
+            let added = false;
+            const target = new Set(photoIds);
+            state.photos.forEach((photo) => {
+              if (!target.has(photo.id)) return;
+              const fileHash = photo.analysis?.fileHash;
+              photo.analysis = (fileHash ? { fileHash } : null) as PhotoAnalysis | null;
+              if (!state.analysisQueue.includes(photo.id)) {
+                state.analysisQueue.push(photo.id);
+                added = true;
+              }
+            });
+            if (added) {
+              state.isProcessing = true;
+              state.stopProcessing = false;
+            }
           }),
 
         setAnalyzingPhotoIds: (ids) =>

@@ -363,6 +363,9 @@ function App() {
           <div className="flex-1 flex flex-col min-w-0">
             {/* ── AutoFlow v2 TopBar ── */}
             <header style={{
+              // A-58 : chrome volontairement sombre (marque AutoFlow v2), cohérent dans
+              // les deux thèmes — le texte clair reste lisible. Le contenu principal, lui,
+              // respecte clair/sombre. (Conversion complète = refonte graphique, hors scope.)
               background: 'rgba(7,7,12,0.92)',
               backdropFilter: 'blur(14px)',
               borderBottom: '1px solid rgba(255,255,255,0.05)',

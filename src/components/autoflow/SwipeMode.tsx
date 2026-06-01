@@ -16,7 +16,7 @@ const S = {
   fixed: {
     position: 'fixed' as const,
     inset: 0,
-    background: '#05050c',
+    background: 'var(--af-bg)',
     zIndex: 200,
     display: 'flex',
     flexDirection: 'column' as const,
@@ -45,7 +45,7 @@ const Stars: React.FC<{ rating: number; size?: number }> = ({ rating, size = 18 
     {[1,2,3,4,5].map((n) => (
       <span key={n} style={{
         fontSize: size, lineHeight: 1, userSelect: 'none',
-        color: n <= rating ? '#f59e0b' : 'rgba(255,255,255,0.12)',
+        color: n <= rating ? 'var(--af-review)' : 'rgba(var(--af-overlay-rgb),0.12)',
       }}>★</span>
     ))}
   </div>
@@ -167,7 +167,7 @@ export const SwipeMode: React.FC<SwipeModeProps> = ({
     return (
       <div style={{ ...S.fixed, alignItems: 'center', justifyContent: 'center', gap: 16 }}>
         <div style={{ fontSize: 60 }}>🎉</div>
-        <h2 style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em', color: '#f0f0f7', margin: 0 }}>
+        <h2 style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--af-t1)', margin: 0 }}>
           Revision terminee !
         </h2>
         <p style={{ fontSize: 14, color: 'var(--af-t2)', margin: 0 }}>Retour au tableau de bord...</p>
@@ -191,19 +191,19 @@ export const SwipeMode: React.FC<SwipeModeProps> = ({
     <div style={S.fixed}>
       {/* ── Header ── */}
       <div style={{
-        padding: '10px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)',
+        padding: '10px 20px', borderBottom: '1px solid rgba(var(--af-overlay-rgb),0.05)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, gap: 16,
       }}>
         <button onClick={onDone} style={{
           display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', cursor: 'pointer',
-          background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+          background: 'rgba(var(--af-overlay-rgb),0.05)', border: '1px solid rgba(var(--af-overlay-rgb),0.08)',
           borderRadius: 20, fontSize: 12, color: 'var(--af-t3)', outline: 'none', flexShrink: 0,
         }}>
           <AfIcon n="chevL" sz={12} c="var(--af-t3)" /> Retour
         </button>
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3, maxWidth: 280 }}>
-          <div style={{ height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden' }}>
+          <div style={{ height: 3, background: 'rgba(var(--af-overlay-rgb),0.08)', borderRadius: 2, overflow: 'hidden' }}>
             <div style={{
               height: '100%', background: 'var(--af-review)', borderRadius: 2,
               width: `${progress}%`, transition: 'width 0.3s ease',
@@ -216,7 +216,7 @@ export const SwipeMode: React.FC<SwipeModeProps> = ({
         </div>
 
         <span style={{ fontSize: 12, color: 'var(--af-t3)', fontWeight: 600, flexShrink: 0 }}>
-          {idx + 1} <span style={{ color: 'rgba(255,255,255,0.15)' }}>/ {photos.length}</span>
+          {idx + 1} <span style={{ color: 'rgba(var(--af-overlay-rgb),0.15)' }}>/ {photos.length}</span>
         </span>
 
         <button
@@ -225,9 +225,9 @@ export const SwipeMode: React.FC<SwipeModeProps> = ({
           style={{
             padding: '5px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700,
             cursor: localHistory.length > 0 ? 'pointer' : 'not-allowed',
-            border: '1px solid rgba(255,255,255,0.08)',
-            background: localHistory.length > 0 ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.025)',
-            color: localHistory.length > 0 ? 'var(--af-t2)' : 'rgba(255,255,255,0.2)',
+            border: '1px solid rgba(var(--af-overlay-rgb),0.08)',
+            background: localHistory.length > 0 ? 'rgba(var(--af-overlay-rgb),0.06)' : 'rgba(var(--af-overlay-rgb),0.025)',
+            color: localHistory.length > 0 ? 'var(--af-t2)' : 'rgba(var(--af-overlay-rgb),0.2)',
           }}
         >
           Annuler
@@ -247,7 +247,7 @@ export const SwipeMode: React.FC<SwipeModeProps> = ({
         }}>
           <span style={{ fontSize: 42, filter: 'drop-shadow(0 0 16px var(--af-reject))' }}>✗</span>
           <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--af-reject)', letterSpacing: '0.06em' }}>REJETER</span>
-          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.15)' }}>← ou drag</span>
+          <span style={{ fontSize: 10, color: 'rgba(var(--af-overlay-rgb),0.15)' }}>← ou drag</span>
         </div>
 
         {/* Pick hint — right */}
@@ -258,7 +258,7 @@ export const SwipeMode: React.FC<SwipeModeProps> = ({
         }}>
           <span style={{ fontSize: 42, filter: 'drop-shadow(0 0 16px var(--af-pick))' }}>✓</span>
           <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--af-pick)', letterSpacing: '0.06em' }}>PICK</span>
-          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.15)' }}>→ ou drag</span>
+          <span style={{ fontSize: 10, color: 'rgba(var(--af-overlay-rgb),0.15)' }}>→ ou drag</span>
         </div>
 
         {/* Card stack */}
@@ -310,7 +310,7 @@ export const SwipeMode: React.FC<SwipeModeProps> = ({
             {pickOp > 0.04 && (
               <div style={{
                 position: 'absolute', inset: 0, zIndex: 5, pointerEvents: 'none',
-                background: `rgba(134,239,172,${pickOp * 0.22})`,
+                background: `rgba(var(--af-pick-rgb),${pickOp * 0.22})`,
                 display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 28,
               }}>
                 <span style={{
@@ -324,7 +324,7 @@ export const SwipeMode: React.FC<SwipeModeProps> = ({
             {rejectOp > 0.04 && (
               <div style={{
                 position: 'absolute', inset: 0, zIndex: 5, pointerEvents: 'none',
-                background: `rgba(252,165,165,${rejectOp * 0.22})`,
+                background: `rgba(var(--af-reject-rgb),${rejectOp * 0.22})`,
                 display: 'flex', alignItems: 'center', justifyContent: 'flex-start', paddingLeft: 28,
               }}>
                 <span style={{
@@ -363,8 +363,8 @@ export const SwipeMode: React.FC<SwipeModeProps> = ({
             }}>
               <Stars rating={photo.rating} size={22} />
               <div style={{ marginTop: 7, display: 'flex', gap: 12 }}>
-                <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{photo.name}</span>
-                {photo.iso && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>{photo.iso}</span>}
+                <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'rgba(var(--af-overlay-rgb),0.4)' }}>{photo.name}</span>
+                {photo.iso && <span style={{ fontSize: 11, color: 'rgba(var(--af-overlay-rgb),0.25)' }}>{photo.iso}</span>}
               </div>
             </div>
           </div>
@@ -380,8 +380,8 @@ export const SwipeMode: React.FC<SwipeModeProps> = ({
             <div key={`${entry.id}-${entry.action}`} style={{
               maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               padding: '4px 8px', borderRadius: 7, fontSize: 10,
-              background: 'rgba(255,255,255,0.045)', color: 'rgba(255,255,255,0.34)',
-              border: '1px solid rgba(255,255,255,0.06)',
+              background: 'rgba(var(--af-overlay-rgb),0.045)', color: 'rgba(var(--af-overlay-rgb),0.34)',
+              border: '1px solid rgba(var(--af-overlay-rgb),0.06)',
             }}>
               {entry.action.toUpperCase()} · {entry.name}
             </div>
@@ -390,7 +390,7 @@ export const SwipeMode: React.FC<SwipeModeProps> = ({
       )}
 
       <div style={{
-        padding: '14px 20px', borderTop: '1px solid rgba(255,255,255,0.05)',
+        padding: '14px 20px', borderTop: '1px solid rgba(var(--af-overlay-rgb),0.05)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexShrink: 0,
       }}>
         {([
@@ -401,15 +401,15 @@ export const SwipeMode: React.FC<SwipeModeProps> = ({
           <button key={b.action} onClick={() => decide(b.action)} style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
             padding: '10px 28px', borderRadius: 12, cursor: 'pointer', outline: 'none',
-            border: '1px solid rgba(255,255,255,0.08)',
-            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(var(--af-overlay-rgb),0.08)',
+            background: 'rgba(var(--af-overlay-rgb),0.05)',
             transition: 'all 0.1s',
           }}>
             <AfIcon n={b.icon} sz={20} c={b.col} />
-            <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', color: 'rgba(255,255,255,0.65)' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', color: 'rgba(var(--af-overlay-rgb),0.65)' }}>
               {b.label}
             </span>
-            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>{b.sub}</span>
+            <span style={{ fontSize: 9, color: 'rgba(var(--af-overlay-rgb),0.2)' }}>{b.sub}</span>
           </button>
         ))}
       </div>
@@ -421,10 +421,10 @@ export const SwipeMode: React.FC<SwipeModeProps> = ({
         {([['←', 'Rejeter'], ['→', 'Pick'], ['↑', 'Favori 5★'], ['1-5', 'Note'], ['Backspace', 'Annuler'], ['Esc', 'Retour']] as [string, string][]).map(([k, l]) => (
           <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <span style={{
-              padding: '1px 5px', background: 'rgba(255,255,255,0.07)',
-              borderRadius: 3, fontSize: 10, fontFamily: 'monospace', color: 'rgba(255,255,255,0.35)',
+              padding: '1px 5px', background: 'rgba(var(--af-overlay-rgb),0.07)',
+              borderRadius: 3, fontSize: 10, fontFamily: 'monospace', color: 'rgba(var(--af-overlay-rgb),0.35)',
             }}>{k}</span>
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>{l}</span>
+            <span style={{ fontSize: 10, color: 'rgba(var(--af-overlay-rgb),0.2)' }}>{l}</span>
           </div>
         ))}
       </div>

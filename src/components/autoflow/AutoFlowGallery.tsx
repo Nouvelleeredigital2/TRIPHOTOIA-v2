@@ -17,7 +17,7 @@ const ScoreRing: React.FC<{ score: number; size?: number }> = ({ score, size = 4
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
       <circle cx={size / 2} cy={size / 2} r={r} fill="none"
-        stroke="rgba(255,255,255,0.04)" strokeWidth={size * 0.07} />
+        stroke="rgba(var(--af-overlay-rgb),0.04)" strokeWidth={size * 0.07} />
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={col}
         strokeWidth={size * 0.07}
         strokeDasharray={`${dash} ${circ - dash}`} strokeLinecap="round"
@@ -36,7 +36,7 @@ const Stars: React.FC<{ rating: number; size?: number }> = ({ rating, size = 18 
     {[1,2,3,4,5].map((n) => (
       <span key={n} style={{
         fontSize: size, lineHeight: 1, userSelect: 'none',
-        color: n <= rating ? '#f59e0b' : 'rgba(255,255,255,0.1)',
+        color: n <= rating ? 'var(--af-review)' : 'rgba(var(--af-overlay-rgb),0.1)',
       }}>★</span>
     ))}
   </div>
@@ -63,13 +63,13 @@ export const AutoFlowGallery: React.FC<AutoFlowGalleryProps> = ({
     }}>
       {/* Header */}
       <div style={{
-        padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)',
+        padding: '10px 16px', borderBottom: '1px solid rgba(var(--af-overlay-rgb),0.05)',
         display: 'flex', alignItems: 'center', gap: 12,
         background: 'var(--af-s1)', flexShrink: 0,
       }}>
         <button onClick={onBack} style={{
           display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px',
-          background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+          background: 'rgba(var(--af-overlay-rgb),0.05)', border: '1px solid rgba(var(--af-overlay-rgb),0.08)',
           borderRadius: 20, fontSize: 12, color: 'var(--af-t3)', cursor: 'pointer', outline: 'none',
         }}>
           ← Tableau de bord
@@ -104,8 +104,8 @@ export const AutoFlowGallery: React.FC<AutoFlowGalleryProps> = ({
                   background: p.previewUrl
                     ? `url(${p.previewUrl}) center/cover`
                     : `linear-gradient(135deg,${p.gradient[0]},${p.gradient[1]})`,
-                  border: `1.5px solid ${isSel ? 'var(--af-review)' : p.isPick ? 'rgba(16,185,129,0.4)' : 'rgba(255,255,255,0.06)'}`,
-                  boxShadow: isSel ? '0 0 0 2px rgba(245,158,11,0.2)' : 'none',
+                  border: `1.5px solid ${isSel ? 'var(--af-review)' : p.isPick ? 'rgba(16,185,129,0.4)' : 'rgba(var(--af-overlay-rgb),0.06)'}`,
+                  boxShadow: isSel ? '0 0 0 2px rgba(var(--af-review-rgb),0.2)' : 'none',
                   opacity: p.isRejected ? 0.38 : 1, transition: 'all 0.1s',
                 }}
               >
@@ -136,7 +136,7 @@ export const AutoFlowGallery: React.FC<AutoFlowGalleryProps> = ({
         {/* Inline detail panel */}
         {selected && (
           <div style={{
-            width: 240, borderLeft: '1px solid rgba(255,255,255,0.05)',
+            width: 240, borderLeft: '1px solid rgba(var(--af-overlay-rgb),0.05)',
             background: 'var(--af-s1)', padding: 14,
             display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto',
           }}>
@@ -181,8 +181,8 @@ export const AutoFlowGallery: React.FC<AutoFlowGalleryProps> = ({
             {/* AI suggestion */}
             {selected.suggestion && (
               <div style={{
-                padding: 8, background: 'rgba(245,158,11,0.05)',
-                border: '1px solid rgba(245,158,11,0.1)', borderRadius: 7,
+                padding: 8, background: 'rgba(var(--af-review-rgb),0.05)',
+                border: '1px solid rgba(var(--af-review-rgb),0.1)', borderRadius: 7,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
                   <span style={{

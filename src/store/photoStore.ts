@@ -227,6 +227,7 @@ interface PhotoState {
   applyWeddingTemplate: () => string[];
   renameCollection: (collectionId: string, name: string) => boolean;
   deleteCollection: (collectionId: string) => void;
+  movePhotoToCollection: (photoId: string, fromCollectionId: string, toCollectionId: string) => void;
   setActiveCollection: (collectionId: string) => void;
   addPhotosToCollection: (collectionId: string, photoIds: string[]) => void;
   removePhotosFromCollection: (collectionId: string, photoIds: string[]) => void;
@@ -541,6 +542,11 @@ export const usePhotoStore = create<PhotoState>()(
         },
 
         deleteCollection: (collectionId: string) => {
+          const before = get();
+          // A-08 : capturer pour permettre l'annulation (collection + position + active).
+          const snapshot = before.collections[collectionId];
+          const index = before.collectionOrder.indexOf(collectionId);
+          const wasActive = before.activeCollectionId === collectionId;
           let deleted = false;
           set((state) => {
             if (!state.collections[collectionId] || state.collectionOrder.length <= 1) {
@@ -552,11 +558,41 @@ export const usePhotoStore = create<PhotoState>()(
             if (state.activeCollectionId === collectionId) {
               state.activeCollectionId = state.collectionOrder[0];
             }
+            state.undoStack.push({
+              type: 'DELETE_COLLECTION',
+              payload: { collection: snapshot, index, wasActive },
+            });
             deleted = true;
           });
           if (deleted) {
             persistCollections();
           }
+        },
+
+        // A-09 : déplacer une photo d'une collection vers une autre (retire de l'origine,
+        // ajoute à la destination) — réutilise les garde-fous d'appartenance existants.
+        movePhotoToCollection: (photoId: string, fromCollectionId: string, toCollectionId: string) => {
+          if (fromCollectionId === toCollectionId) return;
+          let changed = false;
+          set((state) => {
+            const from = state.collections[fromCollectionId];
+            const to = state.collections[toCollectionId];
+            const photoExists = state.photos.some((p) => p.id === photoId);
+            if (!to || !photoExists) return;
+            if (from) {
+              const i = from.photoIds.indexOf(photoId);
+              if (i !== -1) {
+                from.photoIds.splice(i, 1);
+                from.updatedAt = new Date().toISOString();
+              }
+            }
+            if (!to.photoIds.includes(photoId)) {
+              to.photoIds.push(photoId);
+              to.updatedAt = new Date().toISOString();
+            }
+            changed = true;
+          });
+          if (changed) persistCollections();
         },
 
         setActiveCollection: (collectionId: string) => {
@@ -1396,6 +1432,22 @@ export const usePhotoStore = create<PhotoState>()(
             });
             persistCollections();
             get().detectDuplicates();
+            return;
+          }
+
+          // A-08 : restauration d'une collection supprimée (réinsertion à sa position).
+          if (pending.type === 'DELETE_COLLECTION') {
+            const { collection, index, wasActive } = pending.payload;
+            set((state) => {
+              if (collection && !state.collections[collection.id]) {
+                state.collections[collection.id] = collection;
+                const at = Math.min(Math.max(index, 0), state.collectionOrder.length);
+                state.collectionOrder.splice(at, 0, collection.id);
+                if (wasActive) state.activeCollectionId = collection.id;
+              }
+              state.undoStack.pop();
+            });
+            persistCollections();
             return;
           }
 

@@ -883,7 +883,13 @@ export const usePhotoStore = create<PhotoState>()(
         setPhotoNote: (photoId, note) =>
           set((state) => {
             const previousNote = state.photoNotes[photoId] ?? '';
-            state.undoStack.push({ type: 'SET_NOTE', payload: { photoId, previousNote } });
+            // A-25 : coalescer — une seule entrée undo par session d'édition d'une note.
+            // Si la dernière action est déjà un SET_NOTE pour cette photo, on conserve son
+            // previousNote (l'état initial) au lieu d'empiler une entrée par frappe.
+            const last = state.undoStack[state.undoStack.length - 1];
+            if (!(last && last.type === 'SET_NOTE' && last.payload.photoId === photoId)) {
+              state.undoStack.push({ type: 'SET_NOTE', payload: { photoId, previousNote } });
+            }
             if (note.trim() === '') {
               delete state.photoNotes[photoId];
             } else {

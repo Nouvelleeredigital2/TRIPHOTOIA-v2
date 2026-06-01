@@ -70,7 +70,13 @@ export function useCataloguePersistence(): { lastSavedAt: Date | null } {
         photoNotes: state.photoNotes,
       };
       saveFullCatalogue(payload)
-        .then(() => setLastSavedAt(new Date()))
+        .then(() => {
+          setLastSavedAt(new Date());
+          // A-52 : notifier les autres onglets qu'une sauvegarde a eu lieu.
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new Event('treephoto:catalogue-saved'));
+          }
+        })
         .catch((err) => {
           console.warn('[useCataloguePersistence] sauvegarde échouée:', err);
         });

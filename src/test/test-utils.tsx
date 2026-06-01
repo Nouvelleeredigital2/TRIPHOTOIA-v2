@@ -111,6 +111,11 @@ beforeEach(() => {
   mockStore.processedCount = 0;
   mockStore.activeTab = 'ingestion';
   mockStore.pendingExportFilterMode = null;
+  // Réinitialiser le hash : le routing App (#/<tab>) persiste sinon entre tests jsdom
+  // et écraserait l'activeTab fixé programmatiquement par un test.
+  if (typeof window !== 'undefined') {
+    window.history.replaceState(null, '', window.location.pathname + window.location.search);
+  }
 });
 
 afterEach(async () => {

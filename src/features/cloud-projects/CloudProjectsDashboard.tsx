@@ -455,16 +455,24 @@ function CloudProjectPhotoList({
               {response.source === 'semantic' ? (
                 <ul className="space-y-1">
                   {response.results.map((result) => (
-                    <li
-                      key={result.photoId}
-                      className="flex items-center justify-between gap-2 text-xs"
-                    >
-                      <span className="truncate text-muted-foreground">
-                        {filenamesById.get(result.photoId) ?? result.photoId}
-                      </span>
-                      <Badge variant="outline" className="shrink-0 text-[10px]">
-                        {formatSimilarityScore(result.similarity)}
-                      </Badge>
+                    <li key={result.photoId}>
+                      <button
+                        type="button"
+                        // A-43 : cliquer un résultat révèle et sélectionne la photo dans la liste.
+                        onClick={() => {
+                          const idx = photos.findIndex((p) => p.id === result.photoId);
+                          if (idx >= 0) setVisibleCount((c) => Math.max(c, idx + 1));
+                          setActivePhotoId(result.photoId);
+                        }}
+                        className="flex w-full items-center justify-between gap-2 text-xs rounded px-1 py-0.5 hover:bg-muted/60 transition-colors"
+                      >
+                        <span className="truncate text-muted-foreground hover:text-foreground">
+                          {filenamesById.get(result.photoId) ?? result.photoId}
+                        </span>
+                        <Badge variant="outline" className="shrink-0 text-[10px]">
+                          {formatSimilarityScore(result.similarity)}
+                        </Badge>
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -527,10 +535,13 @@ function CloudProjectFacesPanel({
   const [groups, setGroups] = useState<AnonymousFaceGroup[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
   const [loaded, setLoaded] = useState(false);
+  // A-45 : conserver une trace des groupes nommés (sinon ils disparaissent sans feedback).
+  const [namedPersons, setNamedPersons] = useState<{ groupId: string; name: string; count: number }[]>([]);
 
   useEffect(() => {
     setEnabled(faceAnalysisEnabled);
     setGroups([]);
+    setNamedPersons([]);
     setLoaded(false);
   }, [projectId, faceAnalysisEnabled]);
 
@@ -554,8 +565,12 @@ function CloudProjectFacesPanel({
     mutationFn: async ({ group, displayName }) => {
       await nameAnonymousGroup({ projectId, faceIds: group.faceIds, displayName });
     },
-    onSuccess: (_data, { group }) => {
+    onSuccess: (_data, { group, displayName }) => {
       setGroups((current) => current.filter((item) => item.groupId !== group.groupId));
+      setNamedPersons((prev) => [
+        { groupId: group.groupId, name: displayName, count: group.faceIds.length },
+        ...prev.filter((p) => p.groupId !== group.groupId),
+      ]);
     },
   });
 
@@ -632,6 +647,24 @@ function CloudProjectFacesPanel({
         <p className="text-xs text-destructive">
           {(toggleMutation.error || loadMutation.error || nameMutation.error || deleteAllMutation.error)?.message}
         </p>
+      )}
+
+      {/* A-45 : personnes nommées — on garde une trace au lieu de les faire disparaître */}
+      {enabled && namedPersons.length > 0 && (
+        <div className="space-y-1">
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Personnes nommées</div>
+          <ul className="flex flex-wrap gap-1.5">
+            {namedPersons.map((p) => (
+              <li key={p.groupId}>
+                <Badge variant="secondary" className="gap-1 text-[11px]">
+                  <UserRound className="h-3 w-3" />
+                  {p.name}
+                  <span className="text-muted-foreground">· {p.count}</span>
+                </Badge>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {enabled && loaded && groups.length === 0 && !loadMutation.isPending && (

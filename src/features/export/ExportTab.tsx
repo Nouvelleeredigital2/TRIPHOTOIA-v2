@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { usePhotoStore } from '../../store/photoStore';
+import { useAuthStore } from '../../store/authStore';
+import { trackStats } from '../../lib/sync-utils';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -279,6 +281,11 @@ function ExportTab() {
     result: { exported: number; failed: number; failedNames: string[] },
     mode: 'ZIP' | 'dossier' | 'chapitres',
   ) => {
+    // A-46 : comptabiliser les exports réussis dans les analytics.
+    if (result.exported > 0) {
+      const uid = useAuthStore.getState().user?.id;
+      if (uid) trackStats(uid, { exports_count: result.exported }).catch(() => {});
+    }
     if (result.failed === 0) {
       toast.success(`Export ${mode} terminé : ${result.exported} photo${result.exported > 1 ? 's' : ''}.`);
     } else if (result.exported === 0) {

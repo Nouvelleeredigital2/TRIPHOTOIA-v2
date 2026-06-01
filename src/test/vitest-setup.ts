@@ -86,6 +86,20 @@ if (typeof Worker === 'undefined') {
   });
 }
 
+// ── Blob/File.arrayBuffer ───────────────────────────────────────────────────
+// jsdom n'implémente pas Blob.prototype.arrayBuffer — requis par la persistance
+// du catalogue (catalogue-persistence lit file.arrayBuffer()).
+if (typeof Blob !== 'undefined' && typeof Blob.prototype.arrayBuffer !== 'function') {
+  Blob.prototype.arrayBuffer = function arrayBuffer(this: Blob) {
+    return new Promise<ArrayBuffer>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as ArrayBuffer);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsArrayBuffer(this);
+    });
+  };
+}
+
 // IndexedDB est fourni par `fake-indexeddb/auto` importé en tête de fichier.
 
 // ── ResizeObserver ────────────────────────────────────────────────────────────

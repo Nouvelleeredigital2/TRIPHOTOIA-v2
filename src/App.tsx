@@ -119,6 +119,55 @@ function App() {
     clearAll,
   } = usePhotoStore();
 
+  // A-53/54 : synchroniser l'onglet actif avec le hash de l'URL (deep link + bouton
+  // retour navigateur), sans React Router. Préserve la page de partage #/share/:token.
+  useEffect(() => {
+    if (shareToken) return;
+    const TABS = ['ingestion', 'triage', 'export'] as const;
+    const applyHash = () => {
+      const h = window.location.hash.replace(/^#\//, '');
+      if ((TABS as readonly string[]).includes(h)) {
+        setActiveTab(h as typeof activeTab);
+      }
+    };
+    applyHash();
+    window.addEventListener('hashchange', applyHash);
+    return () => window.removeEventListener('hashchange', applyHash);
+  }, [shareToken]);
+
+  useEffect(() => {
+    if (shareToken) return;
+    const TABS = ['ingestion', 'triage', 'export'];
+    if (!TABS.includes(activeTab)) return; // 'development' = overlay, pas de route
+    const target = `#/${activeTab}`;
+    if (window.location.hash !== target) {
+      // pushState pour que le bouton retour navigue entre onglets (ne déclenche pas hashchange)
+      window.history.pushState(null, '', target);
+    }
+  }, [activeTab, shareToken]);
+
+  // A-52 : avertir si le catalogue est modifié dans un autre onglet (pas de fusion auto).
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return;
+    const channel = new BroadcastChannel('treephoto');
+    const tabId = Math.random().toString(36).slice(2);
+    const onSave = () => channel.postMessage({ type: 'catalogue-saved', tabId });
+    window.addEventListener('treephoto:catalogue-saved', onSave);
+    channel.onmessage = (e) => {
+      if (e.data?.type === 'catalogue-saved' && e.data.tabId !== tabId) {
+        toast('Catalogue modifié dans un autre onglet — rechargez pour voir les changements.', {
+          icon: '🔄',
+          id: 'multi-tab',
+          duration: 6000,
+        });
+      }
+    };
+    return () => {
+      window.removeEventListener('treephoto:catalogue-saved', onSave);
+      channel.close();
+    };
+  }, []);
+
   // Ctrl+Z / Cmd+Z global — Annuler
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -314,6 +363,9 @@ function App() {
           <div className="flex-1 flex flex-col min-w-0">
             {/* ── AutoFlow v2 TopBar ── */}
             <header style={{
+              // A-58 : chrome volontairement sombre (marque AutoFlow v2), cohérent dans
+              // les deux thèmes — le texte clair reste lisible. Le contenu principal, lui,
+              // respecte clair/sombre. (Conversion complète = refonte graphique, hors scope.)
               background: 'rgba(7,7,12,0.92)',
               backdropFilter: 'blur(14px)',
               borderBottom: '1px solid rgba(255,255,255,0.05)',

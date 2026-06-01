@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { usePhotoStore } from '../../store/photoStore';
+import { useAuthStore } from '../../store/authStore';
+import { trackStats } from '../../lib/sync-utils';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -133,21 +135,42 @@ function ExportTab() {
     toast.success(`Preset "${preset.name}" chargé`);
   }, [presets, form]);
 
-  const handleSavePreset = useCallback(() => {
-    const name = savePresetName.trim() || 'Preset';
-    if (selectedPresetId && presets.some((p) => p.id === selectedPresetId)) {
-      updatePreset(selectedPresetId, form.getValues());
-      refreshPresets();
-      toast.success(`Preset "${name}" mis à jour`);
-    } else {
-      const created = createPreset(name, form.getValues());
-      refreshPresets();
-      setSelectedPresetId(created.id);
-      toast.success(`Preset "${created.name}" sauvegardé`);
-    }
+  const [overwriteTarget, setOverwriteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const doUpdatePreset = useCallback((id: string, label: string) => {
+    updatePreset(id, form.getValues());
+    refreshPresets();
+    setSelectedPresetId(id);
     setSavePresetName('');
     setShowSaveInput(false);
-  }, [savePresetName, selectedPresetId, presets, form, refreshPresets]);
+    toast.success(`Preset "${label}" mis à jour`);
+  }, [form, refreshPresets]);
+
+  const handleSavePreset = useCallback(() => {
+    // A-33 : nom obligatoire (plus de repli silencieux « Preset »).
+    const name = savePresetName.trim();
+    if (selectedPresetId && presets.some((p) => p.id === selectedPresetId)) {
+      const existing = presets.find((p) => p.id === selectedPresetId);
+      doUpdatePreset(selectedPresetId, existing?.name ?? (name || 'Preset'));
+      return;
+    }
+    if (!name) {
+      toast.error('Donnez un nom au preset.');
+      return;
+    }
+    // A-33 : si le nom entre en collision avec un preset existant, confirmer l'écrasement.
+    const clash = presets.find((p) => p.name.trim().toLowerCase() === name.toLowerCase());
+    if (clash) {
+      setOverwriteTarget({ id: clash.id, name: clash.name });
+      return;
+    }
+    const created = createPreset(name, form.getValues());
+    refreshPresets();
+    setSelectedPresetId(created.id);
+    setSavePresetName('');
+    setShowSaveInput(false);
+    toast.success(`Preset "${created.name}" sauvegardé`);
+  }, [savePresetName, selectedPresetId, presets, form, refreshPresets, doUpdatePreset]);
 
   const [presetDeleteOpen, setPresetDeleteOpen] = useState(false);
 
@@ -258,6 +281,11 @@ function ExportTab() {
     result: { exported: number; failed: number; failedNames: string[] },
     mode: 'ZIP' | 'dossier' | 'chapitres',
   ) => {
+    // A-46 : comptabiliser les exports réussis dans les analytics.
+    if (result.exported > 0) {
+      const uid = useAuthStore.getState().user?.id;
+      if (uid) trackStats(uid, { exports_count: result.exported }).catch(() => {});
+    }
     if (result.failed === 0) {
       toast.success(`Export ${mode} terminé : ${result.exported} photo${result.exported > 1 ? 's' : ''}.`);
     } else if (result.exported === 0) {
@@ -828,6 +856,17 @@ function ExportTab() {
           </CardContent>
         </Card>
       )}
+
+      <ConfirmationDialog
+        open={overwriteTarget !== null}
+        onOpenChange={(o) => { if (!o) setOverwriteTarget(null); }}
+        onConfirm={() => { if (overwriteTarget) doUpdatePreset(overwriteTarget.id, overwriteTarget.name); setOverwriteTarget(null); }}
+        title="Écraser ce preset ?"
+        description={`Un preset nommé « ${overwriteTarget?.name ?? ''} » existe déjà. Voulez-vous l'écraser avec les réglages actuels ?`}
+        confirmText="Écraser"
+        cancelText="Annuler"
+        variant="destructive"
+      />
 
       <ConfirmationDialog
         open={presetDeleteOpen}

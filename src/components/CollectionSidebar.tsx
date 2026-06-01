@@ -49,6 +49,7 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
   const applyWeddingTemplate = usePhotoStore((state) => state.applyWeddingTemplate);
   const renameCollection = usePhotoStore((state) => state.renameCollection);
   const deleteCollection = usePhotoStore((state) => state.deleteCollection);
+  const undo = usePhotoStore((state) => state.undo);
   const setActiveCollection = usePhotoStore((state) => state.setActiveCollection);
   const setActiveSmartCollection = usePhotoStore((state) => state.setActiveSmartCollection);
   const smartCollections = useSmartCollections();
@@ -106,8 +107,19 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
   const confirmDeleteCollection = () => {
     if (collectionToDelete && collectionOrder.length > 1) {
       deleteCollection(collectionToDelete);
-      toast.success('Collection supprimée');
       setCollectionToDelete(null);
+      // A-08 : suppression annulable.
+      toast((t) => (
+        <span className="flex items-center gap-3">
+          Collection supprimée
+          <button
+            onClick={() => { undo(); toast.dismiss(t.id); }}
+            className="px-2 py-0.5 rounded bg-primary/15 hover:bg-primary/25 text-xs font-medium"
+          >
+            Annuler
+          </button>
+        </span>
+      ), { duration: 6000 });
     }
   };
 

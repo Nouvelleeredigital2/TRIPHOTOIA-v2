@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { usePhotoStore } from '../store/photoStore';
-import { syncPhotoMetadata, loadCloudMetadata, trackStats } from '../lib/sync-utils';
+import { syncPhotoMetadata, loadCloudMetadata, trackStats, syncCollections } from '../lib/sync-utils';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { isAuthError, SESSION_EXPIRED_MESSAGE } from '../lib/auth-errors';
 import toast from 'react-hot-toast';
@@ -16,6 +16,7 @@ export function useCloudSync() {
   const { user, setSyncStatus } = useAuthStore();
   const pendingRef = useRef<Set<string>>(new Set());
   const timerRef = useRef<number | null>(null);
+  const collectionsTimerRef = useRef<number | null>(null);
 
   const flush = useCallback(async () => {
     if (!user || !isSupabaseConfigured) return;
@@ -97,12 +98,27 @@ export function useCloudSync() {
       const photosChanged = state.photos !== prev.photos;
       const tagsChanged = state.userTags !== prev.userTags;
       const notesChanged = state.photoNotes !== prev.photoNotes;
+
+      // A-06 : synchroniser les collections cloud (débounce) quand elles changent.
+      if (state.collections !== prev.collections || state.collectionOrder !== prev.collectionOrder) {
+        if (collectionsTimerRef.current) clearTimeout(collectionsTimerRef.current);
+        collectionsTimerRef.current = window.setTimeout(() => {
+          const st = usePhotoStore.getState();
+          syncCollections(user.id, st.collections, st.collectionOrder).catch(() => {});
+        }, DEBOUNCE_MS);
+      }
+
       if (!photosChanged && !tagsChanged && !notesChanged) return;
 
       const changed = new Set<string>();
 
       // A-28 : comparer par photo.id (et non par index), pour ne rien manquer si
       // l'ordre change ou si une photo est supprimée.
+      // A-46 : compteurs d'activité (notation / picks / rejets) pour les analytics.
+      let ratedDelta = 0;
+      let picksDelta = 0;
+      let rejectsDelta = 0;
+
       if (photosChanged) {
         const prevById = new Map(prev.photos.map((p) => [p.id, p]));
         state.photos.forEach((photo) => {
@@ -118,7 +134,19 @@ export function useCloudSync() {
           ) {
             changed.add(photo.id);
           }
+          // Transitions comptabilisées une seule fois (montée de front).
+          if ((a?.rating ?? 0) > 0 && (a?.rating ?? 0) !== (pa?.rating ?? 0)) ratedDelta += 1;
+          if (!!a?.isPick && !pa?.isPick) picksDelta += 1;
+          if (!!a?.isRejected && !pa?.isRejected) rejectsDelta += 1;
         });
+      }
+
+      if (ratedDelta || picksDelta || rejectsDelta) {
+        trackStats(user.id, {
+          photos_rated: ratedDelta,
+          picks_count: picksDelta,
+          rejects_count: rejectsDelta,
+        }).catch(() => {});
       }
 
       // A-27 : synchroniser aussi les tags et les notes (champs prévus dans

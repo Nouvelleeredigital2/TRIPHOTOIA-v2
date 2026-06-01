@@ -14,6 +14,7 @@ import {
   Camera,
   ChevronDown,
   ChevronUp,
+  FolderInput,
 } from 'lucide-react';
 import { Photo, COLOR_LABEL_META, COLOR_LABEL_KEYS, ColorLabel } from '../types';
 import { usePhotoStore } from '../store/photoStore';
@@ -106,6 +107,10 @@ export function PhotoDetailPanel({ photo, onClose }: PhotoDetailPanelProps) {
   const setColorLabel = usePhotoStore((s) => s.setColorLabel);
   const updateUserTags = usePhotoStore((s) => s.updateUserTags);
   const setPhotoNote = usePhotoStore((s) => s.setPhotoNote);
+  const collections = usePhotoStore((s) => s.collections);
+  const collectionOrder = usePhotoStore((s) => s.collectionOrder);
+  const activeCollectionId = usePhotoStore((s) => s.activeCollectionId);
+  const movePhotoToCollection = usePhotoStore((s) => s.movePhotoToCollection);
 
   // Référence vide STABLE : `?? []` créerait un nouveau tableau à chaque rendu,
   // ce qui casse le cache de getSnapshot (zustand) → boucle de rendu infinie (#185).
@@ -527,6 +532,27 @@ export function PhotoDetailPanel({ photo, onClose }: PhotoDetailPanelProps) {
                 className="w-full text-xs bg-muted/40 border border-border/40 rounded px-2 py-1.5 outline-none resize-none focus:ring-1 focus:ring-primary/50 placeholder:text-muted-foreground/50"
               />
             </Section>
+
+            {/* A-09 : déplacer la photo vers une autre collection */}
+            {collectionOrder.length > 1 && (
+              <Section icon={<FolderInput className="w-3.5 h-3.5" />} title="Déplacer vers…">
+                <select
+                  value=""
+                  onChange={(e) => {
+                    const toId = e.target.value;
+                    if (toId) movePhotoToCollection(photo.id, activeCollectionId, toId);
+                  }}
+                  className="w-full text-xs bg-muted/40 border border-border/40 rounded px-2 py-1.5 outline-none focus:ring-1 focus:ring-primary/50"
+                >
+                  <option value="">Choisir une collection…</option>
+                  {collectionOrder
+                    .filter((cid) => cid !== activeCollectionId && collections[cid])
+                    .map((cid) => (
+                      <option key={cid} value={cid}>{collections[cid].name}</option>
+                    ))}
+                </select>
+              </Section>
+            )}
 
           </div>
         </div>

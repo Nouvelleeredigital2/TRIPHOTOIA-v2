@@ -463,8 +463,13 @@ export async function syncCollections(
 
   if (rows.length === 0) return;
 
-  // Upsert simple — on ne gère pas le renommage cross-device dans cette version
-  await supabase
+  // A-06 : upsert sur la clé réelle (user_id, name) — l'ancien onConflict:'id' sans id
+  // ne pouvait jamais matcher (toujours des inserts / échecs silencieux). Nécessite la
+  // contrainte unique(user_id, name) ajoutée par la migration cloud_collections_unique.
+  const { error } = await supabase
     .from('cloud_collections')
-    .upsert(rows, { onConflict: 'id', ignoreDuplicates: false });
+    .upsert(rows, { onConflict: 'user_id,name', ignoreDuplicates: false });
+  if (error) {
+    console.warn('[sync] syncCollections error:', error.message);
+  }
 }

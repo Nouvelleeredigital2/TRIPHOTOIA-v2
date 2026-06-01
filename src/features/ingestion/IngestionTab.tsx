@@ -4,6 +4,8 @@ import { calculateFileHash } from '../../lib/utils';
 import { Photo, PhotoAnalysis } from '../../types';
 import { usePhotoStore } from '../../store/photoStore';
 import { usePhotoAnalysis } from '../../hooks/usePhotoAnalysis';
+import { Button } from '../../components/ui/button';
+import { RefreshCw } from 'lucide-react';
 import { FileUpload } from './components/FileUpload';
 import { AnalysisProgress } from './components/AnalysisProgress';
 import { PhotoList } from './components/PhotoList';
@@ -29,6 +31,7 @@ function IngestionTab() {
   const activeCollectionId = usePhotoStore((state) => state.activeCollectionId);
   const collections = usePhotoStore((state) => state.collections);
   const allPhotos = usePhotoStore((state) => state.photos);
+  const requeueForAnalysis = usePhotoStore((state) => state.requeueForAnalysis);
   const activeCloudProject = useCloudProjectStore((state) => state.activeProject);
 
   // Calculer les valeurs dérivées avec useMemo pour éviter les boucles infinies
@@ -54,13 +57,29 @@ function IngestionTab() {
     [activePhotos]
   );
 
+  // Photos jamais analysées réellement (au-delà du seul fileHash posé à l'import) — A-17.
+  const unanalyzedIds = useMemo(
+    () =>
+      activePhotos
+        .filter((p) => {
+          const a = p.analysis;
+          if (!a) return true;
+          if (a.error) return false; // les erreurs se relancent via le filtre « Erreurs »
+          return a.sharpnessScore === undefined && !(a.tags && a.tags.length > 0);
+        })
+        .map((p) => p.id),
+    [activePhotos]
+  );
+
   const handleFilesSelected = async (files: File[]) => {
     // Calculate file hashes in parallel for fast duplicate detection
     const photosWithHashes = await Promise.all(
       files.map(async (file) => {
         const fileHash = await calculateFileHash(file);
         return {
-          id: `${file.name}-${file.lastModified}-${file.size}`,
+          // A-14 : ID = SHA-256 du contenu. Deux fichiers différents (même nom/taille/date)
+          // ne collisionnent plus ; un même fichier réimporté est dédupliqué par addPhotos.
+          id: fileHash,
           file,
           fileHash,  // niveau Photo — clé cross-device pour le cloud
           previewUrl: URL.createObjectURL(file),
@@ -155,6 +174,27 @@ function IngestionTab() {
           analyzingPhotoIds={analyzingPhotoIds}
           onStop={stopProcessingPhotos}
         />
+      )}
+
+      {/* A-17 : relancer l'analyse des photos jamais analysées (après un arrêt) */}
+      {!isProcessing && unanalyzedIds.length > 0 && (
+        <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-sm">
+          <span className="font-medium text-amber-700 dark:text-amber-400">
+            {unanalyzedIds.length} photo{unanalyzedIds.length > 1 ? 's' : ''} non analysée{unanalyzedIds.length > 1 ? 's' : ''}
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            className="ml-auto gap-1"
+            onClick={() => {
+              requeueForAnalysis(unanalyzedIds);
+              toast.success("Analyse relancée");
+            }}
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Relancer l&apos;analyse
+          </Button>
+        </div>
       )}
 
       <DuplicateTest />

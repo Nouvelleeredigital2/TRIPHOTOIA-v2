@@ -205,6 +205,15 @@ type DeletePhotoAction = {
   };
 };
 
+type DeleteCollectionAction = {
+  type: 'DELETE_COLLECTION';
+  payload: {
+    collection: PhotoCollection;
+    index: number;
+    wasActive: boolean;
+  };
+};
+
 export type UndoAction =
   | SetBestAction
   | ToggleRejectAction
@@ -214,7 +223,8 @@ export type UndoAction =
   | SetColorLabelAction
   | UnflagAction
   | SetNoteAction
-  | DeletePhotoAction;
+  | DeletePhotoAction
+  | DeleteCollectionAction;
 
 export interface PhotoCollection {
   id: string;

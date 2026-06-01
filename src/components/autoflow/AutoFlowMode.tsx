@@ -7,8 +7,10 @@
  * Receives AfPhotos from the parent and fires back mutations
  * so the parent can apply them to the store.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import toast from 'react-hot-toast';
 import { AfPhoto, AfClass } from './afUtils';
+import { useCloudProjectStore } from '../../store/cloudProjectStore';
 import { AutoFlowDashboard } from './AutoFlowDashboard';
 import { SwipeMode } from './SwipeMode';
 import { AutoFlowGallery } from './AutoFlowGallery';
@@ -52,6 +54,25 @@ export const AutoFlowMode: React.FC<AutoFlowModeProps> = ({
   const [screen, setScreen] = useState<Screen>('dashboard');
   const [swipeQueue, setSwipeQueue] = useState<AfPhoto[]>([]);
   const [decisionHistory, setDecisionHistory] = useState<DecisionHistoryEntry[]>([]);
+
+  // A-38 : revalider les ids reçus (certaines photos ont pu être supprimées depuis le
+  // filtrage) + A-37 : informer une fois si les décisions ne sont pas synchronisées au cloud.
+  const openInfoShownRef = useRef(false);
+  useEffect(() => {
+    if (openInfoShownRef.current) return;
+    openInfoShownRef.current = true;
+    if (initialPhotoIds && initialPhotoIds.length > 0) {
+      const available = new Set(photos.map((p) => p.id));
+      const openable = initialPhotoIds.filter((id) => available.has(id)).length;
+      const missing = initialPhotoIds.length - openable;
+      if (missing > 0) {
+        toast(`AutoFlow ouvert sur ${openable} photo(s) — ${missing} non disponible(s).`, { icon: 'ℹ️' });
+      }
+    }
+    if (!useCloudProjectStore.getState().activeProject) {
+      toast('Décisions enregistrées en local (aucun projet cloud actif).', { icon: '💾', id: 'autoflow-local' });
+    }
+  }, [initialPhotoIds, photos]);
   /** Local overrides — merged on top of incoming photos */
   const [overrides, setOverrides] = useState<Map<string, Partial<AfPhoto>>>(new Map());
 

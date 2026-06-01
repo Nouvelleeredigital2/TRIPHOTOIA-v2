@@ -227,6 +227,7 @@ interface PhotoState {
   applyWeddingTemplate: () => string[];
   renameCollection: (collectionId: string, name: string) => boolean;
   deleteCollection: (collectionId: string) => void;
+  movePhotoToCollection: (photoId: string, fromCollectionId: string, toCollectionId: string) => void;
   setActiveCollection: (collectionId: string) => void;
   addPhotosToCollection: (collectionId: string, photoIds: string[]) => void;
   removePhotosFromCollection: (collectionId: string, photoIds: string[]) => void;
@@ -240,6 +241,7 @@ interface PhotoState {
   setAnalysisQueue: (queue: string[]) => void;
   addToAnalysisQueue: (photoIds: string[]) => void;
   removeFromAnalysisQueue: (photoIds: string[]) => void;
+  requeueForAnalysis: (photoIds: string[]) => void;
   setAnalyzingPhotoIds: (ids: Set<string>) => void;
   addAnalyzingPhotoIds: (ids: string[]) => void;
   removeAnalyzingPhotoIds: (ids: string[]) => void;
@@ -540,6 +542,11 @@ export const usePhotoStore = create<PhotoState>()(
         },
 
         deleteCollection: (collectionId: string) => {
+          const before = get();
+          // A-08 : capturer pour permettre l'annulation (collection + position + active).
+          const snapshot = before.collections[collectionId];
+          const index = before.collectionOrder.indexOf(collectionId);
+          const wasActive = before.activeCollectionId === collectionId;
           let deleted = false;
           set((state) => {
             if (!state.collections[collectionId] || state.collectionOrder.length <= 1) {
@@ -551,11 +558,41 @@ export const usePhotoStore = create<PhotoState>()(
             if (state.activeCollectionId === collectionId) {
               state.activeCollectionId = state.collectionOrder[0];
             }
+            state.undoStack.push({
+              type: 'DELETE_COLLECTION',
+              payload: { collection: snapshot, index, wasActive },
+            });
             deleted = true;
           });
           if (deleted) {
             persistCollections();
           }
+        },
+
+        // A-09 : déplacer une photo d'une collection vers une autre (retire de l'origine,
+        // ajoute à la destination) — réutilise les garde-fous d'appartenance existants.
+        movePhotoToCollection: (photoId: string, fromCollectionId: string, toCollectionId: string) => {
+          if (fromCollectionId === toCollectionId) return;
+          let changed = false;
+          set((state) => {
+            const from = state.collections[fromCollectionId];
+            const to = state.collections[toCollectionId];
+            const photoExists = state.photos.some((p) => p.id === photoId);
+            if (!to || !photoExists) return;
+            if (from) {
+              const i = from.photoIds.indexOf(photoId);
+              if (i !== -1) {
+                from.photoIds.splice(i, 1);
+                from.updatedAt = new Date().toISOString();
+              }
+            }
+            if (!to.photoIds.includes(photoId)) {
+              to.photoIds.push(photoId);
+              to.updatedAt = new Date().toISOString();
+            }
+            changed = true;
+          });
+          if (changed) persistCollections();
         },
 
         setActiveCollection: (collectionId: string) => {
@@ -742,6 +779,28 @@ export const usePhotoStore = create<PhotoState>()(
             );
           }),
 
+        // A-17 / A-19 : (re)mettre des photos dans la file d'analyse — réinitialise une
+        // éventuelle erreur/analyse partielle (en gardant le fileHash) et relance le
+        // traitement. Sert au « relancer les non analysées » et au « réanalyser » des erreurs.
+        requeueForAnalysis: (photoIds) =>
+          set((state) => {
+            let added = false;
+            const target = new Set(photoIds);
+            state.photos.forEach((photo) => {
+              if (!target.has(photo.id)) return;
+              const fileHash = photo.analysis?.fileHash;
+              photo.analysis = (fileHash ? { fileHash } : null) as PhotoAnalysis | null;
+              if (!state.analysisQueue.includes(photo.id)) {
+                state.analysisQueue.push(photo.id);
+                added = true;
+              }
+            });
+            if (added) {
+              state.isProcessing = true;
+              state.stopProcessing = false;
+            }
+          }),
+
         setAnalyzingPhotoIds: (ids) =>
           set((state) => {
             state.analyzingPhotoIds = ids;
@@ -824,7 +883,13 @@ export const usePhotoStore = create<PhotoState>()(
         setPhotoNote: (photoId, note) =>
           set((state) => {
             const previousNote = state.photoNotes[photoId] ?? '';
-            state.undoStack.push({ type: 'SET_NOTE', payload: { photoId, previousNote } });
+            // A-25 : coalescer — une seule entrée undo par session d'édition d'une note.
+            // Si la dernière action est déjà un SET_NOTE pour cette photo, on conserve son
+            // previousNote (l'état initial) au lieu d'empiler une entrée par frappe.
+            const last = state.undoStack[state.undoStack.length - 1];
+            if (!(last && last.type === 'SET_NOTE' && last.payload.photoId === photoId)) {
+              state.undoStack.push({ type: 'SET_NOTE', payload: { photoId, previousNote } });
+            }
             if (note.trim() === '') {
               delete state.photoNotes[photoId];
             } else {
@@ -1373,6 +1438,22 @@ export const usePhotoStore = create<PhotoState>()(
             });
             persistCollections();
             get().detectDuplicates();
+            return;
+          }
+
+          // A-08 : restauration d'une collection supprimée (réinsertion à sa position).
+          if (pending.type === 'DELETE_COLLECTION') {
+            const { collection, index, wasActive } = pending.payload;
+            set((state) => {
+              if (collection && !state.collections[collection.id]) {
+                state.collections[collection.id] = collection;
+                const at = Math.min(Math.max(index, 0), state.collectionOrder.length);
+                state.collectionOrder.splice(at, 0, collection.id);
+                if (wasActive) state.activeCollectionId = collection.id;
+              }
+              state.undoStack.pop();
+            });
+            persistCollections();
             return;
           }
 

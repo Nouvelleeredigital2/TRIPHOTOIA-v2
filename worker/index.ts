@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { createWorkerConfig } from './config';
+import { assertProvidersAllowed, createWorkerConfig } from './config';
 import { createEmbedder } from './embedding';
 import { createFaceDetector } from './faceDetection';
 import {
@@ -30,6 +30,8 @@ export async function runWorkerOnce(
 
 export async function runWorkerLoop(): Promise<void> {
   const config = createWorkerConfig(process.env);
+  // P0-4 : refuse de démarrer en production avec des providers simulés.
+  assertProvidersAllowed(process.env);
   const processors = createDefaultJobProcessors(
     createEmbedder(process.env),
     createFaceDetector(process.env),

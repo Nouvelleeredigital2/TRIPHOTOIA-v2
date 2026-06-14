@@ -1876,6 +1876,11 @@ export const usePhotoStore = create<PhotoState>()(
             lshDetector.rebuild([]);
             if (typeof URL !== 'undefined') {
               state.photos.forEach((photo) => {
+                // P1-5 : la preview principale du catalogue était oubliée → fuite
+                // mémoire sur les gros lots. On la révoque aussi.
+                if (photo.previewUrl && photo.previewUrl.startsWith('blob:')) {
+                  URL.revokeObjectURL(photo.previewUrl);
+                }
                 if (photo.retouch?.previewUrl && photo.retouch.previewUrl.startsWith('blob:')) {
                   URL.revokeObjectURL(photo.retouch.previewUrl);
                 }

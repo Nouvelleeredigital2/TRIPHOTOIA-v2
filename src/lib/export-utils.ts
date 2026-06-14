@@ -243,6 +243,7 @@ async function processImage(
 
       canvas.toBlob(
         (blob) => {
+          URL.revokeObjectURL(objectUrl); // P1-5 : libérer la Blob URL après encodage
           if (blob) resolve(blob);
           else reject(new Error('Failed to convert image'));
         },
@@ -251,8 +252,12 @@ async function processImage(
       );
     };
 
-    img.onerror = () => reject(new Error('Failed to load image'));
-    img.src = URL.createObjectURL(file);
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Failed to load image'));
+    };
+    const objectUrl = URL.createObjectURL(file);
+    img.src = objectUrl;
   });
 }
 

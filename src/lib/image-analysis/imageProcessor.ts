@@ -109,9 +109,17 @@ export class ImageProcessor {
   private loadImage(file: File): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
       const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = reject;
-      img.src = URL.createObjectURL(file);
+      const objectUrl = URL.createObjectURL(file);
+      // P1-5 : révoquer la Blob URL une fois l'image chargée (ou en erreur).
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(img);
+      };
+      img.onerror = (event) => {
+        URL.revokeObjectURL(objectUrl);
+        reject(event);
+      };
+      img.src = objectUrl;
     });
   }
 

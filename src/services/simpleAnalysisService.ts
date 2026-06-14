@@ -73,10 +73,16 @@ async function analyzeImageWithCanvas(file: File): Promise<PhotoAnalysis> {
         resolve(analysis);
       } catch (error) {
         reject(error);
+      } finally {
+        URL.revokeObjectURL(objectUrl); // P1-5 : éviter la fuite de Blob URL
       }
     };
-    img.onerror = () => reject(new Error('Impossible de charger l\'image'));
-    img.src = URL.createObjectURL(file);
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Impossible de charger l\'image'));
+    };
+    const objectUrl = URL.createObjectURL(file);
+    img.src = objectUrl;
   });
 }
 

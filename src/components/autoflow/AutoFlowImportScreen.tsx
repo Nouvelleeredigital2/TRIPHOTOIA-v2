@@ -5,11 +5,11 @@ interface AutoFlowImportScreenProps {
   disabled?: boolean;
 }
 
+// P1-4 : seulement les formats décodés par le navigateur (HTMLImageElement/Canvas).
+// HEIC/HEIF/TIFF/RAW retirés tant qu'aucun décodeur dédié n'est branché.
 const ACCEPTED_TYPES = [
-  'image/jpeg', 'image/png', 'image/webp', 'image/heic',
-  'image/heif', 'image/avif', 'image/tiff',
-  'image/x-canon-cr2', 'image/x-nikon-nef', 'image/x-adobe-dng',
-  'image/x-sony-arw', 'image/x-fuji-raf', 'image/x-panasonic-rw2',
+  'image/jpeg', 'image/png', 'image/webp', 'image/avif',
+  'image/gif', 'image/bmp',
 ];
 
 const FEATURE_PILLS = [
@@ -117,7 +117,7 @@ export const AutoFlowImportScreen: React.FC<AutoFlowImportScreenProps> = ({
         </p>
         {/* Format badges */}
         <div style={{ display: 'flex', gap: 5, justifyContent: 'center', flexWrap: 'wrap' }}>
-          {['JPEG', 'PNG', 'RAW', 'WebP', 'HEIC'].map((f) => (
+          {['JPEG', 'PNG', 'WebP', 'AVIF', 'GIF'].map((f) => (
             <span key={f} style={{
               padding: '2px 8px',
               background: 'rgba(var(--af-overlay-rgb),0.05)',

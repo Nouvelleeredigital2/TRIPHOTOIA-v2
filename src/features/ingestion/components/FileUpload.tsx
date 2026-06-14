@@ -7,7 +7,10 @@ import { cn } from '../../../lib/utils';
 import { FolderOpen, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.tif', '.heic', '.heif', '.avif']);
+// P1-4 : uniquement les formats réellement décodés par le pipeline navigateur
+// (HTMLImageElement/Canvas). HEIC/HEIF/TIFF/RAW étaient acceptés mais échouaient
+// au preview/analyse/export — on les retire tant qu'aucun décodeur dédié n'est intégré.
+const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.avif']);
 
 /** Recursively collect image files from a FileSystemDirectoryHandle.
  *  `stats.skippedDeep` compte les sous-dossiers ignorés car trop profonds (A-16). */
@@ -67,7 +70,7 @@ export function FileUpload({ onFilesSelected, disabled }: FileUploadProps) {
     onDrop,
     onDropRejected,
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.tif', '.heic', '.heif', '.avif'],
+      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.bmp', '.webp', '.avif'],
     },
     multiple: true,
     disabled,
@@ -151,7 +154,7 @@ export function FileUpload({ onFilesSelected, disabled }: FileUploadProps) {
                 ou cliquez pour sélectionner des fichiers
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                JPEG · PNG · WebP · GIF · BMP · TIFF · HEIC · AVIF
+                JPEG · PNG · WebP · GIF · BMP · AVIF
               </p>
             </div>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-4">

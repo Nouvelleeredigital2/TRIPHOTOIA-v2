@@ -141,21 +141,17 @@ export async function nameAnonymousGroup({
     throw new Error('Aucun visage à associer');
   }
 
-  const { data, error } = await db
-    .from('people')
-    .insert({ project_id: projectId, display_name: trimmed, status: 'confirmed' })
-    .select('id')
-    .single();
+  // P1-6 : nommage transactionnel via RPC (création personne + assignation des
+  // visages dans une seule transaction, avec vérification d'appartenance projet).
+  // Plus de personne orpheline si l'assignation échoue.
+  const { data, error } = await db.rpc('name_face_group', {
+    p_project_id: projectId,
+    p_face_ids: faceIds,
+    p_display_name: trimmed,
+  });
   if (error) throw error;
 
-  const personId = String((data as { id: string }).id);
-  const { error: assignError } = await db
-    .from('photo_faces')
-    .update({ person_id: personId })
-    .in('id', faceIds);
-  if (assignError) throw assignError;
-
-  return { personId };
+  return { personId: String(data) };
 }
 
 interface DeletePersonParams {

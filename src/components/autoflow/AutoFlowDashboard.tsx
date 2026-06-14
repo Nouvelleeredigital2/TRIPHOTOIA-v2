@@ -23,7 +23,7 @@ async function downloadPicksAsZip(
 
       // Sanitize filename and ensure extension
       let filename = p.name.replace(/[/\\:*?"<>|]/g, '_');
-      if (!filename.match(/\.(jpe?g|png|webp|heic|heif|tiff?|cr2|nef|dng|arw|raf|rw2)$/i)) {
+      if (!filename.match(/\.(jpe?g|png|webp|avif|gif|bmp)$/i)) {
         filename += '.jpg';
       }
 

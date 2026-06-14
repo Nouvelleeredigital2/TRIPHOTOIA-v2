@@ -371,11 +371,53 @@ export async function getShareApprovalsForOwner(linkId: string): Promise<DbShare
 }
 
 /**
- * Supprime un lien de partage.
+ * Supprime un lien de partage ET révoque réellement l'accès aux images (P1-2).
+ *
+ * Le bucket `shared-photos` est public et les chemins sont stables
+ * (`<user_id>/<file_hash>`) : supprimer la seule ligne `share_links` laissait les
+ * objets accessibles à quiconque avait l'URL. On purge donc les objets Storage,
+ * avec comptage de références : un objet n'est supprimé que si plus AUCUN autre
+ * lien non expiré du même utilisateur ne le référence (évite de casser un partage
+ * encore actif qui pointe sur la même photo).
+ *
+ * NB : l'expiration passive d'un lien ne déclenche pas cette purge (pas de trigger
+ * Storage côté SQL) ; un job planifié devra balayer les liens expirés, ou migrer
+ * vers un bucket privé + URLs signées via Edge Function.
  */
 export async function deleteShareLink(linkId: string): Promise<void> {
   if (!supabase) return;
+
+  const { data: link } = await supabase
+    .from('share_links')
+    .select('user_id, photo_file_hashes')
+    .eq('id', linkId)
+    .maybeSingle();
+
   await supabase.from('share_links').delete().eq('id', linkId);
+
+  const userId = (link as { user_id?: string } | null)?.user_id;
+  const hashes = ((link as { photo_file_hashes?: string[] } | null)?.photo_file_hashes) ?? [];
+  if (!userId || hashes.length === 0) return;
+
+  // Hashes encore référencés par un autre lien non expiré du même utilisateur.
+  const { data: remaining } = await supabase
+    .from('share_links')
+    .select('photo_file_hashes, expires_at')
+    .eq('user_id', userId);
+
+  const now = Date.now();
+  const stillReferenced = new Set<string>();
+  for (const row of (remaining as Array<{ photo_file_hashes?: string[]; expires_at?: string | null }>) ?? []) {
+    const notExpired = !row.expires_at || new Date(row.expires_at).getTime() > now;
+    if (notExpired) (row.photo_file_hashes ?? []).forEach((h) => stillReferenced.add(h));
+  }
+
+  const toPurge = hashes.filter((h) => !stillReferenced.has(h));
+  if (toPurge.length > 0) {
+    await supabase.storage
+      .from(SHARED_BUCKET)
+      .remove(toPurge.map((h) => sharedPhotoPath(userId, h)));
+  }
 }
 
 // ── Session stats ─────────────────────────────────────────────────────────────

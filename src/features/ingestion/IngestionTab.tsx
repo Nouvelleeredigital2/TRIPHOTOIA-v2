@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { calculateFileHash } from '../../lib/utils';
+import { calculateFileHash, mapWithConcurrency } from '../../lib/utils';
 import { Photo, PhotoAnalysis } from '../../types';
 import { usePhotoStore } from '../../store/photoStore';
 import { usePhotoAnalysis } from '../../hooks/usePhotoAnalysis';
@@ -72,9 +72,10 @@ function IngestionTab() {
   );
 
   const handleFilesSelected = async (files: File[]) => {
-    // Calculate file hashes in parallel for fast duplicate detection
-    const photosWithHashes = await Promise.all(
-      files.map(async (file) => {
+    // Hash SHA-256 intégral des fichiers, à concurrence bornée : on garde du
+    // parallélisme sans charger des centaines de fichiers en mémoire d'un coup
+    // (cf. P0-2). L'ordre des résultats est préservé.
+    const photosWithHashes = await mapWithConcurrency(files, 4, async (file) => {
         const fileHash = await calculateFileHash(file);
         return {
           // A-14 : ID = SHA-256 du contenu. Deux fichiers différents (même nom/taille/date)
@@ -87,10 +88,7 @@ function IngestionTab() {
             fileHash, // Add the cryptographic hash immediately
           } as Partial<PhotoAnalysis>,
         };
-
-
-      })
-    );
+      });
 
     addPhotos(photosWithHashes);
 

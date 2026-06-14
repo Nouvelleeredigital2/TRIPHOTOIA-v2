@@ -158,45 +158,28 @@ export const createDefaultJobProcessors = (
 
 export const defaultJobProcessors: Required<JobProcessorMap> = createDefaultJobProcessors();
 
-export async function pollNextPendingJob(
-  client: SupabaseLikeClient,
-  now = new Date(),
-): Promise<WorkerJob | null> {
-  const { data, error } = await client
-    .from('jobs')
-    .select('*')
-    .eq('status', 'pending')
-    .lte('run_after', now.toISOString())
-    .order('created_at', { ascending: true })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data ?? null;
+// P0-3 : réclamation atomique d'un job via la RPC SQL `claim_next_job`, qui
+// utilise FOR UPDATE SKIP LOCKED. Remplace l'ancien couple SELECT + UPDATE non
+// atomique : deux workers ne peuvent plus prendre le même job, et il n'y a plus
+// d'erreur `.single()` sur 0 ligne lorsqu'un autre worker a gagné la course.
+export interface RpcCapableClient extends SupabaseLikeClient {
+  rpc: (name: string, params?: Record<string, unknown>) => PromiseLike<{
+    data: unknown;
+    error: unknown;
+  }>;
 }
 
-export async function markJobProcessing(
-  client: SupabaseLikeClient,
-  job: WorkerJob,
+export async function claimNextJob(
+  client: RpcCapableClient,
   workerId: string,
-  now = new Date(),
 ): Promise<WorkerJob | null> {
-  const { data, error } = await client
-    .from('jobs')
-    .update({
-      status: 'processing',
-      attempts: job.attempts + 1,
-      locked_at: now.toISOString(),
-      locked_by: workerId,
-      error_message: null,
-    })
-    .eq('id', job.id)
-    .eq('status', 'pending')
-    .select('*')
-    .single();
-
+  const { data, error } = await client.rpc('claim_next_job', { p_worker_id: workerId });
   if (error) throw error;
-  return data ?? null;
+  // La RPC (setof) renvoie un tableau : [job] ou []. On normalise, et on ignore
+  // par sécurité une ligne sans id (composite NULL d'anciennes définitions).
+  const row = Array.isArray(data) ? data[0] : data;
+  const job = (row as WorkerJob | undefined) ?? null;
+  return job && job.id ? job : null;
 }
 
 export async function markJobCompleted(

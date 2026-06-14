@@ -4,6 +4,7 @@
 // fait résoudre un vite fantôme. Ce script force le cwd sur la racine du
 // projet AVANT de créer le serveur Vite, puis démarre Vite par programme
 // (donc en utilisant le vite local du projet).
+import process from 'node:process';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 

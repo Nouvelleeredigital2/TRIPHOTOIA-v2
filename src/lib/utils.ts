@@ -26,37 +26,52 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
   };
 }
 
-const HASH_CHUNK_SIZE = 1024 * 1024; // 1 MB
+/**
+ * Map asynchrone à concurrence bornée, préservant l'ordre des résultats.
+ * Utilisé pour le hashing à l'import : éviter de charger des centaines de
+ * fichiers en mémoire simultanément (cf. P0-2) tout en gardant du parallélisme.
+ */
+export async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  limit: number,
+  fn: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let cursor = 0;
+  const workers = Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, async () => {
+    while (cursor < items.length) {
+      const index = cursor;
+      cursor += 1;
+      results[index] = await fn(items[index], index);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
 
+function toHex(buffer: ArrayBuffer): string {
+  return Array.from(new Uint8Array(buffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+/**
+ * SHA-256 INTÉGRAL du contenu du fichier.
+ *
+ * Ce digest sert d'identité de photo et de clé de déduplication / synchronisation
+ * (cf. P0-2 de l'audit). L'ancienne version ne hashait que le 1er + le dernier Mo
+ * pour les gros fichiers : deux fichiers distincts de même taille partageant ces
+ * zones pouvaient collisionner. On hashe désormais la totalité des octets.
+ *
+ * `crypto.subtle.digest` n'expose pas d'API incrémentale ; on lit donc le fichier
+ * en entier. Le pic mémoire est borné par la concurrence côté appelant (l'import
+ * limite le nombre de fichiers traités en parallèle).
+ */
 export async function calculateFileHash(file: File): Promise<string> {
   try {
-    const chunks: ArrayBuffer[] = [];
-
-    if (file.size <= 2 * HASH_CHUNK_SIZE) {
-      chunks.push(await file.arrayBuffer());
-    } else {
-      chunks.push(await file.slice(0, HASH_CHUNK_SIZE).arrayBuffer());
-      chunks.push(await file.slice(file.size - HASH_CHUNK_SIZE).arrayBuffer());
-    }
-
-    // Append file size as 8-byte big-endian so files with identical content
-    // but different sizes produce different hashes (edge-case guard).
-    const sizeView = new DataView(new ArrayBuffer(8));
-    sizeView.setBigUint64(0, BigInt(file.size), false);
-    chunks.push(sizeView.buffer);
-
-    const totalBytes = chunks.reduce((acc, c) => acc + c.byteLength, 0);
-    const combined = new Uint8Array(totalBytes);
-    let offset = 0;
-    for (const chunk of chunks) {
-      combined.set(new Uint8Array(chunk), offset);
-      offset += chunk.byteLength;
-    }
-
-    const hashBuffer = await crypto.subtle.digest('SHA-256', combined);
-    return Array.from(new Uint8Array(hashBuffer))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
+    const buffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    return toHex(hashBuffer);
   } catch (error) {
     console.error('Error calculating file hash:', error);
     return '';

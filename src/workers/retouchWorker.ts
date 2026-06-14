@@ -9,7 +9,6 @@ import {
 } from '../lib/computer-vision/retouch-utils';
 import {
   RetouchWorkerAutoRequest,
-  RetouchWorkerRequest,
   RetouchWorkerRequestPayload,
   RetouchWorkerResponse,
 } from './retouchWorkerMessages';

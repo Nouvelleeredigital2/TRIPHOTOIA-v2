@@ -40,7 +40,6 @@ export function ShareDialog({ open, onClose }: ShareDialogProps) {
     () => photos.filter((p) => p.analysis?.isPick && p.fileHash),
     [photos],
   );
-  const multiSelection = usePhotoStore((s) => s.selectedPhotoId);
 
   const [deleteTarget, setDeleteTarget] = useState<DbShareLink | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);

@@ -16,7 +16,7 @@ import {
   ChevronUp,
   FolderInput,
 } from 'lucide-react';
-import { Photo, COLOR_LABEL_META, COLOR_LABEL_KEYS, ColorLabel } from '../types';
+import { Photo, COLOR_LABEL_META, COLOR_LABEL_KEYS } from '../types';
 import { usePhotoStore } from '../store/photoStore';
 import { formatFileSize } from '../lib/utils';
 import { Button } from './ui/button';

@@ -11,7 +11,6 @@ import { ToastProvider } from './components/ToastProvider';
 import { CollectionSidebar } from './components/CollectionSidebar';
 import { Onboarding } from './components/Onboarding';
 import { usePhotoStore } from './store/photoStore';
-import { LogoIcon } from './components/IconComponents';
 import { Button } from './components/ui/button';
 import { Badge } from './components/ui/badge';
 import { ConfirmationDialog } from './components/ui/confirmation-dialog';
@@ -56,7 +55,6 @@ const queryClient = new QueryClient({
   },
 });
 
-type Tab = 'ingestion' | 'triage' | 'export';
 
 /** Détecte si l'URL est une page de partage (#/share/TOKEN) */
 function getShareToken(): string | null {
@@ -222,32 +220,6 @@ function App() {
     return activePhotos.filter((photo) => photo.analysis && !photo.analysis.error).length;
   }, [activePhotos]);
 
-  const TabButton: React.FC<{ tab: Tab; label: string; badge?: number }> = ({
-    tab,
-    label,
-    badge,
-  }) => (
-    <Button
-      variant={activeTab === tab ? 'default' : 'ghost'}
-      onClick={() => setActiveTab(tab)}
-      className={`relative flex-1 font-medium transition-all ${
-        activeTab === tab
-          ? 'bg-background shadow-sm'
-          : 'hover:bg-background/50'
-      }`}
-    >
-      {label}
-      {badge !== undefined && badge > 0 && (
-        <Badge
-          variant="secondary"
-          className="ml-2 text-xs font-semibold min-w-[24px] h-5 flex items-center justify-center"
-        >
-          {badge}
-        </Badge>
-      )}
-    </Button>
-  );
-
   const renderTabContent = () => {
     switch (activeTab) {
       case 'ingestion':
@@ -285,7 +257,7 @@ function App() {
 
   /** Apply an AutoFlow mutation back to the store */
   const handleAfMutation = (id: string, changes: Partial<AfPhoto>) => {
-    const { togglePhotoPick, togglePhotoReject, setPhotoRating, unflagPhoto } = usePhotoStore.getState();
+    const { togglePhotoPick, togglePhotoReject, setPhotoRating } = usePhotoStore.getState();
     const photo = usePhotoStore.getState().photos.find((p) => p.id === id);
     if (!photo) return;
     if ('isPick' in changes) {

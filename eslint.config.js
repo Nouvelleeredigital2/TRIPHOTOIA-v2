@@ -36,12 +36,10 @@ const baseConfig = {
     'react/no-unescaped-entities': 'off',
     'no-unused-vars': 'off',
     'no-undef': 'off',
-    // P2-4 (audit) : réactivation PROGRESSIVE prévue. Mesuré le 2026-06-14 :
-    //   - @typescript-eslint/no-unused-vars → 46 violations (surtout imports morts)
-    //   - @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps, a11y → à chiffrer
-    // À traiter dans un lot dédié (un fichier de règles à la fois) pour garder
-    // `lint --max-warnings 0` vert, plutôt qu'un big-bang risqué.
-    '@typescript-eslint/no-unused-vars': 'off',
+    // P2-4 (audit) : réactivation progressive. no-unused-vars actif (préfixe _
+    // pour les ignorés volontaires). Les autres (no-explicit-any, exhaustive-deps,
+    // a11y) restent à traiter dans des lots suivants.
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrors: 'none' }],
     '@typescript-eslint/no-explicit-any': 'off',
     'react-hooks/exhaustive-deps': 'off',
     'jsx-a11y/anchor-is-valid': 'off',

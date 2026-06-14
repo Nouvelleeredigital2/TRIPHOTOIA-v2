@@ -21,7 +21,6 @@ export function usePhotoAnalysis() {
     isProcessing,
     stopProcessing,
     processedCount,
-    setAnalyzingPhotoIds,
     addAnalyzingPhotoIds,
     removeAnalyzingPhotoIds,
     setIsProcessing,

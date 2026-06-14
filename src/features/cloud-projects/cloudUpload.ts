@@ -77,7 +77,6 @@ export async function uploadPhotosToCloud({
   client = supabase,
   createPhotoId = createUuid,
   onProgress,
-  now = () => new Date(),
   faceAnalysisEnabled = false,
 }: UploadPhotosToCloudParams): Promise<UploadPhotosToCloudResult> {
   if (!client) {

@@ -1,5 +1,5 @@
-﻿import { describe, it, expect, vi } from 'vitest';
-import { renderApp, screen, fireEvent, waitFor } from '../test-utils';
+﻿import { describe, it, expect } from 'vitest';
+import { renderApp, screen } from '../test-utils';
 import { usePhotoStore } from '../../store/photoStore';
 
 describe('Security Tests', () => {

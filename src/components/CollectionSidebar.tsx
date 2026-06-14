@@ -39,7 +39,6 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [collectionToDelete, setCollectionToDelete] = useState<string | null>(null);
   const [hoveredCollection, setHoveredCollection] = useState<string | null>(null);
-  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const collections = usePhotoStore((state) => state.collections);
   const collectionOrder = usePhotoStore((state) => state.collectionOrder);

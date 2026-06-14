@@ -1,5 +1,4 @@
-﻿import React from 'react';
-import { describe, it, expect, vi } from 'vitest';
+﻿import { describe, it, expect, vi } from 'vitest';
 import { renderApp, screen, fireEvent } from '../test-utils';
 
 describe('Compatibility Tests', () => {

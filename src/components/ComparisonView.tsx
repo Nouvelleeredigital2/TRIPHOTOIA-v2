@@ -20,7 +20,6 @@ interface ComparisonViewProps {
 export function ComparisonView({
   photoA,
   photoB,
-  photos,
   open,
   onClose,
   onSelectWinner

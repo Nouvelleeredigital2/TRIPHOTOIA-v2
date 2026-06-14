@@ -10,7 +10,6 @@ import {
   PhotoCollection,
   RetouchOptions,
   AutoRetouchPreset,
-  DEFAULT_RETOUCH_OPTIONS,
   createDefaultRetouchOptions,
   RETOUCH_OPTION_KEYS,
 } from '../types';

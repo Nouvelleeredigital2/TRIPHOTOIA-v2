@@ -1,4 +1,4 @@
-import { Photo, DuplicateGroup, PhotoCollection, ColorLabel, COLOR_LABEL_KEYS, COLOR_LABEL_META } from '../types';
+import { Photo, DuplicateGroup, PhotoCollection, ColorLabel, COLOR_LABEL_KEYS } from '../types';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

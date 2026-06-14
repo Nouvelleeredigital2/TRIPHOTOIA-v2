@@ -207,9 +207,6 @@ export class ImageProcessor {
       const y = Math.floor(point.y);
 
       if (x >= 0 && x < width && y >= 0 && y < height) {
-        const pixelIndex = (y * width + x) * 4;
-        const gray = this.getGrayValue(data, pixelIndex);
-
         // Calculate local contrast around the point
         const contrast = this.calculateLocalContrast(data, width, height, x, y, 20);
         totalInterest += contrast;
@@ -228,7 +225,6 @@ export class ImageProcessor {
     let totalComparisons = 0;
 
     const centerX = Math.floor(width / 2);
-    const centerY = Math.floor(height / 2);
 
     // Compare left and right sides
     for (let y = 0; y < height; y++) {
@@ -534,7 +530,7 @@ export class ImageProcessor {
     contrast: number;
     saturation: number;
   } {
-    const { data, width, height } = imageData;
+    const { data } = imageData;
     let totalBrightness = 0;
     let totalSaturation = 0;
     let pixelCount = 0;
@@ -649,7 +645,7 @@ export class ImageProcessor {
   /**
    * Génère des tags pour l'image
    */
-  private generateTags(imageData: ImageData, metadata: { dominantColors: string[] }): string[] {
+  private generateTags(imageData: ImageData, _metadata: { dominantColors: string[] }): string[] {
     const { data, width, height } = imageData;
     const tags: string[] = [];
 

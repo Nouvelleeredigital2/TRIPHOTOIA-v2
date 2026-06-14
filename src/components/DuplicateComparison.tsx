@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Photo, DuplicateGroup } from '../types';
-import { X, Check, Trash2, Maximize2 } from 'lucide-react';
+import { DuplicateGroup } from '../types';
+import { Check, Trash2, Maximize2 } from 'lucide-react';
 import { usePhotoStore } from '../store/photoStore';
 import toast from 'react-hot-toast';
 

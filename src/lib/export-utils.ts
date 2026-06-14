@@ -160,8 +160,6 @@ function applyWatermark(
   ctx.fillStyle = wm.color;
   ctx.textBaseline = 'middle';
 
-  const textWidth = ctx.measureText(wm.text).width;
-
   let x: number;
   let y: number;
 

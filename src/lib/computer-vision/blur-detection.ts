@@ -257,7 +257,7 @@ export class BlurDetector {
   /**
    * Compte le nombre de bords détectés
    */
-  private countEdges(filtered: number[], width: number, height: number): number {
+  private countEdges(filtered: number[], _width: number, _height: number): number {
     const threshold = this.config.edgeThreshold * 255;
     let edgeCount = 0;
 

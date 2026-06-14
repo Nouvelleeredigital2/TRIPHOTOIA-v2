@@ -40,9 +40,9 @@ const baseConfig = {
     // no-explicit-any (exceptions ciblées pour transformers.js + query-builder
     // Supabase), react-hooks/exhaustive-deps (exceptions pour effets à ref +
     // recalculs volontaires).
-    // RESTE À FAIRE (lot dédié, ~33 + ~20 violations) : les règles jsx-a11y/*
-    // ci-dessous (markup/clavier/ARIA par composant) et retirer l'ignore
-    // 'src/lib/computer-vision/' (code utilitaire CV à nettoyer).
+    // RESTE À FAIRE : réactiver les règles jsx-a11y/* ci-dessous
+    // (markup/clavier/ARIA par composant). Le dossier computer-vision est
+    // désormais linté (plus dans la liste ignores).
     '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrors: 'none' }],
     '@typescript-eslint/no-explicit-any': 'error',
     'react-hooks/exhaustive-deps': 'error',
@@ -55,7 +55,7 @@ const baseConfig = {
 };
 
 export default [
-  { ignores: ['dist/', 'node_modules/', 'coverage/', 'src/lib/computer-vision/', 'components/', 'App.tsx', 'index.tsx', 'services/', 'test-cv.js'] },
+  { ignores: ['dist/', 'node_modules/', 'coverage/', 'components/', 'App.tsx', 'index.tsx', 'services/', 'test-cv.js'] },
   js.configs.recommended,
   {
     ...baseConfig,

@@ -74,7 +74,7 @@ export class PhotoScorer {
     imageData: Uint8Array,
     width: number,
     height: number,
-    metadata?: any
+    _metadata?: unknown
   ): Promise<PhotoScore> {
     const grayscale = this.convertToGrayscale(imageData, width, height);
     const channels = this.separateChannels(imageData, width, height);
@@ -121,7 +121,7 @@ export class PhotoScorer {
       imageData: Uint8Array;
       width: number;
       height: number;
-      metadata?: any;
+      metadata?: unknown;
     }>
   ): Promise<PhotoRanking[]> {
     const scores = await Promise.all(
@@ -186,7 +186,6 @@ export class PhotoScorer {
    * Calcule le score d'exposition
    */
   private calculateExposureScore(grayscale: number[]): number {
-    const mean = grayscale.reduce((sum, value) => sum + value, 0) / grayscale.length;
     const histogram = this.calculateHistogram(grayscale);
 
     // Score basé sur la distribution de l'histogramme
@@ -491,7 +490,7 @@ export class PhotoScorer {
     return Math.min(1, lineScore / (width * height));
   }
 
-  private analyzeBalance(grayscale: number[], width: number, height: number): number {
+  private analyzeBalance(grayscale: number[], _width: number, _height: number): number {
     // Simulation de l'analyse d'équilibre des masses
     const leftHalf = grayscale.slice(0, Math.floor(grayscale.length / 2));
     const rightHalf = grayscale.slice(Math.floor(grayscale.length / 2));
@@ -568,18 +567,18 @@ export class PhotoScorer {
   }
 
   // Méthodes de détection (simulations)
-  private async detectFaces(imageData: Uint8Array, width: number, height: number): Promise<number> {
+  private async detectFaces(_imageData: Uint8Array, _width: number, _height: number): Promise<number> {
     // Simulation de détection de visages
     // Dans une vraie implémentation, on utiliserait face-api.js
     return Math.random() * 0.5 + 0.3; // Simulation
   }
 
-  private async detectEyeOpenness(imageData: Uint8Array, width: number, height: number): Promise<number> {
+  private async detectEyeOpenness(_imageData: Uint8Array, _width: number, _height: number): Promise<number> {
     // Simulation de détection d'ouverture des yeux
     return Math.random() * 0.4 + 0.6; // Simulation
   }
 
-  private async detectSmile(imageData: Uint8Array, width: number, height: number): Promise<number> {
+  private async detectSmile(_imageData: Uint8Array, _width: number, _height: number): Promise<number> {
     // Simulation de détection de sourire
     return Math.random() * 0.3 + 0.4; // Simulation
   }

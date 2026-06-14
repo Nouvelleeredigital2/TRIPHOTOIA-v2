@@ -14,7 +14,7 @@ import {
   createDefaultRetouchOptions,
   RETOUCH_OPTION_KEYS,
 } from '../types';
-import { SMART_COLLECTIONS, matchesRule } from './smartCollectionsSelector';
+import { SMART_COLLECTIONS, matchesRule } from './smartCollections';
 import { buildWeddingCollectionDefinitions } from '../features/wedding/weddingTemplate';
 import { LSHDuplicateDetector, hammingDistance } from '../lib/lsh-duplicate-detector';
 import { GPURetouchProcessor } from '../lib/computer-vision/gpu-retouch';

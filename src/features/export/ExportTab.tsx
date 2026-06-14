@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
 import { usePhotoStore } from '../../store/photoStore';
 import { useAuthStore } from '../../store/authStore';
 import { trackStats } from '../../lib/sync-utils';
@@ -33,34 +32,9 @@ import { ExportFilterBar } from './components/ExportFilterBar';
 import { RenamePanel } from './components/RenamePanel';
 import { buildExportChapters } from './exportChapters';
 import { buildDuplicatePhotoIds, buildPhotosToExport } from './exportSelection';
+import type { ExportFormData } from './exportTypes';
 
-// ── Schema ────────────────────────────────────────────────────────────────────
-
-const exportSchema = z.object({
-  format: z.enum(['original', 'jpeg', 'png', 'webp']),
-  quality: z.number().min(1).max(100),
-  maxWidth: z.number().min(100).max(8000).optional(),
-  maxHeight: z.number().min(100).max(8000).optional(),
-  includeRejected: z.boolean(),
-  includeDuplicates: z.boolean(),
-  // Rename
-  renamePattern: z.string(),
-  // Filter mode
-  filterMode: z.enum(['all', 'picks-only', 'favorites-only', 'min-rating']),
-  minRating: z.number().min(1).max(5),
-  // Watermark
-  watermarkEnabled: z.boolean(),
-  watermarkText: z.string(),
-  watermarkPosition: z.enum([
-    'bottom-left', 'bottom-center', 'bottom-right',
-    'top-left', 'top-center', 'top-right',
-  ]),
-  watermarkSize: z.number().min(10).max(200),
-  watermarkOpacity: z.number().min(1).max(100),
-  watermarkColor: z.string(),
-});
-
-export type ExportFormData = z.infer<typeof exportSchema>;
+export type { ExportFormData } from './exportTypes';
 
 const fsaAvailable = supportsDirectoryExport();
 

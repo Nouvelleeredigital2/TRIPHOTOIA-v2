@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "treephoto-dev",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["vite", "--port", "5175"],
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/preview-dev.mjs"],
       "port": 5175
     },
     {

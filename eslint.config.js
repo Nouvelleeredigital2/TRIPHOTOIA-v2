@@ -36,9 +36,13 @@ const baseConfig = {
     'react/no-unescaped-entities': 'off',
     'no-unused-vars': 'off',
     'no-undef': 'off',
-    // P2-4 (audit) : réactivation progressive. no-unused-vars + no-explicit-any
-    // actifs (exceptions ciblées pour les deps non typées : transformers.js,
-    // query-builder Supabase). exhaustive-deps + a11y restent à traiter ensuite.
+    // P2-4 (audit) : réactivation progressive. ACTIFS : no-unused-vars,
+    // no-explicit-any (exceptions ciblées pour transformers.js + query-builder
+    // Supabase), react-hooks/exhaustive-deps (exceptions pour effets à ref +
+    // recalculs volontaires).
+    // RESTE À FAIRE (lot dédié, ~33 + ~20 violations) : les règles jsx-a11y/*
+    // ci-dessous (markup/clavier/ARIA par composant) et retirer l'ignore
+    // 'src/lib/computer-vision/' (code utilitaire CV à nettoyer).
     '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrors: 'none' }],
     '@typescript-eslint/no-explicit-any': 'error',
     'react-hooks/exhaustive-deps': 'error',

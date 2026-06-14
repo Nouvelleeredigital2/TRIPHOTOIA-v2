@@ -66,7 +66,7 @@ export function CloudProjectsDashboard({ userId }: CloudProjectsDashboardProps) 
     },
   });
 
-  const projects = projectsQuery.data ?? [];
+  const projects = useMemo(() => projectsQuery.data ?? [], [projectsQuery.data]);
 
   useEffect(() => {
     if (activeCloudProject || projects.length === 0) return;

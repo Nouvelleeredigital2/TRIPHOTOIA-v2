@@ -56,6 +56,9 @@ export function ComparisonView({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+    // handleSelectWinner lit handlersRef.current (données fraîches) ; l'écouteur
+    // est volontairement attaché une fois par ouverture, pas à chaque rendu.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const handleSelectWinner = (side: 'A' | 'B') => {

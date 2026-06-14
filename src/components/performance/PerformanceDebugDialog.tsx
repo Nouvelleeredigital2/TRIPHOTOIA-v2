@@ -20,6 +20,9 @@ export const PerformanceDebugDialog: React.FC = () => {
   const [metrics, setMetrics] = useState<PerformanceMetric[]>([]);
   const [activeOperations, setActiveOperations] = useState<PerformanceMetric[]>([]);
 
+  // `metrics` est un déclencheur de recalcul volontaire : il est mis à jour à
+  // chaque tick de polling pour rafraîchir les stats (lues depuis le tracker).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const stats = useMemo(() => performanceTracker.getPerformanceStats(), [metrics]);
 
   useEffect(() => {

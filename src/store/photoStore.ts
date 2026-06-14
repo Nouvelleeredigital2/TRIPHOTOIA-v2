@@ -867,8 +867,9 @@ export const usePhotoStore = create<PhotoState>()(
           if (newHash) {
             lshDetector.insert(photoId, newHash);
             // Debounce léger pour regrouper les mises à jour rapides
-            clearTimeout((window as any).__duplicateDetectionTimeout);
-            (window as any).__duplicateDetectionTimeout = setTimeout(() => {
+            const w = window as Window & { __duplicateDetectionTimeout?: ReturnType<typeof setTimeout> };
+            clearTimeout(w.__duplicateDetectionTimeout);
+            w.__duplicateDetectionTimeout = setTimeout(() => {
               get().detectDuplicates();
             }, 300);
           }

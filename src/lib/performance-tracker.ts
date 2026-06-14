@@ -10,7 +10,7 @@ export interface PerformanceMetric {
   endTime?: number;
   duration?: number;
   success: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 interface CacheEntry<T> {
@@ -26,7 +26,7 @@ export class PerformanceTracker {
   /**
    * Démarre le suivi d'une opération
    */
-  startOperation(operation: string, metadata?: Record<string, any>): string {
+  startOperation(operation: string, metadata?: Record<string, unknown>): string {
     const id = `${operation}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     const metric: PerformanceMetric = {
@@ -98,13 +98,21 @@ export class PerformanceTracker {
     const successfulOps = recent.filter(m => m.success).length;
     const successRate = totalOperations > 0 ? successfulOps / totalOperations : 0;
 
-    const operationsByType: Record<string, any> = {};
+    const operationsByType: Record<string, {
+      count: number;
+      totalDuration: number;
+      successful: number;
+      avgDuration: number;
+      successRate: number;
+    }> = {};
     recent.forEach(metric => {
       if (!operationsByType[metric.operation]) {
         operationsByType[metric.operation] = {
           count: 0,
           totalDuration: 0,
-          successful: 0
+          successful: 0,
+          avgDuration: 0,
+          successRate: 0
         };
       }
 
@@ -138,7 +146,7 @@ export class PerformanceTracker {
     console.log('📊 Performance Metrics:', stats);
 
     // Log warnings for slow operations
-    Object.entries(stats.operationsByType).forEach(([op, stats]: [string, any]) => {
+    Object.entries(stats.operationsByType).forEach(([op, stats]) => {
       if (stats.avgDuration > 1000) {
         console.warn(`⚠️ Slow operation detected: ${op} (${stats.avgDuration.toFixed(2)}ms avg)`);
       }
@@ -147,14 +155,14 @@ export class PerformanceTracker {
 }
 
 export class AnalysisCache {
-  private cache = new Map<string, CacheEntry<any>>();
+  private cache = new Map<string, CacheEntry<unknown>>();
   private maxSize = 100; // Maximum entries
   private defaultTTL = 5 * 60 * 1000; // 5 minutes default TTL
 
   /**
    * Génère une clé de cache pour les paramètres d'analyse
    */
-  private generateCacheKey(file: File, options?: Record<string, any>): string {
+  private generateCacheKey(file: File, options?: Record<string, unknown>): string {
     const fileKey = `${file.name}-${file.size}-${file.lastModified}`;
     const optionsKey = options ? JSON.stringify(options) : '';
     return `${fileKey}-${optionsKey}`;
@@ -163,7 +171,7 @@ export class AnalysisCache {
   /**
    * Met en cache un résultat d'analyse
    */
-  set<T>(file: File, data: T, options?: Record<string, any>, ttl?: number): void {
+  set<T>(file: File, data: T, options?: Record<string, unknown>, ttl?: number): void {
     const key = this.generateCacheKey(file, options);
 
     // Clean up old entries if cache is full
@@ -181,7 +189,7 @@ export class AnalysisCache {
   /**
    * Récupère un résultat du cache
    */
-  get<T>(file: File, options?: Record<string, any>): T | null {
+  get<T>(file: File, options?: Record<string, unknown>): T | null {
     const key = this.generateCacheKey(file, options);
     const entry = this.cache.get(key);
 
@@ -193,13 +201,13 @@ export class AnalysisCache {
       return null;
     }
 
-    return entry.data;
+    return entry.data as T;
   }
 
   /**
    * Vérifie si un résultat est en cache
    */
-  has(file: File, options?: Record<string, any>): boolean {
+  has(file: File, options?: Record<string, unknown>): boolean {
     const key = this.generateCacheKey(file, options);
     const entry = this.cache.get(key);
 

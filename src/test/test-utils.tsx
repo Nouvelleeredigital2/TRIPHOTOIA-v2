@@ -34,7 +34,7 @@ export const mockStore = {
   autoRetouchError: null,
 
   // ── Actions ───────────────────────────────────────────────────────────────
-  addPhotos: vi.fn((newPhotos: any[]) => {
+  addPhotos: vi.fn((newPhotos: unknown[]) => {
     mockStore.photos = [...mockStore.photos, ...newPhotos];
   }),
   setAnalysisQueue: vi.fn(),
@@ -54,9 +54,9 @@ export const mockStore = {
     mockStore.pendingExportFilterMode = mode;
   }),
   setSelectedPhotoId: vi.fn(),
-  updatePhotoAnalysis: vi.fn((id: string, analysis: any) => {
-    const idx = mockStore.photos.findIndex((p: any) => p.id === id);
-    if (idx !== -1) { (mockStore.photos[idx] as any).analysis = analysis; }
+  updatePhotoAnalysis: vi.fn((id: string, analysis: unknown) => {
+    const idx = mockStore.photos.findIndex((p: { id: string }) => p.id === id);
+    if (idx !== -1) { (mockStore.photos[idx] as { analysis?: unknown }).analysis = analysis; }
   }),
   updateUserTags: vi.fn(),
   setBestInGroup: vi.fn(),

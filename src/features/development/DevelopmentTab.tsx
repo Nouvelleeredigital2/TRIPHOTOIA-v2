@@ -180,6 +180,9 @@ export function DevelopmentTab() {
       return null;
     }
     return getRetouchOptions(retouchActivePhotoId);
+    // lastUpdated est un déclencheur de recalcul volontaire (les options sont
+    // lues via getRetouchOptions et changent quand la retouche est mise à jour).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getRetouchOptions, retouchActivePhotoId, activePhoto?.retouch?.lastUpdated]);
 
   const activePreviewUrl = useMemo(() => {
@@ -187,6 +190,9 @@ export function DevelopmentTab() {
       return null;
     }
     return getRetouchedPreviewUrl(retouchActivePhotoId);
+    // lastUpdated : déclencheur de recalcul volontaire (la preview change quand
+    // la retouche est mise à jour).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getRetouchedPreviewUrl, retouchActivePhotoId, activePhoto?.retouch?.lastUpdated]);
 
   const originalPreviewUrl = activePhoto?.retouch?.originalPreviewUrl ?? activePhoto?.previewUrl ?? null;

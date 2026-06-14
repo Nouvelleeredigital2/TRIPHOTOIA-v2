@@ -39,6 +39,9 @@ export type JobProcessor = (job: WorkerJob) => Promise<JobProcessorResult>;
 export type JobProcessorMap = Partial<Record<WorkerJobType, JobProcessor>>;
 
 export interface SupabaseLikeClient {
+  // Le query-builder Supabase est chaîné dynamiquement (.select().eq()...) ;
+  // on garde un type minimal volontairement souple ici.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   from: (table: string) => any;
 }
 

@@ -131,7 +131,7 @@ function App() {
     applyHash();
     window.addEventListener('hashchange', applyHash);
     return () => window.removeEventListener('hashchange', applyHash);
-  }, [shareToken]);
+  }, [shareToken, setActiveTab]);
 
   useEffect(() => {
     if (shareToken) return;

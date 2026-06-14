@@ -282,6 +282,8 @@ export function usePhotoAnalysis() {
     incrementProcessedCount,
     removeFromAnalysisQueue,
     setIsProcessing,
+    pushError,
+    resolveErrorsForPhoto,
   ]);
 
   const stopProcessingPhotos = useCallback(() => {

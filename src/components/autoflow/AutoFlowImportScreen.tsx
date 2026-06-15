@@ -81,10 +81,13 @@ export const AutoFlowImportScreen: React.FC<AutoFlowImportScreenProps> = ({
 
       {/* Dropzone */}
       <div
+        role="button"
+        tabIndex={0}
         onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
         onDragLeave={() => setDrag(false)}
         onDrop={handleDrop}
         onClick={handleClick}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(); } }}
         style={{
           width: '100%', maxWidth: 480, borderRadius: 18, padding: '46px 32px',
           textAlign: 'center', cursor: disabled ? 'not-allowed' : 'pointer',

@@ -503,6 +503,9 @@ function App() {
                       <Palette className="w-4 h-4" />
                     </Button>
                     {accentPickerOpen && (
+                      /* Popover : conteneur qui se ferme au survol sortant ; les options
+                         à l'intérieur sont de vrais boutons, le trigger gère le clavier. */
+                      /* eslint-disable-next-line jsx-a11y/no-static-element-interactions */
                       <div className="absolute right-0 top-full mt-2 z-50 bg-card border border-border/60 rounded-xl shadow-xl p-3 flex flex-col gap-2 min-w-[160px]"
                         onMouseLeave={() => setAccentPickerOpen(false)}>
                         <p className="text-xs font-medium text-muted-foreground mb-1">Couleur d'accent</p>

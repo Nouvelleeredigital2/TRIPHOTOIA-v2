@@ -114,6 +114,8 @@ const PileCard: React.FC<PileCardProps> = ({
   };
 
   return (
+    // Anneau de stat décoratif : effet de survol uniquement, pas un contrôle.
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
@@ -226,7 +228,7 @@ const Filmstrip: React.FC<{
         textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700,
       }}>Pellicule</span>
       {sorted.map((p) => (
-        <div key={p.id} onClick={() => onOpen(p.id)} style={{
+        <div key={p.id} role="button" tabIndex={0} onClick={() => onOpen(p.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(p.id); } }} style={{
           flexShrink: 0, width: 70, height: 47, borderRadius: 4, cursor: 'pointer', position: 'relative',
           background: p.previewUrl
             ? `url(${p.previewUrl}) center/cover`
@@ -566,7 +568,7 @@ export const AutoFlowDashboard: React.FC<AutoFlowDashboardProps> = ({
           { label: 'Photos floues',      val: photos.filter((p) => p.isBlurry).length,      col: 'rgba(var(--af-overlay-rgb),0.55)', action: undefined },
           { label: 'Picks automatiques', val: keeps.length,                                 col: 'rgba(var(--af-overlay-rgb),0.55)', action: undefined },
         ].map(({ label, val, col, action }, i, arr) => (
-          <div key={label} onClick={action} style={{
+          <div key={label} role="button" tabIndex={0} onClick={action} onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && action) { e.preventDefault(); action(); } }} style={{
             flex: 1, padding: '14px 0', textAlign: 'center',
             borderRight: i < arr.length - 1 ? '1px solid rgba(var(--af-overlay-rgb),0.05)' : 'none',
             cursor: action ? 'pointer' : 'default', transition: 'background 0.1s',

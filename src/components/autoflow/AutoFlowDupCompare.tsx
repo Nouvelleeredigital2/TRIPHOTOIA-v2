@@ -127,7 +127,7 @@ export const AutoFlowDupCompare: React.FC<AutoFlowDupCompareProps> = ({
           const sc = photo.score >= 80 ? 'var(--af-pick)' : photo.score >= 60 ? 'var(--af-review)' : 'var(--af-reject)';
 
           return (
-            <div key={photo.id} onClick={() => handleKeep(photo.id)} style={{
+            <div key={photo.id} role="button" tabIndex={0} onClick={() => handleKeep(photo.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleKeep(photo.id); } }} style={{
               flex: 1, display: 'flex', flexDirection: 'column', gap: 10, cursor: 'pointer',
               borderRadius: 14, padding: 14,
               border: `1.5px solid ${isBetter ? 'rgba(var(--af-review-rgb),0.28)' : 'rgba(var(--af-overlay-rgb),0.05)'}`,

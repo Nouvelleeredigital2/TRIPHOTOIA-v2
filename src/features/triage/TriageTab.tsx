@@ -763,7 +763,10 @@ function TriageTab({ onOpenAutoFlow }: TriageTabProps = {}) {
             <div
               className="shrink-0 pt-1 flex items-center gap-1 px-2 py-1 rounded-lg border border-border/40 bg-background/60 text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
               title="Ctrl+Shift+V pour coller"
+              role="button"
+              tabIndex={0}
               onClick={handlePasteMeta}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handlePasteMeta(); } }}
             >
               📋
               {metaClipboard.rating ? `${metaClipboard.rating}★ ` : ''}

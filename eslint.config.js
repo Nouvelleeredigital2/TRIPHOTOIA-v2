@@ -57,7 +57,7 @@ const baseConfig = {
 };
 
 export default [
-  { ignores: ['dist/', 'node_modules/', 'coverage/', 'components/', 'App.tsx', 'index.tsx', 'services/', 'test-cv.js'] },
+  { ignores: ['dist/', 'node_modules/', 'coverage/', 'components/', 'App.tsx', 'index.tsx', 'services/', 'test-cv.js', 'supabase/functions/'] },
   js.configs.recommended,
   {
     ...baseConfig,

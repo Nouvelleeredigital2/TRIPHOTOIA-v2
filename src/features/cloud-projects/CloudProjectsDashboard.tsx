@@ -16,7 +16,9 @@ import {
   type CloudProjectSummary,
 } from './cloudProjects';
 import {
+  createEdgeTextEmbedder,
   formatSimilarityScore,
+  searchPhotosByText,
   searchSimilarToPhoto,
   type SemanticSearchResponse,
 } from './cloudSemanticSearch';
@@ -328,6 +330,9 @@ const FALLBACK_MESSAGES: Record<string, string> = {
   'no-embedding': "Embedding pas encore calculé pour cette photo (analyse en cours).",
   'no-results': 'Aucune photo similaire trouvée dans ce projet.',
   'rpc-error': 'Recherche sémantique indisponible (vérifiez pgvector côté Supabase).',
+  'no-text-embedder': "Recherche par texte indisponible (Edge Function embed-text non configurée).",
+  'empty-query': 'Saisissez quelques mots pour lancer la recherche.',
+  'embed-error': "Impossible de calculer l'embedding texte (réessayez dans un instant).",
 };
 
 function CloudProjectPhotoList({
@@ -355,6 +360,26 @@ function CloudProjectPhotoList({
   const similarMutation = useMutation<SemanticSearchResponse, Error, string>({
     mutationFn: (photoId: string) => searchSimilarToPhoto({ projectId, photoId }),
   });
+
+  // P2-1 : recherche sémantique texte→image via l'Edge Function CLIP `embed-text`.
+  const [textQuery, setTextQuery] = useState('');
+  const textSearchMutation = useMutation<SemanticSearchResponse, Error, string>({
+    mutationFn: (query: string) =>
+      searchPhotosByText({ projectId, query, embedText: createEdgeTextEmbedder() }),
+  });
+
+  // Révèle et sélectionne une photo de résultat dans la liste.
+  const revealPhoto = (photoId: string) => {
+    const idx = photos.findIndex((p) => p.id === photoId);
+    if (idx >= 0) setVisibleCount((c) => Math.max(c, idx + 1));
+    setActivePhotoId(photoId);
+  };
+
+  const handleTextSearch = (e: FormEvent) => {
+    e.preventDefault();
+    if (!textQuery.trim()) return;
+    textSearchMutation.mutate(textQuery.trim());
+  };
 
   // A-42 : suppression logique d'une photo cloud + rafraîchissement de la liste.
   const deleteMutation = useMutation({
@@ -384,6 +409,64 @@ function CloudProjectPhotoList({
             : photos.length}
         </span>
       </div>
+
+      {/* P2-1 : recherche sémantique texte→image */}
+      <form onSubmit={handleTextSearch} className="flex items-center gap-2">
+        <input
+          type="search"
+          value={textQuery}
+          onChange={(e) => setTextQuery(e.target.value)}
+          placeholder="Rechercher par description (ex. coucher de soleil, robe blanche)…"
+          aria-label="Recherche sémantique par texte"
+          className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+        />
+        <Button
+          type="submit"
+          size="sm"
+          className="h-8 gap-1 px-3 text-xs"
+          disabled={textSearchMutation.isPending || !textQuery.trim()}
+        >
+          {textSearchMutation.isPending ? (
+            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Sparkles className="h-3.5 w-3.5" />
+          )}
+          Rechercher
+        </Button>
+      </form>
+
+      {textSearchMutation.data && (
+        <div className="rounded-lg border border-border/70 bg-background px-3 py-2">
+          {textSearchMutation.data.source === 'semantic' ? (
+            <ul className="space-y-1">
+              {textSearchMutation.data.results.map((result) => (
+                <li key={result.photoId}>
+                  <button
+                    type="button"
+                    onClick={() => revealPhoto(result.photoId)}
+                    className="flex w-full items-center justify-between gap-2 text-xs rounded px-1 py-0.5 hover:bg-muted/60 transition-colors"
+                  >
+                    <span className="truncate text-muted-foreground hover:text-foreground">
+                      {filenamesById.get(result.photoId) ?? result.photoId}
+                    </span>
+                    <Badge variant="outline" className="shrink-0 text-[10px]">
+                      {formatSimilarityScore(result.similarity)}
+                    </Badge>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              {FALLBACK_MESSAGES[textSearchMutation.data.reason ?? ''] ?? 'Recherche sémantique indisponible.'}
+            </p>
+          )}
+        </div>
+      )}
+
+      {textSearchMutation.error && (
+        <p className="text-xs text-destructive">{textSearchMutation.error.message}</p>
+      )}
 
       {isLoading && (
         <div className="rounded-lg border border-border bg-background px-3 py-3 text-sm text-muted-foreground">

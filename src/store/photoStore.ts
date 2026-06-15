@@ -10,7 +10,6 @@ import {
   PhotoCollection,
   RetouchOptions,
   AutoRetouchPreset,
-  createDefaultRetouchOptions,
   RETOUCH_OPTION_KEYS,
 } from '../types';
 import { SMART_COLLECTIONS, matchesRule } from './smartCollections';
@@ -19,6 +18,18 @@ import { LSHDuplicateDetector, hammingDistance } from '../lib/lsh-duplicate-dete
 import { GPURetouchProcessor } from '../lib/computer-vision/gpu-retouch';
 import { useAiErrorStore } from './aiErrorStore';
 import type { CatalogueState } from '../lib/catalogue-persistence';
+import {
+  createDefaultCollectionsState,
+  generateCollectionId,
+  loadCollectionsState,
+  saveCollectionsState,
+} from './collectionsPersistence';
+import {
+  RETOUCH_HISTORY_LIMIT,
+  clampRetouchValue,
+  cloneRetouchOptions,
+  getDefaultRetouchOptions,
+} from './retouchHelpers';
 
 // Enable MapSet plugin for Immer
 enableMapSet();
@@ -33,125 +44,9 @@ export const lshRebuildFromEntries = (entries: { id: string; hash: string }[]) =
 // Seuil de similarité (distance de Hamming ≤ 9 sur 64 bits = 85.9%)
 const HAMMING_THRESHOLD = 9;
 
-const COLLECTIONS_STORAGE_KEY = 'photo-collections-state';
-
-type CollectionsSnapshot = {
-  collections: Record<string, PhotoCollection>;
-  collectionOrder: string[];
-  activeCollectionId: string;
-};
-
-const generateCollectionId = (): string => {
-  const globalCrypto = typeof globalThis !== 'undefined' ? (globalThis as { crypto?: Crypto }).crypto : undefined;
-  if (globalCrypto?.randomUUID) {
-    return `collection-${globalCrypto.randomUUID()}`;
-  }
-  if (globalCrypto?.getRandomValues) {
-    const buffer = new Uint32Array(1);
-    globalCrypto.getRandomValues(buffer);
-    return `collection-${buffer[0].toString(36)}`;
-  }
-  return `collection-${Math.random().toString(36).slice(2, 10)}`;
-};
-
-const createDefaultCollection = (): PhotoCollection => {
-  const timestamp = new Date().toISOString();
-  return {
-    id: 'collection-default',
-    name: 'Collection principale',
-    photoIds: [],
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  };
-};
-
-const createDefaultCollectionsState = (): CollectionsSnapshot => {
-  const defaultCollection = createDefaultCollection();
-  return {
-    collections: { [defaultCollection.id]: defaultCollection },
-    collectionOrder: [defaultCollection.id],
-    activeCollectionId: defaultCollection.id,
-  };
-};
-
-const loadCollectionsState = (): CollectionsSnapshot => {
-  if (typeof window === 'undefined' || !window?.localStorage) {
-    return createDefaultCollectionsState();
-  }
-
-  try {
-    const persisted = window.localStorage.getItem(COLLECTIONS_STORAGE_KEY);
-    if (!persisted) {
-      return createDefaultCollectionsState();
-    }
-
-    const parsed = JSON.parse(persisted) as Partial<CollectionsSnapshot>;
-    if (!parsed.collections || !parsed.collectionOrder || !parsed.activeCollectionId) {
-      return createDefaultCollectionsState();
-    }
-
-    if (!parsed.collections[parsed.activeCollectionId]) {
-      parsed.activeCollectionId = parsed.collectionOrder[0] ?? createDefaultCollection().id;
-    }
-
-    return {
-      collections: parsed.collections,
-      collectionOrder: parsed.collectionOrder,
-      activeCollectionId: parsed.activeCollectionId!,
-    };
-  } catch (error) {
-    console.warn("Impossible de charger l'état des collections, réinitialisation.", error);
-    return createDefaultCollectionsState();
-  }
-};
-
-const saveCollectionsState = (snapshot: CollectionsSnapshot) => {
-  if (typeof window === 'undefined' || !window?.localStorage) {
-    return;
-  }
-
-  try {
-    window.localStorage.setItem(COLLECTIONS_STORAGE_KEY, JSON.stringify(snapshot));
-  } catch (error) {
-    console.warn("Impossible de sauvegarder l'état des collections.", error);
-  }
-};
-
 const collectionsState = loadCollectionsState();
 
-const RETOUCH_HISTORY_LIMIT = 50;
-
 export type ExportFilterMode = 'all' | 'picks-only' | 'favorites-only' | 'min-rating';
-
-const cloneRetouchOptions = (options: RetouchOptions): RetouchOptions => ({ ...options });
-
-const getDefaultRetouchOptions = (): RetouchOptions => createDefaultRetouchOptions();
-
-const RETOUCH_BOUNDS: Record<keyof RetouchOptions, { min: number; max: number }> = {
-  temperature: { min: -100, max: 100 },
-  tint: { min: -100, max: 100 },
-  exposure: { min: -100, max: 100 },
-  contrast: { min: -100, max: 100 },
-  highlights: { min: -100, max: 100 },
-  shadows: { min: -100, max: 100 },
-  whites: { min: -100, max: 100 },
-  blacks: { min: -100, max: 100 },
-  clarity: { min: -100, max: 100 },
-  texture: { min: -100, max: 100 },
-  dehaze: { min: -100, max: 100 },
-  vibrance: { min: -100, max: 100 },
-  saturation: { min: -100, max: 100 },
-  midtoneContrast: { min: -100, max: 100 },
-  sharpness: { min: 0, max: 100 },
-};
-
-const clampRetouchValue = (option: keyof RetouchOptions, value: number) => {
-  const bounds = RETOUCH_BOUNDS[option];
-  if (!bounds) {
-    return value;
-  }
-  return Math.min(Math.max(value, bounds.min), bounds.max);
-};
 
 const gpuRetouchProcessor = typeof window !== 'undefined' ? new GPURetouchProcessor() : null;
 

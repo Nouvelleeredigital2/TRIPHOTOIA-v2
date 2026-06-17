@@ -14,7 +14,10 @@ import {
 } from '../types';
 import { SMART_COLLECTIONS, matchesRule } from './smartCollections';
 import { buildWeddingCollectionDefinitions } from '../features/wedding/weddingTemplate';
-import { LSHDuplicateDetector, hammingDistance } from '../lib/lsh-duplicate-detector';
+import {
+  LSHDuplicateDetector,
+  hammingDistance,
+} from '../lib/lsh-duplicate-detector';
 import { GPURetouchProcessor } from '../lib/computer-vision/gpu-retouch';
 import { useAiErrorStore } from './aiErrorStore';
 import type { CatalogueState } from '../lib/catalogue-persistence';
@@ -34,21 +37,59 @@ import {
 // Enable MapSet plugin for Immer
 enableMapSet();
 
+// P1-F : l'historique d'annulation est borné. Sans plafond, `undoStack`
+// croissait sans limite et conservait indéfiniment des objets `Photo` complets
+// (donc des `File` et des URL blob) pour les suppressions — fuite mémoire sur
+// longue session. On plafonne à un nombre explicite d'actions et on libère les
+// ressources lourdes des actions évincées.
+export const UNDO_STACK_LIMIT = 30;
+
+/** Libère les ressources d'une action d'undo qui sort de l'historique. */
+function releaseUndoAction(action: UndoAction): void {
+  if (action.type === 'DELETE_PHOTO') {
+    const url = action.payload.photo.previewUrl;
+    if (url && url.startsWith('blob:') && typeof URL !== 'undefined') {
+      URL.revokeObjectURL(url);
+    }
+  }
+}
+
+/** Empile une action d'undo en respectant le plafond et en libérant l'évincé. */
+function pushUndo(
+  state: { undoStack: UndoAction[] },
+  action: UndoAction
+): void {
+  state.undoStack.push(action);
+  if (state.undoStack.length > UNDO_STACK_LIMIT) {
+    const evicted = state.undoStack.splice(
+      0,
+      state.undoStack.length - UNDO_STACK_LIMIT
+    );
+    evicted.forEach(releaseUndoAction);
+  }
+}
+
 // Singleton LSH — survit aux re-renders, partagé par toutes les actions du store
 const lshDetector = new LSHDuplicateDetector(64, 10, 6);
 
 /** Permet au hook de restauration IDB de réalimenter le LSH sans passer par le store. */
-export const lshRebuildFromEntries = (entries: { id: string; hash: string }[]) =>
-  lshDetector.rebuild(entries);
+export const lshRebuildFromEntries = (
+  entries: { id: string; hash: string }[]
+) => lshDetector.rebuild(entries);
 
 // Seuil de similarité (distance de Hamming ≤ 9 sur 64 bits = 85.9%)
 const HAMMING_THRESHOLD = 9;
 
 const collectionsState = loadCollectionsState();
 
-export type ExportFilterMode = 'all' | 'picks-only' | 'favorites-only' | 'min-rating';
+export type ExportFilterMode =
+  | 'all'
+  | 'picks-only'
+  | 'favorites-only'
+  | 'min-rating';
 
-const gpuRetouchProcessor = typeof window !== 'undefined' ? new GPURetouchProcessor() : null;
+const gpuRetouchProcessor =
+  typeof window !== 'undefined' ? new GPURetouchProcessor() : null;
 
 const loadImageElement = (src: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
@@ -59,7 +100,10 @@ const loadImageElement = (src: string): Promise<HTMLImageElement> =>
     img.src = src;
   });
 
-const generateRetouchedPreview = async (baseSrc: string, options: RetouchOptions): Promise<string | null> => {
+const generateRetouchedPreview = async (
+  baseSrc: string,
+  options: RetouchOptions
+): Promise<string | null> => {
   if (!gpuRetouchProcessor) {
     return null;
   }
@@ -68,13 +112,17 @@ const generateRetouchedPreview = async (baseSrc: string, options: RetouchOptions
   const canvas = await gpuRetouchProcessor.applyRetouch(image, options);
 
   const blob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((result) => {
-      if (result) {
-        resolve(result);
-      } else {
-        reject(new Error('Unable to generate retouched preview'));
-      }
-    }, 'image/jpeg', 0.92);
+    canvas.toBlob(
+      (result) => {
+        if (result) {
+          resolve(result);
+        } else {
+          reject(new Error('Unable to generate retouched preview'));
+        }
+      },
+      'image/jpeg',
+      0.92
+    );
   });
 
   return URL.createObjectURL(blob);
@@ -121,10 +169,17 @@ interface PhotoState {
   applyWeddingTemplate: () => string[];
   renameCollection: (collectionId: string, name: string) => boolean;
   deleteCollection: (collectionId: string) => void;
-  movePhotoToCollection: (photoId: string, fromCollectionId: string, toCollectionId: string) => void;
+  movePhotoToCollection: (
+    photoId: string,
+    fromCollectionId: string,
+    toCollectionId: string
+  ) => void;
   setActiveCollection: (collectionId: string) => void;
   addPhotosToCollection: (collectionId: string, photoIds: string[]) => void;
-  removePhotosFromCollection: (collectionId: string, photoIds: string[]) => void;
+  removePhotosFromCollection: (
+    collectionId: string,
+    photoIds: string[]
+  ) => void;
   setCollectionPhotoIds: (collectionId: string, photoIds: string[]) => void;
   getCollectionById: (collectionId: string) => PhotoCollection | null;
   getActiveCollectionPhotos: () => Photo[];
@@ -143,10 +198,15 @@ interface PhotoState {
   setStopProcessing: (stop: boolean) => void;
   setProcessedCount: (count: number) => void;
   incrementProcessedCount: (increment: number) => void;
-  setActiveTab: (tab: 'ingestion' | 'triage' | 'development' | 'export') => void;
+  setActiveTab: (
+    tab: 'ingestion' | 'triage' | 'development' | 'export'
+  ) => void;
   setPendingExportFilterMode: (mode: ExportFilterMode | null) => void;
   setSelectedPhotoId: (id: string | null) => void;
-  updatePhotoAnalysis: (photoId: string, analysis: Partial<PhotoAnalysis>) => void;
+  updatePhotoAnalysis: (
+    photoId: string,
+    analysis: Partial<PhotoAnalysis>
+  ) => void;
   updateUserTags: (photoId: string, tags: string[]) => void;
   setPhotoNote: (photoId: string, note: string) => void;
   setBestInGroup: (groupId: string, photoId: string) => void;
@@ -159,17 +219,34 @@ interface PhotoState {
   togglePhotoPick: (photoId: string) => void;
   togglePhotoReject: (photoId: string) => void;
   unflagPhoto: (photoId: string) => void;
-  setColorLabel: (photoId: string, label: import('../types').ColorLabel | null, force?: boolean) => void;
+  setColorLabel: (
+    photoId: string,
+    label: import('../types').ColorLabel | null,
+    force?: boolean
+  ) => void;
   autoRatePhoto: (photoId: string) => void;
-  autoRateAllPhotos: (preset?: 'strict' | 'balanced' | 'generous' | 'quality') => void;
+  autoRateAllPhotos: (
+    preset?: 'strict' | 'balanced' | 'generous' | 'quality'
+  ) => void;
   addUndoAction: (action: UndoAction) => void;
   undo: () => void;
   startRetouchSession: (photoIds: string[]) => Promise<void>;
   setActiveRetouchPhoto: (photoId: string) => void;
-  updateRetouchOption: (photoId: string, option: keyof RetouchOptions, value: number) => Promise<void>;
-  syncRetouchSettings: (fromPhotoId: string, toPhotoIds: string[], optionsToSync: (keyof RetouchOptions)[]) => Promise<void>;
+  updateRetouchOption: (
+    photoId: string,
+    option: keyof RetouchOptions,
+    value: number
+  ) => Promise<void>;
+  syncRetouchSettings: (
+    fromPhotoId: string,
+    toPhotoIds: string[],
+    optionsToSync: (keyof RetouchOptions)[]
+  ) => Promise<void>;
   resetRetouchOptions: (photoId: string) => Promise<void>;
-  applyAutoRetouchPreset: (preset: AutoRetouchPreset, photoIds?: string[]) => Promise<void>;
+  applyAutoRetouchPreset: (
+    preset: AutoRetouchPreset,
+    photoIds?: string[]
+  ) => Promise<void>;
   computeAutoRetouchPreset: (photoId: string) => Promise<void>;
   endRetouchSession: () => void;
   toggleDevelopmentSelection: (photoId: string) => void;
@@ -179,12 +256,15 @@ interface PhotoState {
   getRetouchedPreviewUrl: (photoId: string) => string | null;
   refreshRetouchPreview: (photoId: string) => Promise<void>;
   clearAutoRetouchState: () => void;
-  pasteMetadata: (photoIds: string[], meta: {
-    rating?: number;
-    isPick?: boolean;
-    isRejected?: boolean;
-    colorLabel?: import('../types').ColorLabel | null;
-  }) => void;
+  pasteMetadata: (
+    photoIds: string[],
+    meta: {
+      rating?: number;
+      isPick?: boolean;
+      isRejected?: boolean;
+      colorLabel?: import('../types').ColorLabel | null;
+    }
+  ) => void;
   clearAll: () => void;
   restoreCatalogueState: (saved: CatalogueState) => void;
 }
@@ -194,7 +274,11 @@ export const usePhotoStore = create<PhotoState>()(
     immer((set, get) => {
       const persistCollections = () => {
         const { collections, collectionOrder, activeCollectionId } = get();
-        saveCollectionsState({ collections, collectionOrder, activeCollectionId });
+        saveCollectionsState({
+          collections,
+          collectionOrder,
+          activeCollectionId,
+        });
       };
 
       const ensurePhotoRetouchState = (photo: Photo) => {
@@ -244,7 +328,10 @@ export const usePhotoStore = create<PhotoState>()(
         });
 
         try {
-          const previewUrl = await generateRetouchedPreview(baseSrc, target.retouch.currentOptions);
+          const previewUrl = await generateRetouchedPreview(
+            baseSrc,
+            target.retouch.currentOptions
+          );
           if (!previewUrl) {
             return;
           }
@@ -260,7 +347,11 @@ export const usePhotoStore = create<PhotoState>()(
               return;
             }
 
-            if (photo.retouch.previewUrl && photo.retouch.previewUrl.startsWith('blob:') && typeof URL !== 'undefined') {
+            if (
+              photo.retouch.previewUrl &&
+              photo.retouch.previewUrl.startsWith('blob:') &&
+              typeof URL !== 'undefined'
+            ) {
               URL.revokeObjectURL(photo.retouch.previewUrl);
             }
 
@@ -309,7 +400,8 @@ export const usePhotoStore = create<PhotoState>()(
             state.activeSmartCollectionId = id;
             // Désactiver la sélection normale quand une smart collection est active
             if (id !== null) {
-              state.activeCollectionId = state.collectionOrder[0] ?? state.activeCollectionId;
+              state.activeCollectionId =
+                state.collectionOrder[0] ?? state.activeCollectionId;
             }
           }),
 
@@ -322,7 +414,9 @@ export const usePhotoStore = create<PhotoState>()(
 
             const sanitizedIds = Array.from(
               new Set(
-                photoIds.filter((id) => state.photos.some((photo) => photo.id === id))
+                photoIds.filter((id) =>
+                  state.photos.some((photo) => photo.id === id)
+                )
               )
             );
 
@@ -333,7 +427,8 @@ export const usePhotoStore = create<PhotoState>()(
               )
             );
 
-            let finalName = trimmedName || `Collection ${state.collectionOrder.length + 1}`;
+            let finalName =
+              trimmedName || `Collection ${state.collectionOrder.length + 1}`;
             let suffix = 2;
             while (existingNames.has(finalName.toLowerCase())) {
               finalName = `${trimmedName || `Collection ${state.collectionOrder.length + 1}`} (${suffix++})`;
@@ -358,9 +453,12 @@ export const usePhotoStore = create<PhotoState>()(
           const createdIds: string[] = [];
           set((state) => {
             const existingNames = new Set(
-              Object.values(state.collections).map((collection) => collection.name)
+              Object.values(state.collections).map(
+                (collection) => collection.name
+              )
             );
-            const definitions = buildWeddingCollectionDefinitions(existingNames);
+            const definitions =
+              buildWeddingCollectionDefinitions(existingNames);
             if (definitions.length === 0) {
               return;
             }
@@ -418,7 +516,9 @@ export const usePhotoStore = create<PhotoState>()(
             // A-07 : unicité du nom garantie au niveau du store (défense en profondeur,
             // indépendamment des validations UI). Refus si un autre nom existe.
             const clash = Object.values(state.collections).some(
-              (c) => c.id !== collectionId && c.name.toLowerCase() === trimmedName.toLowerCase(),
+              (c) =>
+                c.id !== collectionId &&
+                c.name.toLowerCase() === trimmedName.toLowerCase()
             );
             if (clash) {
               return; // ok reste false → rejet
@@ -443,16 +543,21 @@ export const usePhotoStore = create<PhotoState>()(
           const wasActive = before.activeCollectionId === collectionId;
           let deleted = false;
           set((state) => {
-            if (!state.collections[collectionId] || state.collectionOrder.length <= 1) {
+            if (
+              !state.collections[collectionId] ||
+              state.collectionOrder.length <= 1
+            ) {
               return;
             }
 
             delete state.collections[collectionId];
-            state.collectionOrder = state.collectionOrder.filter((id) => id !== collectionId);
+            state.collectionOrder = state.collectionOrder.filter(
+              (id) => id !== collectionId
+            );
             if (state.activeCollectionId === collectionId) {
               state.activeCollectionId = state.collectionOrder[0];
             }
-            state.undoStack.push({
+            pushUndo(state, {
               type: 'DELETE_COLLECTION',
               payload: { collection: snapshot, index, wasActive },
             });
@@ -465,7 +570,11 @@ export const usePhotoStore = create<PhotoState>()(
 
         // A-09 : déplacer une photo d'une collection vers une autre (retire de l'origine,
         // ajoute à la destination) — réutilise les garde-fous d'appartenance existants.
-        movePhotoToCollection: (photoId: string, fromCollectionId: string, toCollectionId: string) => {
+        movePhotoToCollection: (
+          photoId: string,
+          fromCollectionId: string,
+          toCollectionId: string
+        ) => {
           if (fromCollectionId === toCollectionId) return;
           let changed = false;
           set((state) => {
@@ -529,7 +638,10 @@ export const usePhotoStore = create<PhotoState>()(
           }
         },
 
-        removePhotosFromCollection: (collectionId: string, photoIds: string[]) => {
+        removePhotosFromCollection: (
+          collectionId: string,
+          photoIds: string[]
+        ) => {
           let changed = false;
           set((state) => {
             const collection = state.collections[collectionId];
@@ -569,7 +681,9 @@ export const usePhotoStore = create<PhotoState>()(
             }
 
             const available = new Set(state.photos.map((photo) => photo.id));
-            const uniqueIds = Array.from(new Set(photoIds.filter((id) => available.has(id))));
+            const uniqueIds = Array.from(
+              new Set(photoIds.filter((id) => available.has(id)))
+            );
             const isDifferent =
               uniqueIds.length !== collection.photoIds.length ||
               uniqueIds.some((id, index) => collection.photoIds[index] !== id);
@@ -587,19 +701,24 @@ export const usePhotoStore = create<PhotoState>()(
           }
         },
 
-        getCollectionById: (collectionId: string) => get().collections[collectionId] ?? null,
+        getCollectionById: (collectionId: string) =>
+          get().collections[collectionId] ?? null,
 
         getActiveCollectionPhotos: () => {
           const state = get();
 
           // Si une smart collection est active, filtrer les photos selon sa règle
           if (state.activeSmartCollectionId) {
-            const sc = SMART_COLLECTIONS.find((c) => c.id === state.activeSmartCollectionId);
+            const sc = SMART_COLLECTIONS.find(
+              (c) => c.id === state.activeSmartCollectionId
+            );
             if (sc) {
-              return state.photos.filter((p) => matchesRule(p, sc.rule, {
-                duplicateGroups: state.duplicateGroups,
-                rejectedPhotoIds: state.rejectedPhotoIds,
-              }));
+              return state.photos.filter((p) =>
+                matchesRule(p, sc.rule, {
+                  duplicateGroups: state.duplicateGroups,
+                  rejectedPhotoIds: state.rejectedPhotoIds,
+                })
+              );
             }
           }
 
@@ -608,7 +727,9 @@ export const usePhotoStore = create<PhotoState>()(
             return state.photos;
           }
 
-          const photoMap = new Map(state.photos.map((photo) => [photo.id, photo]));
+          const photoMap = new Map(
+            state.photos.map((photo) => [photo.id, photo])
+          );
           return activeCollection.photoIds
             .map((id) => photoMap.get(id))
             .filter((photo): photo is Photo => Boolean(photo));
@@ -636,7 +757,8 @@ export const usePhotoStore = create<PhotoState>()(
             state.photos.push(...newPhotos);
             state.analysisQueue.push(...newPhotos.map((p) => p.id));
 
-            const activeCollection = state.collections[state.activeCollectionId];
+            const activeCollection =
+              state.collections[state.activeCollectionId];
             if (activeCollection) {
               const collectionIds = new Set(activeCollection.photoIds);
               newPhotos.forEach((photo) => {
@@ -683,7 +805,9 @@ export const usePhotoStore = create<PhotoState>()(
             state.photos.forEach((photo) => {
               if (!target.has(photo.id)) return;
               const fileHash = photo.analysis?.fileHash;
-              photo.analysis = (fileHash ? { fileHash } : null) as PhotoAnalysis | null;
+              photo.analysis = (
+                fileHash ? { fileHash } : null
+              ) as PhotoAnalysis | null;
               if (!state.analysisQueue.includes(photo.id)) {
                 state.analysisQueue.push(photo.id);
                 added = true;
@@ -762,7 +886,9 @@ export const usePhotoStore = create<PhotoState>()(
           if (newHash) {
             lshDetector.insert(photoId, newHash);
             // Debounce léger pour regrouper les mises à jour rapides
-            const w = window as Window & { __duplicateDetectionTimeout?: ReturnType<typeof setTimeout> };
+            const w = window as Window & {
+              __duplicateDetectionTimeout?: ReturnType<typeof setTimeout>;
+            };
             clearTimeout(w.__duplicateDetectionTimeout);
             w.__duplicateDetectionTimeout = setTimeout(() => {
               get().detectDuplicates();
@@ -782,8 +908,17 @@ export const usePhotoStore = create<PhotoState>()(
             // Si la dernière action est déjà un SET_NOTE pour cette photo, on conserve son
             // previousNote (l'état initial) au lieu d'empiler une entrée par frappe.
             const last = state.undoStack[state.undoStack.length - 1];
-            if (!(last && last.type === 'SET_NOTE' && last.payload.photoId === photoId)) {
-              state.undoStack.push({ type: 'SET_NOTE', payload: { photoId, previousNote } });
+            if (
+              !(
+                last &&
+                last.type === 'SET_NOTE' &&
+                last.payload.photoId === photoId
+              )
+            ) {
+              pushUndo(state, {
+                type: 'SET_NOTE',
+                payload: { photoId, previousNote },
+              });
             }
             if (note.trim() === '') {
               delete state.photoNotes[photoId];
@@ -796,9 +931,10 @@ export const usePhotoStore = create<PhotoState>()(
           set((state) => {
             const group = state.duplicateGroups.find((g) => g.id === groupId);
             if (group) {
-              const previousBestId = state.bestPhotoOverrides[groupId] || group.bestPhotoId;
+              const previousBestId =
+                state.bestPhotoOverrides[groupId] || group.bestPhotoId;
               state.bestPhotoOverrides[groupId] = photoId;
-              state.undoStack.push({
+              pushUndo(state, {
                 type: 'SET_BEST',
                 payload: { groupId, previousBestId, newBestId: photoId },
               });
@@ -812,7 +948,7 @@ export const usePhotoStore = create<PhotoState>()(
             } else {
               state.rejectedPhotoIds.add(photoId);
             }
-            state.undoStack.push({
+            pushUndo(state, {
               type: 'TOGGLE_REJECT',
               payload: { photoId },
             });
@@ -822,32 +958,41 @@ export const usePhotoStore = create<PhotoState>()(
           // Snapshot AVANT suppression (état zustand figé = objets simples) pour permettre
           // l'undo (A-22) : photo, position, collections d'appartenance, état rejeté.
           const before = get();
-          const removedIndex = before.photos.findIndex((photo) => photo.id === photoId);
+          const removedIndex = before.photos.findIndex(
+            (photo) => photo.id === photoId
+          );
           if (removedIndex === -1) {
             return;
           }
           const removedPhoto = before.photos[removedIndex];
-          const collectionIds = before.collectionOrder.filter(
-            (cid) => before.collections[cid]?.photoIds.includes(photoId),
+          const collectionIds = before.collectionOrder.filter((cid) =>
+            before.collections[cid]?.photoIds.includes(photoId)
           );
           const wasRejected =
-            before.rejectedPhotoIds.has(photoId) || removedPhoto.analysis?.isRejected === true;
+            before.rejectedPhotoIds.has(photoId) ||
+            removedPhoto.analysis?.isRejected === true;
           // Capturer les overrides « meilleur du groupe » qui pointaient sur cette photo,
           // pour pouvoir les restaurer à l'annulation (sinon le choix manuel est perdu).
           const bestOverrides: Record<string, string> = {};
-          Object.entries(before.bestPhotoOverrides).forEach(([groupId, bestId]) => {
-            if (bestId === photoId) bestOverrides[groupId] = bestId;
-          });
+          Object.entries(before.bestPhotoOverrides).forEach(
+            ([groupId, bestId]) => {
+              if (bestId === photoId) bestOverrides[groupId] = bestId;
+            }
+          );
 
           set((state) => {
-            const photoIndex = state.photos.findIndex((photo) => photo.id === photoId);
+            const photoIndex = state.photos.findIndex(
+              (photo) => photo.id === photoId
+            );
             if (photoIndex === -1) {
               return;
             }
 
             lshDetector.remove(photoId);
             state.photos.splice(photoIndex, 1);
-            state.analysisQueue = state.analysisQueue.filter((id) => id !== photoId);
+            state.analysisQueue = state.analysisQueue.filter(
+              (id) => id !== photoId
+            );
             state.analyzingPhotoIds.delete(photoId);
             state.rejectedPhotoIds.delete(photoId);
 
@@ -868,19 +1013,25 @@ export const usePhotoStore = create<PhotoState>()(
               }
             });
 
-            Object.entries(state.bestPhotoOverrides).forEach(([groupId, bestId]) => {
-              if (bestId === photoId) {
-                delete state.bestPhotoOverrides[groupId];
+            Object.entries(state.bestPhotoOverrides).forEach(
+              ([groupId, bestId]) => {
+                if (bestId === photoId) {
+                  delete state.bestPhotoOverrides[groupId];
+                }
               }
-            });
+            );
 
             state.undoStack = state.undoStack.filter((action) => {
-              if (action.type === 'TOGGLE_REJECT' && action.payload.photoId === photoId) {
+              if (
+                action.type === 'TOGGLE_REJECT' &&
+                action.payload.photoId === photoId
+              ) {
                 return false;
               }
               if (
                 action.type === 'SET_BEST' &&
-                (action.payload.previousBestId === photoId || action.payload.newBestId === photoId)
+                (action.payload.previousBestId === photoId ||
+                  action.payload.newBestId === photoId)
               ) {
                 return false;
               }
@@ -890,7 +1041,9 @@ export const usePhotoStore = create<PhotoState>()(
             const updatedGroups: DuplicateGroup[] = [];
 
             state.duplicateGroups.forEach((group) => {
-              const filteredPhotos = group.photos.filter((photo) => photo.id !== photoId);
+              const filteredPhotos = group.photos.filter(
+                (photo) => photo.id !== photoId
+              );
 
               if (filteredPhotos.length <= 1) {
                 delete state.bestPhotoOverrides[group.id];
@@ -901,10 +1054,13 @@ export const usePhotoStore = create<PhotoState>()(
                 group.bestPhotoId === photoId
                   ? filteredPhotos.reduce((best, current) => {
                       const bestScore = best.analysis?.sharpnessScore ?? 0;
-                      const currentScore = current.analysis?.sharpnessScore ?? 0;
+                      const currentScore =
+                        current.analysis?.sharpnessScore ?? 0;
                       return currentScore > bestScore ? current : best;
                     }, filteredPhotos[0])
-                  : filteredPhotos.find((photo) => photo.id === group.bestPhotoId) ?? filteredPhotos[0];
+                  : (filteredPhotos.find(
+                      (photo) => photo.id === group.bestPhotoId
+                    ) ?? filteredPhotos[0]);
 
               updatedGroups.push({
                 ...group,
@@ -914,10 +1070,12 @@ export const usePhotoStore = create<PhotoState>()(
             });
 
             state.duplicateGroups = updatedGroups;
-            state.processedCount = state.photos.filter((photo) => photo.analysis && !photo.analysis.error).length;
+            state.processedCount = state.photos.filter(
+              (photo) => photo.analysis && !photo.analysis.error
+            ).length;
 
             // A-22 : enregistrer l'action pour permettre l'annulation de la suppression.
-            state.undoStack.push({
+            pushUndo(state, {
               type: 'DELETE_PHOTO',
               payload: {
                 photo: removedPhoto,
@@ -941,22 +1099,28 @@ export const usePhotoStore = create<PhotoState>()(
           const photos = state.photos.filter((p) => p.analysis?.perceptualHash);
 
           if (photos.length < 2) {
-            set((s) => { s.duplicateGroups = []; });
+            set((s) => {
+              s.duplicateGroups = [];
+            });
             return;
           }
 
           // S'assurer que le LSH est cohérent avec l'état actuel
           if (lshDetector.size() !== photos.length) {
             lshDetector.rebuild(
-              photos.map((p) => ({ id: p.id, hash: p.analysis!.perceptualHash! })),
+              photos.map((p) => ({
+                id: p.id,
+                hash: p.analysis!.perceptualHash!,
+              }))
             );
           }
 
           const findBestPhoto = (groupPhotos: Photo[]): string =>
             groupPhotos.reduce((best, current) =>
-              (current.analysis?.sharpnessScore ?? 0) > (best.analysis?.sharpnessScore ?? 0)
+              (current.analysis?.sharpnessScore ?? 0) >
+              (best.analysis?.sharpnessScore ?? 0)
                 ? current
-                : best,
+                : best
             ).id;
 
           const photoMap = new Map(photos.map((p) => [p.id, p]));
@@ -1002,25 +1166,29 @@ export const usePhotoStore = create<PhotoState>()(
 
         applyAiSuggestions: async (photoId) => {
           const state = get();
-          const photo = state.photos.find(p => p.id === photoId);
+          const photo = state.photos.find((p) => p.id === photoId);
 
           if (!photo?.analysis?.suggestedRetouch) {
             console.warn('❌ Aucune suggestion IA disponible pour cette photo');
             return;
           }
 
-          const { brightness, contrast, saturation } = photo.analysis.suggestedRetouch;
+          const { brightness, contrast, saturation } =
+            photo.analysis.suggestedRetouch;
 
           // Convertir les suggestions (0.8-1.2) en valeurs RetouchOptions (-100 à +100)
           const exposureValue = Math.round((brightness - 1) * 100);
           const contrastValue = Math.round((contrast - 1) * 100);
           const saturationValue = Math.round((saturation - 1) * 100);
 
-          console.log(`🎨 Application suggestions IA pour ${photo.file.name}:`, {
-            exposure: exposureValue,
-            contrast: contrastValue,
-            saturation: saturationValue
-          });
+          console.log(
+            `🎨 Application suggestions IA pour ${photo.file.name}:`,
+            {
+              exposure: exposureValue,
+              contrast: contrastValue,
+              saturation: saturationValue,
+            }
+          );
 
           // Démarrer une session de retouche si nécessaire
           if (!state.retouchSessionPhotoIds.includes(photoId)) {
@@ -1031,7 +1199,7 @@ export const usePhotoStore = create<PhotoState>()(
           await Promise.all([
             get().updateRetouchOption(photoId, 'exposure', exposureValue),
             get().updateRetouchOption(photoId, 'contrast', contrastValue),
-            get().updateRetouchOption(photoId, 'saturation', saturationValue)
+            get().updateRetouchOption(photoId, 'saturation', saturationValue),
           ]);
 
           console.log('✅ Suggestions IA appliquées avec succès');
@@ -1039,22 +1207,25 @@ export const usePhotoStore = create<PhotoState>()(
 
         setPhotoRating: (photoId, rating) =>
           set((state) => {
-            const photo = state.photos.find(p => p.id === photoId);
+            const photo = state.photos.find((p) => p.id === photoId);
             if (photo) {
               if (!photo.analysis) photo.analysis = {};
               const previousRating = photo.analysis.rating ?? 0;
               const newRating = Math.max(0, Math.min(5, rating));
-              state.undoStack.push({ type: 'SET_RATING', payload: { photoId, previousRating, newRating } });
+              pushUndo(state, {
+                type: 'SET_RATING',
+                payload: { photoId, previousRating, newRating },
+              });
               photo.analysis.rating = newRating;
             }
           }),
 
         togglePhotoPick: (photoId) =>
           set((state) => {
-            const photo = state.photos.find(p => p.id === photoId);
+            const photo = state.photos.find((p) => p.id === photoId);
             if (photo) {
               if (!photo.analysis) photo.analysis = {};
-              state.undoStack.push({
+              pushUndo(state, {
                 type: 'SET_PICK',
                 payload: {
                   photoId,
@@ -1069,10 +1240,10 @@ export const usePhotoStore = create<PhotoState>()(
 
         togglePhotoReject: (photoId) =>
           set((state) => {
-            const photo = state.photos.find(p => p.id === photoId);
+            const photo = state.photos.find((p) => p.id === photoId);
             if (photo) {
               if (!photo.analysis) photo.analysis = {};
-              state.undoStack.push({
+              pushUndo(state, {
                 type: 'SET_REJECT',
                 payload: {
                   photoId,
@@ -1092,9 +1263,9 @@ export const usePhotoStore = create<PhotoState>()(
 
         unflagPhoto: (photoId) =>
           set((state) => {
-            const photo = state.photos.find(p => p.id === photoId);
+            const photo = state.photos.find((p) => p.id === photoId);
             if (photo && photo.analysis) {
-              state.undoStack.push({
+              pushUndo(state, {
                 type: 'UNFLAG',
                 payload: {
                   photoId,
@@ -1112,24 +1283,30 @@ export const usePhotoStore = create<PhotoState>()(
 
         setColorLabel: (photoId, label, force = false) =>
           set((state) => {
-            const photo = state.photos.find(p => p.id === photoId);
+            const photo = state.photos.find((p) => p.id === photoId);
             if (photo) {
               if (!photo.analysis) photo.analysis = {};
               if (!force) {
                 // Undo seulement pour les actions manuelles (pas bulk)
-                state.undoStack.push({
+                pushUndo(state, {
                   type: 'SET_COLOR_LABEL',
-                  payload: { photoId, previousLabel: photo.analysis.colorLabel ?? null },
+                  payload: {
+                    photoId,
+                    previousLabel: photo.analysis.colorLabel ?? null,
+                  },
                 });
               }
-              photo.analysis.colorLabel =
-                force ? label : (photo.analysis.colorLabel === label ? null : label);
+              photo.analysis.colorLabel = force
+                ? label
+                : photo.analysis.colorLabel === label
+                  ? null
+                  : label;
             }
           }),
 
         autoRatePhoto: (photoId) =>
           set((state) => {
-            const photo = state.photos.find(p => p.id === photoId);
+            const photo = state.photos.find((p) => p.id === photoId);
             if (!photo?.analysis || photo.analysis.error) return;
 
             // Calcul score basé sur analyse
@@ -1162,13 +1339,14 @@ export const usePhotoStore = create<PhotoState>()(
 
             // Besoin retouche (15%)
             if (photo.analysis.suggestedRetouch) {
-              const { brightness, contrast, saturation } = photo.analysis.suggestedRetouch;
-              const deviation = (
-                Math.abs(brightness - 1) +
-                Math.abs(contrast - 1) +
-                Math.abs(saturation - 1)
-              ) / 3;
-              const retouchScore = Math.max(0, 1 - (deviation * 3));
+              const { brightness, contrast, saturation } =
+                photo.analysis.suggestedRetouch;
+              const deviation =
+                (Math.abs(brightness - 1) +
+                  Math.abs(contrast - 1) +
+                  Math.abs(saturation - 1)) /
+                3;
+              const retouchScore = Math.max(0, 1 - deviation * 3);
               score += retouchScore * 0.15;
               totalWeight += 0.15;
             }
@@ -1183,12 +1361,16 @@ export const usePhotoStore = create<PhotoState>()(
             else if (normalizedScore >= 0.2) rating = 1;
 
             photo.analysis.rating = rating;
-            console.log(`🤖 Auto-rating ${photo.file.name}: ${rating} étoile(s) (score: ${normalizedScore.toFixed(2)})`);
+            console.log(
+              `🤖 Auto-rating ${photo.file.name}: ${rating} étoile(s) (score: ${normalizedScore.toFixed(2)})`
+            );
           }),
 
         autoRateAllPhotos: (preset = 'balanced') =>
           set((state) => {
-            const photos = state.photos.filter(p => p.analysis && !p.analysis.error);
+            const photos = state.photos.filter(
+              (p) => p.analysis && !p.analysis.error
+            );
 
             if (photos.length === 0) {
               console.warn('⚠️ Aucune photo analysée à noter');
@@ -1214,12 +1396,13 @@ export const usePhotoStore = create<PhotoState>()(
               }
 
               if (analysis.suggestedRetouch) {
-                const { brightness, contrast, saturation } = analysis.suggestedRetouch;
-                const deviation = (
-                  Math.abs(brightness - 1) +
-                  Math.abs(contrast - 1) +
-                  Math.abs(saturation - 1)
-                ) / 3;
+                const { brightness, contrast, saturation } =
+                  analysis.suggestedRetouch;
+                const deviation =
+                  (Math.abs(brightness - 1) +
+                    Math.abs(contrast - 1) +
+                    Math.abs(saturation - 1)) /
+                  3;
                 score += Math.max(0, 1 - deviation * 2);
                 count++;
               }
@@ -1228,17 +1411,19 @@ export const usePhotoStore = create<PhotoState>()(
             };
 
             // Calculer scores pour toutes les photos
-            const photoScores = photos.map(photo => ({
-              photo,
-              score: calculatePhotoScore(photo)
-            })).sort((a, b) => b.score - a.score);
+            const photoScores = photos
+              .map((photo) => ({
+                photo,
+                score: calculatePhotoScore(photo),
+              }))
+              .sort((a, b) => b.score - a.score);
 
             // Distribution selon preset
             const distributions = {
-              strict: { 5: 0.05, 4: 0.15, 3: 0.30, 2: 0.30, 1: 0.20 },
-              balanced: { 5: 0.10, 4: 0.20, 3: 0.30, 2: 0.20, 1: 0.20 },
-              generous: { 5: 0.15, 4: 0.25, 3: 0.30, 2: 0.20, 1: 0.10 },
-              quality: null // Utilise scores bruts
+              strict: { 5: 0.05, 4: 0.15, 3: 0.3, 2: 0.3, 1: 0.2 },
+              balanced: { 5: 0.1, 4: 0.2, 3: 0.3, 2: 0.2, 1: 0.2 },
+              generous: { 5: 0.15, 4: 0.25, 3: 0.3, 2: 0.2, 1: 0.1 },
+              quality: null, // Utilise scores bruts
             };
 
             const distribution = distributions[preset];
@@ -1251,11 +1436,15 @@ export const usePhotoStore = create<PhotoState>()(
                 4: Math.ceil(photos.length * distribution[4]),
                 3: Math.ceil(photos.length * distribution[3]),
                 2: Math.ceil(photos.length * distribution[2]),
-                1: Math.ceil(photos.length * distribution[1])
+                1: Math.ceil(photos.length * distribution[1]),
               };
 
-              [5, 4, 3, 2, 1].forEach(rating => {
-                for (let i = 0; i < counts[rating] && index < photoScores.length; i++) {
+              [5, 4, 3, 2, 1].forEach((rating) => {
+                for (
+                  let i = 0;
+                  i < counts[rating] && index < photoScores.length;
+                  i++
+                ) {
                   photoScores[index].photo.analysis!.rating = rating;
                   index++;
                 }
@@ -1280,11 +1469,13 @@ export const usePhotoStore = create<PhotoState>()(
               });
             }
 
-            console.log(`🤖 Auto-rating: ${photos.length} photos notées (preset: ${preset})`);
+            console.log(
+              `🤖 Auto-rating: ${photos.length} photos notées (preset: ${preset})`
+            );
 
             // Afficher distribution
             const dist = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-            photos.forEach(p => {
+            photos.forEach((p) => {
               const r = p.analysis?.rating || 0;
               dist[r]++;
             });
@@ -1293,7 +1484,7 @@ export const usePhotoStore = create<PhotoState>()(
 
         addUndoAction: (action) =>
           set((state) => {
-            state.undoStack.push(action);
+            pushUndo(state, action);
           }),
 
         undo: () => {
@@ -1304,10 +1495,14 @@ export const usePhotoStore = create<PhotoState>()(
           // A-22 : restauration d'une photo supprimée (réinsertion à sa position +
           // ré-ajout aux collections + LSH + re-détection des doublons).
           if (pending.type === 'DELETE_PHOTO') {
-            const { photo, index, collectionIds, wasRejected, bestOverrides } = pending.payload;
+            const { photo, index, collectionIds, wasRejected, bestOverrides } =
+              pending.payload;
             set((state) => {
               if (!state.photos.some((p) => p.id === photo.id)) {
-                const insertAt = Math.min(Math.max(index, 0), state.photos.length);
+                const insertAt = Math.min(
+                  Math.max(index, 0),
+                  state.photos.length
+                );
                 state.photos.splice(insertAt, 0, photo);
               }
               collectionIds.forEach((cid) => {
@@ -1318,16 +1513,18 @@ export const usePhotoStore = create<PhotoState>()(
                 }
               });
               // Restaurer les overrides « meilleur du groupe » qui pointaient sur la photo.
-              Object.entries(bestOverrides ?? {}).forEach(([groupId, bestId]) => {
-                state.bestPhotoOverrides[groupId] = bestId;
-              });
+              Object.entries(bestOverrides ?? {}).forEach(
+                ([groupId, bestId]) => {
+                  state.bestPhotoOverrides[groupId] = bestId;
+                }
+              );
               if (wasRejected) state.rejectedPhotoIds.add(photo.id);
               if (!photo.analysis) state.analysisQueue.push(photo.id);
               if (photo.analysis?.perceptualHash) {
                 lshDetector.insert(photo.id, photo.analysis.perceptualHash);
               }
               state.processedCount = state.photos.filter(
-                (p) => p.analysis && !p.analysis.error,
+                (p) => p.analysis && !p.analysis.error
               ).length;
               state.undoStack.pop();
             });
@@ -1342,7 +1539,10 @@ export const usePhotoStore = create<PhotoState>()(
             set((state) => {
               if (collection && !state.collections[collection.id]) {
                 state.collections[collection.id] = collection;
-                const at = Math.min(Math.max(index, 0), state.collectionOrder.length);
+                const at = Math.min(
+                  Math.max(index, 0),
+                  state.collectionOrder.length
+                );
                 state.collectionOrder.splice(at, 0, collection.id);
                 if (wasActive) state.activeCollectionId = collection.id;
               }
@@ -1375,13 +1575,14 @@ export const usePhotoStore = create<PhotoState>()(
               }
               case 'SET_RATING': {
                 const { photoId, previousRating } = lastAction.payload;
-                const photo = state.photos.find(p => p.id === photoId);
+                const photo = state.photos.find((p) => p.id === photoId);
                 if (photo?.analysis) photo.analysis.rating = previousRating;
                 break;
               }
               case 'SET_PICK': {
-                const { photoId, previousPick, previousRejected } = lastAction.payload;
-                const photo = state.photos.find(p => p.id === photoId);
+                const { photoId, previousPick, previousRejected } =
+                  lastAction.payload;
+                const photo = state.photos.find((p) => p.id === photoId);
                 if (photo?.analysis) {
                   photo.analysis.isPick = previousPick;
                   photo.analysis.isRejected = previousRejected;
@@ -1389,8 +1590,9 @@ export const usePhotoStore = create<PhotoState>()(
                 break;
               }
               case 'SET_REJECT': {
-                const { photoId, previousPick, previousRejected } = lastAction.payload;
-                const photo = state.photos.find(p => p.id === photoId);
+                const { photoId, previousPick, previousRejected } =
+                  lastAction.payload;
+                const photo = state.photos.find((p) => p.id === photoId);
                 if (photo?.analysis) {
                   photo.analysis.isPick = previousPick;
                   photo.analysis.isRejected = previousRejected;
@@ -1404,13 +1606,18 @@ export const usePhotoStore = create<PhotoState>()(
               }
               case 'SET_COLOR_LABEL': {
                 const { photoId, previousLabel } = lastAction.payload;
-                const photo = state.photos.find(p => p.id === photoId);
+                const photo = state.photos.find((p) => p.id === photoId);
                 if (photo?.analysis) photo.analysis.colorLabel = previousLabel;
                 break;
               }
               case 'UNFLAG': {
-                const { photoId, previousPick, previousRejected, previousColorLabel } = lastAction.payload;
-                const photo = state.photos.find(p => p.id === photoId);
+                const {
+                  photoId,
+                  previousPick,
+                  previousRejected,
+                  previousColorLabel,
+                } = lastAction.payload;
+                const photo = state.photos.find((p) => p.id === photoId);
                 if (photo?.analysis) {
                   photo.analysis.isPick = previousPick;
                   photo.analysis.isRejected = previousRejected;
@@ -1438,8 +1645,12 @@ export const usePhotoStore = create<PhotoState>()(
 
         startRetouchSession: async (photoIds) => {
           const currentState = get();
-          const availableIds = new Set(currentState.photos.map((photo) => photo.id));
-          const uniqueIds = Array.from(new Set(photoIds)).filter((id) => availableIds.has(id));
+          const availableIds = new Set(
+            currentState.photos.map((photo) => photo.id)
+          );
+          const uniqueIds = Array.from(new Set(photoIds)).filter((id) =>
+            availableIds.has(id)
+          );
 
           if (uniqueIds.length === 0) {
             return;
@@ -1462,8 +1673,10 @@ export const usePhotoStore = create<PhotoState>()(
               }
               ensurePhotoRetouchState(photo);
               if (photo.retouch) {
-                photo.retouch.originalPreviewUrl = photo.retouch.originalPreviewUrl ?? photo.previewUrl;
-                photo.retouch.previewUrl = photo.retouch.previewUrl ?? photo.previewUrl;
+                photo.retouch.originalPreviewUrl =
+                  photo.retouch.originalPreviewUrl ?? photo.previewUrl;
+                photo.retouch.previewUrl =
+                  photo.retouch.previewUrl ?? photo.previewUrl;
                 photo.retouch.lastUpdated = new Date().toISOString();
               }
             });
@@ -1520,16 +1733,27 @@ export const usePhotoStore = create<PhotoState>()(
           });
 
           const latestState = get();
-          const sourcePhoto = latestState.photos.find((p) => p.id === fromPhotoId);
+          const sourcePhoto = latestState.photos.find(
+            (p) => p.id === fromPhotoId
+          );
           if (!sourcePhoto || !sourcePhoto.retouch) {
             return;
           }
 
-          const optionKeys = optionsToSync && optionsToSync.length > 0 ? optionsToSync : [...RETOUCH_OPTION_KEYS];
+          const optionKeys =
+            optionsToSync && optionsToSync.length > 0
+              ? optionsToSync
+              : [...RETOUCH_OPTION_KEYS];
 
-          const availableIds = new Set(latestState.photos.map((photo) => photo.id));
+          const availableIds = new Set(
+            latestState.photos.map((photo) => photo.id)
+          );
           const targetIds = Array.from(
-            new Set(toPhotoIds.filter((id) => id !== fromPhotoId && availableIds.has(id)))
+            new Set(
+              toPhotoIds.filter(
+                (id) => id !== fromPhotoId && availableIds.has(id)
+              )
+            )
           );
 
           if (targetIds.length === 0) {
@@ -1593,7 +1817,11 @@ export const usePhotoStore = create<PhotoState>()(
 
         applyAutoRetouchPreset: async (preset, photoIds) => {
           const store = get();
-          const targetIds = (photoIds && photoIds.length > 0 ? photoIds : [store.retouchActivePhotoId]).filter(
+          const targetIds = (
+            photoIds && photoIds.length > 0
+              ? photoIds
+              : [store.retouchActivePhotoId]
+          ).filter(
             (id): id is string => typeof id === 'string' && id.length > 0
           );
           if (targetIds.length === 0) {
@@ -1618,7 +1846,10 @@ export const usePhotoStore = create<PhotoState>()(
                 RETOUCH_OPTION_KEYS.forEach((key) => {
                   const nextValue = preset.options[key];
                   if (typeof nextValue === 'number') {
-                    photo.retouch.currentOptions[key] = clampRetouchValue(key, nextValue);
+                    photo.retouch.currentOptions[key] = clampRetouchValue(
+                      key,
+                      nextValue
+                    );
                   }
                 });
                 photo.retouch.lastUpdated = new Date().toISOString();
@@ -1664,7 +1895,8 @@ export const usePhotoStore = create<PhotoState>()(
             }
 
             const image = await loadImageElement(baseSrc);
-            const preset = await gpuRetouchProcessor.computeAutoRetouchPreset(image);
+            const preset =
+              await gpuRetouchProcessor.computeAutoRetouchPreset(image);
             if (!preset) {
               throw new Error('Pré-réglage automatique indisponible.');
             }
@@ -1679,7 +1911,8 @@ export const usePhotoStore = create<PhotoState>()(
 
             aiErrors.resolveErrorsForPhoto(photoId, 'retouch');
           } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
+            const message =
+              error instanceof Error ? error.message : String(error);
             set((state) => {
               state.isAutoRetouchComputing = false;
               state.autoRetouchError = message;
@@ -1690,8 +1923,11 @@ export const usePhotoStore = create<PhotoState>()(
               severity: 'error',
               message: `Échec du preset automatique : ${message}`,
               photoId,
-              details: error instanceof Error ? { message: error.message, stack: error.stack } : error,
-              hint: "Veuillez vérifier la connexion GPU ou réessayer plus tard.",
+              details:
+                error instanceof Error
+                  ? { message: error.message, stack: error.stack }
+                  : error,
+              hint: 'Veuillez vérifier la connexion GPU ou réessayer plus tard.',
             });
           }
         },
@@ -1758,11 +1994,16 @@ export const usePhotoStore = create<PhotoState>()(
             photoIds.forEach((id) => {
               const photo = state.photos.find((p) => p.id === id);
               if (!photo) return;
-              if (!photo.analysis) photo.analysis = {} as import('../types').PhotoAnalysis;
-              if (meta.rating !== undefined) photo.analysis.rating = meta.rating;
-              if (meta.isPick !== undefined) photo.analysis.isPick = meta.isPick;
-              if (meta.isRejected !== undefined) photo.analysis.isRejected = meta.isRejected;
-              if ('colorLabel' in meta) photo.analysis.colorLabel = meta.colorLabel ?? undefined;
+              if (!photo.analysis)
+                photo.analysis = {} as import('../types').PhotoAnalysis;
+              if (meta.rating !== undefined)
+                photo.analysis.rating = meta.rating;
+              if (meta.isPick !== undefined)
+                photo.analysis.isPick = meta.isPick;
+              if (meta.isRejected !== undefined)
+                photo.analysis.isRejected = meta.isRejected;
+              if ('colorLabel' in meta)
+                photo.analysis.colorLabel = meta.colorLabel ?? undefined;
             });
           }),
 
@@ -1776,10 +2017,16 @@ export const usePhotoStore = create<PhotoState>()(
                 if (photo.previewUrl && photo.previewUrl.startsWith('blob:')) {
                   URL.revokeObjectURL(photo.previewUrl);
                 }
-                if (photo.retouch?.previewUrl && photo.retouch.previewUrl.startsWith('blob:')) {
+                if (
+                  photo.retouch?.previewUrl &&
+                  photo.retouch.previewUrl.startsWith('blob:')
+                ) {
                   URL.revokeObjectURL(photo.retouch.previewUrl);
                 }
-                if (photo.retouch?.originalPreviewUrl && photo.retouch.originalPreviewUrl.startsWith('blob:')) {
+                if (
+                  photo.retouch?.originalPreviewUrl &&
+                  photo.retouch.originalPreviewUrl.startsWith('blob:')
+                ) {
                   URL.revokeObjectURL(photo.retouch.originalPreviewUrl);
                 }
               });
@@ -1828,19 +2075,25 @@ export const usePhotoStore = create<PhotoState>()(
           set((state) => {
             state.photos = saved.photos;
             // Re-queue uniquement les photos non analysées.
-            state.analysisQueue = saved.photos.filter((p) => !p.analysis).map((p) => p.id);
+            state.analysisQueue = saved.photos
+              .filter((p) => !p.analysis)
+              .map((p) => p.id);
             state.duplicateGroups = saved.duplicateGroups ?? [];
             state.userTags = saved.userTags ?? {};
             state.photoNotes = saved.photoNotes ?? {};
 
-            if (saved.collections && Object.keys(saved.collections).length > 0) {
+            if (
+              saved.collections &&
+              Object.keys(saved.collections).length > 0
+            ) {
               state.collections = saved.collections;
               state.collectionOrder =
                 saved.collectionOrder && saved.collectionOrder.length > 0
                   ? saved.collectionOrder
                   : Object.keys(saved.collections);
               const activeValid =
-                saved.activeCollectionId && saved.collections[saved.activeCollectionId];
+                saved.activeCollectionId &&
+                saved.collections[saved.activeCollectionId];
               state.activeCollectionId = activeValid
                 ? saved.activeCollectionId
                 : state.collectionOrder[0];
@@ -1848,10 +2101,12 @@ export const usePhotoStore = create<PhotoState>()(
             state.activeSmartCollectionId = null;
 
             state.rejectedPhotoIds = new Set(
-              saved.photos.filter((p) => p.analysis?.isRejected === true).map((p) => p.id),
+              saved.photos
+                .filter((p) => p.analysis?.isRejected === true)
+                .map((p) => p.id)
             );
             state.processedCount = saved.photos.filter(
-              (p) => p.analysis && !p.analysis.error,
+              (p) => p.analysis && !p.analysis.error
             ).length;
           });
           persistCollections();

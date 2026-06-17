@@ -101,7 +101,14 @@ bitmap couverts par revue de code (worker non instrumentable sous jsdom).
 - P1-C Partage client privé et révocable ⬜
 - P1-D Upload cloud compensé ⬜
 - P1-E Reprise des jobs cloud ⬜
-- P1-F Validation runtime et mémoire durable ⬜
+- P1-F Validation runtime et mémoire durable 🟡 (cœur fait) — `undoStack`
+  plafonné (`UNDO_STACK_LIMIT = 30`) avec libération des URL blob des
+  `DELETE_PHOTO` évincés ; validation Zod des résultats worker (P0-B) ;
+  sanitation Zod des analyses relues depuis IndexedDB
+  (`sanitizeLoadedAnalysis`). Reste : validation Zod systématique des réponses
+  RPC Supabase et des paramètres d'import/export catalogue.
+  Tests : `src/test/store/undoStackCap.test.ts`,
+  `src/test/lib/catalogue-sanitize.test.ts`.
 
 ## Vérifications exécutées (toolchain local réparé)
 

@@ -82,4 +82,36 @@ describe('WorkerAnalysisService — invariants de pool (P0-C)', () => {
     expect(service.getStats().pendingTasks).toBe(0);
     expect(created.every((w) => w.terminated)).toBe(true);
   });
+
+  it('AbortSignal déjà annulé : renvoie une erreur par fichier, sans dispatch', async () => {
+    const service = new WorkerAnalysisService(2);
+    const controller = new AbortController();
+    controller.abort();
+    const file = new File(['x'], 'a.jpg', { type: 'image/jpeg' });
+
+    const res = await service.analyzePhotosBatch([file], {
+      signal: controller.signal,
+    });
+    expect(res[0]?.error).toBe('Analyse annulée');
+    service.dispose();
+  });
+
+  it('AbortSignal en cours de traitement : la photo annulée porte une erreur (pas de score)', async () => {
+    // Les FakeWorker ne répondent jamais (postMessage no-op) : la tâche reste en
+    // file jusqu'à l'annulation.
+    const service = new WorkerAnalysisService(2);
+    const controller = new AbortController();
+    const file = new File(['x'], 'b.jpg', { type: 'image/jpeg' });
+
+    const promise = service.analyzePhotosBatch([file], {
+      signal: controller.signal,
+    });
+    controller.abort();
+    const res = await promise;
+
+    expect(res[0]?.error).toBe('Analyse annulée');
+    expect(res[0]?.sharpnessScore).toBeUndefined();
+    expect(service.getStats().pendingTasks).toBe(0);
+    service.dispose();
+  });
 });

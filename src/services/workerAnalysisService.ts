@@ -230,12 +230,20 @@ export class WorkerAnalysisService {
   /**
    * Analyse un lot de photos en utilisant les Web Workers
    */
-  async analyzePhotosBatch(files: File[]): Promise<PhotoAnalysis[]> {
+  async analyzePhotosBatch(
+    files: File[],
+    options: { signal?: AbortSignal } = {}
+  ): Promise<PhotoAnalysis[]> {
     if (files.length === 0) {
       return [];
     }
 
-    console.log(`???? Analyse avec Web Workers de ${files.length} photo(s)...`);
+    const { signal } = options;
+    // P0-C : annulation. Si déjà annulé, on renvoie une erreur par fichier
+    // (jamais un score), sans rien dispatcher.
+    if (signal?.aborted) {
+      return files.map(() => ({ error: 'Analyse annulée' }));
+    }
 
     // Si pas de workers disponibles, utiliser l'analyse synchrone
     if (this.workers.length === 0) {
@@ -245,9 +253,30 @@ export class WorkerAnalysisService {
       return this.fallbackAnalysis(files);
     }
 
+    const ids = files.map(
+      (file, index) => `${file.name}-${file.size}-${file.lastModified}-${index}`
+    );
+    const abortedIds = new Set<string>();
+
+    // P0-C : à l'annulation, on rejette les tâches encore en file pour ce lot et
+    // on termine le worker éventuellement bloqué dessus, sans toucher aux autres
+    // lots ni laisser de tâche pendante.
+    const onAbort = () => {
+      for (const id of ids) {
+        if (this.pendingTasks.some((t) => t.id === id)) {
+          abortedIds.add(id);
+          const stuck = this.findWorkerByTask(id);
+          this.failTask(id, new Error('Analyse annulée'));
+          if (stuck) this.replaceWorker(stuck);
+        }
+      }
+      this.processNextTask();
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
+
     try {
       const promises = files.map((file, index) => {
-        const id = `${file.name}-${file.size}-${file.lastModified}-${index}`;
+        const id = ids[index];
 
         return new Promise<PhotoAnalysis>((resolvePromise, rejectPromise) => {
           const handleTimeout = () => {
@@ -290,9 +319,13 @@ export class WorkerAnalysisService {
       // fabriqué.
       const settled = await Promise.allSettled(promises);
 
+      // Les photos annulées ne retombent pas sur l'analyse locale : elles
+      // portent une erreur d'annulation explicite.
       const failedIndexes: number[] = [];
       settled.forEach((outcome, index) => {
-        if (outcome.status === 'rejected') failedIndexes.push(index);
+        if (outcome.status === 'rejected' && !abortedIds.has(ids[index])) {
+          failedIndexes.push(index);
+        }
       });
 
       let fallbackByIndex = new Map<number, PhotoAnalysis>();
@@ -305,14 +338,16 @@ export class WorkerAnalysisService {
         );
       }
 
-      return settled.map((outcome, index) =>
-        outcome.status === 'fulfilled'
-          ? outcome.value
-          : (fallbackByIndex.get(index) ?? { error: 'Analyse échouée' })
-      );
+      return settled.map((outcome, index) => {
+        if (outcome.status === 'fulfilled') return outcome.value;
+        if (abortedIds.has(ids[index])) return { error: 'Analyse annulée' };
+        return fallbackByIndex.get(index) ?? { error: 'Analyse échouée' };
+      });
     } catch (error) {
       console.error("Erreur lors de l'analyse avec Web Workers:", error);
       return this.fallbackAnalysis(files);
+    } finally {
+      signal?.removeEventListener('abort', onAbort);
     }
   }
 

@@ -65,7 +65,7 @@ Replicate/Clarifai/hf_demo, `api-inference.huggingface.co`) → 0 occurrence.
 
 Tests : `src/test/services/analysisProvenance.test.ts` (6 cas).
 
-### P0-C — Réduire mémoire et CPU du pipeline image 🟡 (largement fait)
+### P0-C — Réduire mémoire et CPU du pipeline image ✅
 
 | Élément                                                                  | Statut            |
 | ------------------------------------------------------------------------ | ----------------- |
@@ -79,7 +79,7 @@ Tests : `src/test/services/analysisProvenance.test.ts` (6 cas).
 | Remplacement d'un worker fautif à l'index, sans croissance du pool       | ✅                |
 | Timeout isolé à une photo + terminaison du worker bloqué                 | ✅                |
 | `dispose()` (termine tout, rejette les tâches en attente)                | ✅                |
-| Annulation `AbortSignal`                                                 | ⬜ **non fait**   |
+| Annulation `AbortSignal` (photo annulée → erreur, pas de fallback/score) | ✅ (tests)        |
 
 Tests : `src/test/services/workerAnalysisService.test.ts` (pool borné,
 remplacement sans croissance, `dispose`). Échantillonnage pixel + fermeture
@@ -101,7 +101,7 @@ bitmap couverts par revue de code (worker non instrumentable sous jsdom).
 | ----------------------------------------- | ----------------------- |
 | `pnpm type-check` (`tsc --noEmit`)        | ✅ exit 0               |
 | `pnpm lint` (`eslint . --max-warnings 0`) | ✅ exit 0               |
-| `pnpm exec vitest run` (suite complète)   | ✅ 288/288, 54 fichiers |
+| `pnpm exec vitest run` (suite complète)   | ✅ 290/290, 54 fichiers |
 | `pnpm build` (`vite build`)               | ✅ built in ~17 s       |
 | `prettier --check` (fichiers modifiés)    | ✅ clean                |
 | Greps d'acceptation P0-A/P0-B             | ✅ 0 occurrence         |
@@ -110,7 +110,7 @@ bitmap couverts par revue de code (worker non instrumentable sous jsdom).
 ## Risques ouverts (P0/P1 restants)
 
 - **P0-B** : ✅ traité (provenance + validation Zod à la frontière d'analyse).
-- **P0-C** : annulation `AbortSignal` non implémentée. Sévérité : moyenne.
+- **P0-C** : ✅ traité (mémoire/pool/lifecycle + `AbortSignal`).
 - **P1-A** : politique d'import unifiée (magic bytes, rejet RAW, hash non vide)
   non traitée. Sévérité : haute.
 - **P1-B** : CSP minimale `vercel.json`, `.env.example` audité, garde « variable

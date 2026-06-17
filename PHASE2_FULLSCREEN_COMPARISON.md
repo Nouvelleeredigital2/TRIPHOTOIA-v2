@@ -1,6 +1,7 @@
 # 🖼️ Phase 2 : Mode plein écran + Comparaison A/B
 
 ## Date: 2025-10-01
+
 ## Statut: ✅ 100% COMPLÉTÉ
 
 ---
@@ -8,8 +9,11 @@
 ## 📋 FONCTIONNALITÉS IMPLÉMENTÉES
 
 ### 1. ✅ Mode plein écran (F)
+
 ### 2. ✅ Comparaison A/B (C)
+
 ### 3. ✅ Navigation avancée (←→)
+
 ### 4. ✅ Zoom dynamique (+/-)
 
 ---
@@ -39,6 +43,7 @@
 ### Fonctionnalités
 
 **Affichage**:
+
 - ✅ Image centrée, max-width/height
 - ✅ Background noir
 - ✅ Header avec nom + position
@@ -46,23 +51,27 @@
 - ✅ Animations Framer Motion
 
 **Navigation**:
+
 - ✅ Flèches ←→ (boutons + clavier)
 - ✅ Désactivé si première/dernière
 - ✅ Transition fluide entre photos
 
 **Notation**:
+
 - ✅ StarRating interactif (taille lg)
 - ✅ Boutons Pick/Reject
 - ✅ Raccourcis 0-5, P, X, U
 - ✅ Toasts de confirmation
 
 **Zoom**:
+
 - ✅ Boutons +/- (ou touches)
 - ✅ Niveaux: 100%, 150%, 225%, 337%, 400%
 - ✅ Bouton Reset
 - ✅ Affichage % actuel
 
 **Informations**:
+
 - ✅ Taille fichier (MB)
 - ✅ Format (JPEG, PNG, etc.)
 - ✅ Netteté (%)
@@ -70,6 +79,7 @@
 - ✅ Toggle avec touche I
 
 **Raccourcis**:
+
 - ✅ **F/ESC** : Quitter
 - ✅ **←→** : Navigation
 - ✅ **0-5** : Noter
@@ -108,6 +118,7 @@
 ### Fonctionnalités
 
 **Affichage**:
+
 - ✅ Split screen 50/50
 - ✅ Séparateur vertical
 - ✅ Labels A et B
@@ -115,24 +126,28 @@
 - ✅ Background noir
 
 **Comparaison**:
+
 - ✅ Côte à côte
 - ✅ Même échelle
 - ✅ Infos sous chaque photo
 - ✅ StarRating visible
 
 **Sélection gagnant**:
+
 - ✅ Click sur "Choisir A/B"
 - ✅ Ou touches ←→
 - ✅ Gagnant: Ring vert + badge ✓
 - ✅ Animation de sélection
 
 **Actions automatiques**:
+
 - ✅ Gagnant → Marqué Pick (🎯)
 - ✅ Perdant → Marqué Reject (❌)
 - ✅ Toast de confirmation
 - ✅ Fermeture auto après 1s
 
 **Raccourcis**:
+
 - ✅ **←** : Choisir A
 - ✅ **→** : Choisir B
 - ✅ **C/ESC** : Quitter
@@ -144,6 +159,7 @@
 ### Mode plein écran
 
 **Ouvrir**:
+
 ```typescript
 // Méthode 1: Touche F
 // Sélectionner photo → Appuyer F
@@ -153,6 +169,7 @@
 ```
 
 **Naviguer**:
+
 ```
 F           → Ouvrir plein écran
 ←→          → Photo précédente/suivante
@@ -166,6 +183,7 @@ F ou ESC    → Quitter
 ```
 
 **Workflow**:
+
 ```
 1. Sélectionner photo
 2. Appuyer F
@@ -177,6 +195,7 @@ F ou ESC    → Quitter
 ### Mode comparaison A/B
 
 **Ouvrir**:
+
 ```typescript
 // Méthode 1: Touche C avec 2+ photos sélectionnées
 // Sélectionner 2 photos → Appuyer C
@@ -187,6 +206,7 @@ F ou ESC    → Quitter
 ```
 
 **Comparer**:
+
 ```
 C           → Ouvrir comparaison
 ←           → Choisir photo A (gauche)
@@ -195,6 +215,7 @@ C ou ESC    → Quitter
 ```
 
 **Workflow doublons**:
+
 ```
 1. Filtrer "Doublons"
 2. Sélectionner groupe
@@ -267,6 +288,7 @@ Temps: 10 minutes pour 15 comparaisons
 ### Plein écran
 
 **Couleurs**:
+
 - Background: `bg-black`
 - Header: `from-black/80 to-transparent`
 - Footer: `from-black/90 to-transparent`
@@ -274,12 +296,14 @@ Temps: 10 minutes pour 15 comparaisons
 - Boutons: `hover:bg-white/20`
 
 **Layout**:
+
 - Header: Fixe en haut
 - Image: Centrée avec padding
 - Footer: Fixe en bas (toggle)
 - Navigation: Flèches latérales
 
 **Animations**:
+
 ```typescript
 initial={{ opacity: 0 }}
 animate={{ opacity: 1 }}
@@ -289,18 +313,21 @@ exit={{ opacity: 0 }}
 ### Comparaison A/B
 
 **Couleurs**:
+
 - Background: `bg-black`
 - Séparateur: `bg-white/20`
 - Sélection: `ring-4 ring-green-500`
 - Badge gagnant: `bg-green-600`
 
 **Layout**:
+
 - Split 50/50
 - Séparateur vertical
 - Header fixe
 - Instructions en bas
 
 **Animations**:
+
 ```typescript
 // Sélection
 animate={{ scale: isSelected ? 1.02 : 1 }}
@@ -315,11 +342,13 @@ animate={{ scale: 1 }}
 ## 📊 STATISTIQUES
 
 ### Fichiers créés
+
 - ✅ `src/components/FullscreenViewer.tsx` (280 lignes)
 - ✅ `src/components/ComparisonView.tsx` (250 lignes)
 - ✅ `PHASE2_FULLSCREEN_COMPARISON.md` (ce fichier)
 
 ### Fichiers modifiés
+
 - ✅ `src/features/triage/TriageTab.tsx` (+60 lignes)
 
 **Total Phase 2**: ~590 lignes
@@ -329,41 +358,45 @@ animate={{ scale: 1 }}
 ## ⌨️ RACCOURCIS COMPLETS
 
 ### Mode normal (Triage)
-| Touche | Action |
-|--------|--------|
-| 0-5 | Noter étoiles |
-| P | Toggle Pick |
-| X | Toggle Reject |
-| U | Unflag |
-| ←→ | Navigation |
-| F | Plein écran |
-| C | Comparaison |
-| D | Développement |
+
+| Touche | Action        |
+| ------ | ------------- |
+| 0-5    | Noter étoiles |
+| P      | Toggle Pick   |
+| X      | Toggle Reject |
+| U      | Unflag        |
+| ←→     | Navigation    |
+| F      | Plein écran   |
+| C      | Comparaison   |
+| D      | Développement |
 
 ### Mode plein écran
-| Touche | Action |
-|--------|--------|
-| F/ESC | Quitter |
-| ←→ | Navigation |
-| 0-5 | Noter |
-| P | Pick |
-| X | Reject |
-| U | Unflag |
-| I | Toggle infos |
-| +/- | Zoom |
+
+| Touche | Action       |
+| ------ | ------------ |
+| F/ESC  | Quitter      |
+| ←→     | Navigation   |
+| 0-5    | Noter        |
+| P      | Pick         |
+| X      | Reject       |
+| U      | Unflag       |
+| I      | Toggle infos |
+| +/-    | Zoom         |
 
 ### Mode comparaison
-| Touche | Action |
-|--------|--------|
-| ← | Choisir A |
-| → | Choisir B |
-| C/ESC | Quitter |
+
+| Touche | Action    |
+| ------ | --------- |
+| ←      | Choisir A |
+| →      | Choisir B |
+| C/ESC  | Quitter   |
 
 ---
 
 ## 🧪 TESTS
 
 ### Test 1: Plein écran basique
+
 1. Importer photos
 2. Triage → Sélectionner photo
 3. Appuyer F
@@ -372,6 +405,7 @@ animate={{ scale: 1 }}
 6. ✅ Retour au triage
 
 ### Test 2: Navigation plein écran
+
 1. Mode plein écran
 2. Appuyer →
 3. ✅ Photo suivante
@@ -379,6 +413,7 @@ animate={{ scale: 1 }}
 5. ✅ Photo précédente
 
 ### Test 3: Notation plein écran
+
 1. Mode plein écran
 2. Appuyer 5
 3. ✅ Toast "5 étoiles"
@@ -387,6 +422,7 @@ animate={{ scale: 1 }}
 6. ✅ Badge Pick
 
 ### Test 4: Zoom
+
 1. Mode plein écran
 2. Appuyer +
 3. ✅ Zoom 150%
@@ -396,6 +432,7 @@ animate={{ scale: 1 }}
 7. ✅ Zoom 100%
 
 ### Test 5: Comparaison A/B
+
 1. Sélectionner 2 photos
 2. Appuyer C
 3. ✅ Split screen A/B
@@ -405,6 +442,7 @@ animate={{ scale: 1 }}
 7. ✅ Fermeture auto
 
 ### Test 6: Comparaison doublons
+
 1. Filtrer "Doublons"
 2. Sélectionner groupe
 3. Appuyer C
@@ -441,7 +479,7 @@ Objectif: Choisir 20 meilleures parmi 100
 
 1. Premier passage:
    - Noter toutes (3-5 étoiles)
-   
+
 2. Filtrer "⭐ 5 étoiles" (30 photos)
 
 3. Comparaison par paires:
@@ -449,7 +487,7 @@ Objectif: Choisir 20 meilleures parmi 100
    - Appuyer C
    - Choisir meilleure (← ou →)
    - Répéter 15 fois
-   
+
 4. Filtrer "🎯 Picks" (20 photos)
 
 5. Développer sélection
@@ -483,6 +521,7 @@ Vitesse: 5 groupes/minute
 ### Débutant (5 min)
 
 **Exercice 1: Mode plein écran**
+
 ```
 1. Importer 5 photos
 2. Triage → Sélectionner première
@@ -494,6 +533,7 @@ Vitesse: 5 groupes/minute
 ```
 
 **Exercice 2: Notation plein écran**
+
 ```
 1. Mode plein écran (F)
 2. Appuyer 5
@@ -506,6 +546,7 @@ Vitesse: 5 groupes/minute
 ```
 
 **Exercice 3: Comparaison**
+
 ```
 1. Sélectionner 2 photos
 2. Appuyer C
@@ -518,6 +559,7 @@ Vitesse: 5 groupes/minute
 ### Intermédiaire (10 min)
 
 **Exercice 4: Triage complet**
+
 ```
 1. Importer 20 photos
 2. F (plein écran)
@@ -528,6 +570,7 @@ Vitesse: 5 groupes/minute
 ```
 
 **Exercice 5: Doublons**
+
 ```
 1. Importer photos similaires
 2. Attendre analyse
@@ -542,6 +585,7 @@ Vitesse: 5 groupes/minute
 ### Avancé (20 min)
 
 **Exercice 6: Workflow professionnel**
+
 ```
 1. Importer 100 photos événement
 2. Premier passage (plein écran):
@@ -564,11 +608,13 @@ Vitesse: 5 groupes/minute
 ### Productivité
 
 **Avant** (sans plein écran):
+
 - Trier 100 photos: 30 minutes
 - Sélectionner doublons: 15 minutes
 - Total: 45 minutes
 
 **Après** (avec plein écran + comparaison):
+
 - Trier 100 photos: 10 minutes (plein écran)
 - Sélectionner doublons: 5 minutes (comparaison)
 - Total: 15 minutes
@@ -578,12 +624,14 @@ Vitesse: 5 groupes/minute
 ### Précision
 
 **Comparaison A/B**:
+
 - ✅ Voir détails côte à côte
 - ✅ Même échelle
 - ✅ Décision plus facile
 - ✅ Moins d'erreurs
 
 **Plein écran**:
+
 - ✅ Voir image en grand
 - ✅ Vérifier netteté
 - ✅ Zoom pour détails
@@ -596,11 +644,13 @@ Vitesse: 5 groupes/minute
 ### Performance
 
 **FullscreenViewer**:
+
 - Render: < 50ms
 - Navigation: < 100ms
 - Zoom: Instant (CSS transform)
 
 **ComparisonView**:
+
 - Render: < 100ms
 - Sélection: < 50ms
 - Fermeture: 1s (intentionnel)
@@ -626,6 +676,7 @@ Vitesse: 5 groupes/minute
 **Phase 2 : 100% COMPLÉTÉE** 🎉
 
 **Fonctionnalités**:
+
 - ✅ Mode plein écran avec navigation
 - ✅ Comparaison A/B intelligente
 - ✅ Zoom dynamique
@@ -645,6 +696,7 @@ Vitesse: 5 groupes/minute
 ## 🚀 PROCHAINES ÉTAPES (Phase 3)
 
 ### Optionnel
+
 1. ⚠️ Mode Loupe (zoom 100%, 200%, 400%)
 2. ⚠️ Collections intelligentes auto
 3. ⚠️ Export par note

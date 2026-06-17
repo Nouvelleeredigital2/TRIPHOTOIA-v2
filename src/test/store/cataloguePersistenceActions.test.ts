@@ -21,10 +21,25 @@ describe('restoreCatalogueState (A-47)', () => {
 
   it('restores photos, collections, order, active collection, tags and notes in one shot', () => {
     const saved: CatalogueState = {
-      photos: [makePhoto('p1'), makePhoto('p2', { analysis: { isRejected: true } })],
+      photos: [
+        makePhoto('p1'),
+        makePhoto('p2', { analysis: { isRejected: true } }),
+      ],
       collections: {
-        'col-a': { id: 'col-a', name: 'Mariage', photoIds: ['p1'], createdAt: 't', updatedAt: 't' },
-        'col-b': { id: 'col-b', name: 'Portraits', photoIds: ['p2'], createdAt: 't', updatedAt: 't' },
+        'col-a': {
+          id: 'col-a',
+          name: 'Mariage',
+          photoIds: ['p1'],
+          createdAt: 't',
+          updatedAt: 't',
+        },
+        'col-b': {
+          id: 'col-b',
+          name: 'Portraits',
+          photoIds: ['p2'],
+          createdAt: 't',
+          updatedAt: 't',
+        },
       },
       collectionOrder: ['col-b', 'col-a'],
       activeCollectionId: 'col-a',
@@ -65,7 +80,13 @@ describe('restoreCatalogueState (A-47)', () => {
     const saved: CatalogueState = {
       photos: [makePhoto('p1')],
       collections: {
-        'col-x': { id: 'col-x', name: 'X', photoIds: [], createdAt: 't', updatedAt: 't' },
+        'col-x': {
+          id: 'col-x',
+          name: 'X',
+          photoIds: [],
+          createdAt: 't',
+          updatedAt: 't',
+        },
       },
       collectionOrder: ['col-x'],
       activeCollectionId: 'does-not-exist',
@@ -82,7 +103,9 @@ describe('restoreCatalogueState (A-47)', () => {
 describe('clearAll resets collections (A-49)', () => {
   it('rebuilds a single default collection', () => {
     usePhotoStore.getState().createCollection('Temporaire');
-    expect(Object.keys(usePhotoStore.getState().collections).length).toBeGreaterThan(1);
+    expect(
+      Object.keys(usePhotoStore.getState().collections).length
+    ).toBeGreaterThan(1);
 
     usePhotoStore.getState().clearAll();
     const s = usePhotoStore.getState();

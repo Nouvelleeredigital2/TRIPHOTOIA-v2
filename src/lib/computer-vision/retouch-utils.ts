@@ -1,12 +1,16 @@
 import { AutoRetouchPreset, RetouchOptions } from '../../types';
 
-export const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+export const clamp = (value: number, min: number, max: number) =>
+  Math.min(Math.max(value, min), max);
 
 const LUMINANCE_R = 0.2126;
 const LUMINANCE_G = 0.7152;
 const LUMINANCE_B = 0.0722;
 
-export const applyToneAndPresenceAdjustments = (imageData: ImageData, options: RetouchOptions): ImageData => {
+export const applyToneAndPresenceAdjustments = (
+  imageData: ImageData,
+  options: RetouchOptions
+): ImageData => {
   const { data, width, height } = imageData;
   const length = data.length;
 
@@ -25,7 +29,10 @@ export const applyToneAndPresenceAdjustments = (imageData: ImageData, options: R
   // Precompute simple blur for texture enhancement (3x3 box) using separable pass on luminance
   const luminance = new Float32Array(width * height);
   for (let i = 0, p = 0; i < length; i += 4, p++) {
-    luminance[p] = data[i] * LUMINANCE_R + data[i + 1] * LUMINANCE_G + data[i + 2] * LUMINANCE_B;
+    luminance[p] =
+      data[i] * LUMINANCE_R +
+      data[i + 1] * LUMINANCE_G +
+      data[i + 2] * LUMINANCE_B;
   }
 
   const blurred = texture !== 0 ? boxBlur(luminance, width, height) : luminance;
@@ -116,7 +123,10 @@ export const applyToneAndPresenceAdjustments = (imageData: ImageData, options: R
   return imageData;
 };
 
-export const applyUnsharpMask = (imageData: ImageData, intensity: number): ImageData => {
+export const applyUnsharpMask = (
+  imageData: ImageData,
+  intensity: number
+): ImageData => {
   const { data, width, height } = imageData;
   const output = new ImageData(new Uint8ClampedArray(data), width, height);
 
@@ -162,7 +172,11 @@ export const applyUnsharpMask = (imageData: ImageData, intensity: number): Image
   return output;
 };
 
-const boxBlur = (source: Float32Array, width: number, height: number): Float32Array => {
+const boxBlur = (
+  source: Float32Array,
+  width: number,
+  height: number
+): Float32Array => {
   const radius = 1;
   const output = new Float32Array(source.length);
 
@@ -202,7 +216,11 @@ const boxBlur = (source: Float32Array, width: number, height: number): Float32Ar
   return output;
 };
 
-const percentileFromHistogram = (histogram: Uint32Array, total: number, percentile: number): number => {
+const percentileFromHistogram = (
+  histogram: Uint32Array,
+  total: number,
+  percentile: number
+): number => {
   const target = total * percentile;
   let cumulative = 0;
   for (let i = 0; i < histogram.length; i++) {
@@ -214,7 +232,9 @@ const percentileFromHistogram = (histogram: Uint32Array, total: number, percenti
   return histogram.length - 1;
 };
 
-export const computeAutoRetouchOptions = (imageData: ImageData): AutoRetouchPreset => {
+export const computeAutoRetouchOptions = (
+  imageData: ImageData
+): AutoRetouchPreset => {
   const { data, width, height } = imageData;
   const totalPixels = width * height;
   if (totalPixels === 0) {
@@ -249,7 +269,8 @@ export const computeAutoRetouchOptions = (imageData: ImageData): AutoRetouchPres
 
     const maxChannel = Math.max(r, g, b);
     const minChannel = Math.min(r, g, b);
-    const saturation = maxChannel === 0 ? 0 : (maxChannel - minChannel) / maxChannel;
+    const saturation =
+      maxChannel === 0 ? 0 : (maxChannel - minChannel) / maxChannel;
     sumSat += saturation;
 
     tempAccum += r - b;
@@ -257,7 +278,7 @@ export const computeAutoRetouchOptions = (imageData: ImageData): AutoRetouchPres
 
     if (edgeCount > 0) {
       sumEdge += Math.abs(lum - prevLum);
-      sumTexture += Math.abs((r - g) + (g - b));
+      sumTexture += Math.abs(r - g + (g - b));
     }
     prevLum = lum;
     edgeCount++;
@@ -334,7 +355,11 @@ export const computeAutoRetouchOptions = (imageData: ImageData): AutoRetouchPres
     decisions++;
   }
 
-  const dehazeAdj = clamp(((p90 - p10) < 110 ? 20 : 0) - ((p98 - p2) < 180 ? 10 : 0), -20, 25);
+  const dehazeAdj = clamp(
+    (p90 - p10 < 110 ? 20 : 0) - (p98 - p2 < 180 ? 10 : 0),
+    -20,
+    25
+  );
   if (Math.abs(dehazeAdj) > 3) {
     options.dehaze = dehazeAdj;
     decisions++;

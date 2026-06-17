@@ -3,7 +3,7 @@
  * Analyse r??elle des images pour d??tecter flou et doublons
  */
 
-import { PhotoAnalysis } from '../../types';
+import { PhotoAnalysis } from '../types';
 
 export const simpleAnalysisService = {
   analyzePhotosBatch: async (files: File[]): Promise<PhotoAnalysis[]> => {
@@ -23,14 +23,16 @@ export const simpleAnalysisService = {
       } catch (error) {
         console.error(`??? Erreur pour ${file.name}:`, error);
         results.push({
-          error: `Erreur d'analyse: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
+          error: `Erreur d'analyse: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
         });
       }
     }
 
-    console.log(`??? Analyse d'images termin??e: ${results.length} r??sultat(s)`);
+    console.log(
+      `??? Analyse d'images termin??e: ${results.length} r??sultat(s)`
+    );
     return results;
-  }
+  },
 };
 
 async function analyzeImageWithCanvas(file: File): Promise<PhotoAnalysis> {
@@ -79,14 +81,19 @@ async function analyzeImageWithCanvas(file: File): Promise<PhotoAnalysis> {
     };
     img.onerror = () => {
       URL.revokeObjectURL(objectUrl);
-      reject(new Error('Impossible de charger l\'image'));
+      reject(new Error("Impossible de charger l'image"));
     };
     const objectUrl = URL.createObjectURL(file);
     img.src = objectUrl;
   });
 }
 
-function analyzeImageData(data: Uint8ClampedArray, width: number, height: number, file: File): PhotoAnalysis {
+function analyzeImageData(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  file: File
+): PhotoAnalysis {
   // 1. D??tection de flou avec Laplacian
   const blurAnalysis = detectBlur(data, width, height);
 
@@ -111,12 +118,16 @@ function analyzeImageData(data: Uint8ClampedArray, width: number, height: number
     suggestedRetouch: {
       brightness: colorAnalysis.brightness,
       contrast: colorAnalysis.contrast,
-      saturation: colorAnalysis.saturation
-    }
+      saturation: colorAnalysis.saturation,
+    },
   };
 }
 
-function detectBlur(data: Uint8ClampedArray, width: number, height: number): { isBlurry: boolean; sharpnessScore: number } {
+function detectBlur(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number
+): { isBlurry: boolean; sharpnessScore: number } {
   // Utiliser plusieurs m??thodes pour une d??tection plus pr??cise
 
   // 1. Variance Laplacian (d??tection de contours)
@@ -129,7 +140,8 @@ function detectBlur(data: Uint8ClampedArray, width: number, height: number): { i
   const frequencyScore = calculateFrequencyScore(data, width, height);
 
   // Combiner les scores de mani??re ??quilibr??e
-  const combinedScore = (laplacianVariance + sobelVariance + frequencyScore) / 3;
+  const combinedScore =
+    (laplacianVariance + sobelVariance + frequencyScore) / 3;
 
   // Normaliser le score (0-1)
   const sharpnessScore = Math.min(Math.max(combinedScore, 0), 1);
@@ -143,7 +155,11 @@ function detectBlur(data: Uint8ClampedArray, width: number, height: number): { i
   return { isBlurry, sharpnessScore };
 }
 
-function calculateLaplacianVariance(data: Uint8ClampedArray, width: number, height: number): number {
+function calculateLaplacianVariance(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number
+): number {
   let laplacianSum = 0;
   let laplacianSumSquared = 0;
   let count = 0;
@@ -151,7 +167,7 @@ function calculateLaplacianVariance(data: Uint8ClampedArray, width: number, heig
   const laplacianKernel = [
     [0, -1, 0],
     [-1, 4, -1],
-    [0, -1, 0]
+    [0, -1, 0],
   ];
 
   for (let y = 1; y < height - 1; y++) {
@@ -173,12 +189,16 @@ function calculateLaplacianVariance(data: Uint8ClampedArray, width: number, heig
   }
 
   const mean = laplacianSum / count;
-  const variance = (laplacianSumSquared / count) - (mean * mean);
+  const variance = laplacianSumSquared / count - mean * mean;
 
   return Math.min(variance / 10000, 1.0); // Normalis?? bas?? sur la variance maximale th??orique
 }
 
-function calculateSobelVariance(data: Uint8ClampedArray, width: number, height: number): number {
+function calculateSobelVariance(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number
+): number {
   let sobelSum = 0;
   let sobelSumSquared = 0;
   let count = 0;
@@ -186,18 +206,19 @@ function calculateSobelVariance(data: Uint8ClampedArray, width: number, height: 
   const sobelX = [
     [-1, 0, 1],
     [-2, 0, 2],
-    [-1, 0, 1]
+    [-1, 0, 1],
   ];
 
   const sobelY = [
     [-1, -2, -1],
     [0, 0, 0],
-    [1, 2, 1]
+    [1, 2, 1],
   ];
 
   for (let y = 1; y < height - 1; y++) {
     for (let x = 1; x < width - 1; x++) {
-      let gx = 0, gy = 0;
+      let gx = 0,
+        gy = 0;
 
       for (let ky = 0; ky < 3; ky++) {
         for (let kx = 0; kx < 3; kx++) {
@@ -216,12 +237,16 @@ function calculateSobelVariance(data: Uint8ClampedArray, width: number, height: 
   }
 
   const mean = sobelSum / count;
-  const variance = (sobelSumSquared / count) - (mean * mean);
+  const variance = sobelSumSquared / count - mean * mean;
 
   return Math.min(variance / 5000, 1.0); // Normalis?? bas?? sur la variance maximale th??orique
 }
 
-function calculateFrequencyScore(data: Uint8ClampedArray, width: number, height: number): number {
+function calculateFrequencyScore(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number
+): number {
   // Analyse simplifi??e des hautes fr??quences
   let highFreqSum = 0;
   let count = 0;
@@ -259,7 +284,11 @@ function calculateFrequencyScore(data: Uint8ClampedArray, width: number, height:
   return count > 0 ? Math.min(highFreqSum / (count * 255), 1.0) : 0;
 }
 
-function calculateImageVariance(data: Uint8ClampedArray, width: number, height: number): number {
+function calculateImageVariance(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number
+): number {
   let sum = 0;
   let sumSquared = 0;
   let count = 0;
@@ -278,12 +307,16 @@ function calculateImageVariance(data: Uint8ClampedArray, width: number, height: 
   if (count === 0) return 0;
 
   const mean = sum / count;
-  const variance = (sumSquared / count) - (mean * mean);
+  const variance = sumSquared / count - mean * mean;
 
   return Math.min(variance / (255 * 255), 1.0); // Normalis??
 }
 
-function calculateAverageBrightness(data: Uint8ClampedArray, width: number, height: number): number {
+function calculateAverageBrightness(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number
+): number {
   let sum = 0;
   let count = 0;
 
@@ -300,7 +333,11 @@ function calculateAverageBrightness(data: Uint8ClampedArray, width: number, heig
   return count > 0 ? sum / count : 128;
 }
 
-function generatePerceptualHash(data: Uint8ClampedArray, width: number, height: number): string {
+function generatePerceptualHash(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number
+): string {
   // Redimensionner ?? 8x8 pour le hash
   const hashSize = 8;
   const resizedData = resizeImageData(data, width, height, hashSize, hashSize);
@@ -322,7 +359,11 @@ function generatePerceptualHash(data: Uint8ClampedArray, width: number, height: 
   return hash;
 }
 
-function analyzeColors(data: Uint8ClampedArray, _width: number, _height: number): { brightness: number; contrast: number; saturation: number } {
+function analyzeColors(
+  data: Uint8ClampedArray,
+  _width: number,
+  _height: number
+): { brightness: number; contrast: number; saturation: number } {
   let totalBrightness = 0;
   let totalSaturation = 0;
   let count = 0;
@@ -352,25 +393,39 @@ function analyzeColors(data: Uint8ClampedArray, _width: number, _height: number)
   let contrastSum = 0;
   for (let i = 0; i < data.length; i += 4) {
     const gray = getGrayValue(data, i);
-    contrastSum += Math.abs(gray - (avgBrightness * 255));
+    contrastSum += Math.abs(gray - avgBrightness * 255);
   }
   const contrast = Math.min(contrastSum / (count * 255), 1.0);
 
   return {
     brightness: avgBrightness, // Valeur r??elle 0-1
     contrast: contrast, // Valeur r??elle 0-1
-    saturation: avgSaturation // Valeur r??elle 0-1
+    saturation: avgSaturation, // Valeur r??elle 0-1
   };
 }
 
-function detectEyes(data: Uint8ClampedArray, width: number, height: number): boolean {
+function detectEyes(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number
+): boolean {
   // Zone du haut de l'image (o?? sont g??n??ralement les yeux)
   const eyeRegionHeight = Math.floor(height * 0.3); // Zone plus petite et plus pr??cise
 
   // Analyser plusieurs zones pour d??tecter les yeux
   const zones = [
-    { startX: 0, endX: Math.floor(width * 0.4), startY: 0, endY: Math.floor(eyeRegionHeight * 0.6) }, // Zone gauche
-    { startX: Math.floor(width * 0.6), endX: width, startY: 0, endY: Math.floor(eyeRegionHeight * 0.6) }, // Zone droite
+    {
+      startX: 0,
+      endX: Math.floor(width * 0.4),
+      startY: 0,
+      endY: Math.floor(eyeRegionHeight * 0.6),
+    }, // Zone gauche
+    {
+      startX: Math.floor(width * 0.6),
+      endX: width,
+      startY: 0,
+      endY: Math.floor(eyeRegionHeight * 0.6),
+    }, // Zone droite
   ];
 
   let totalEyeScore = 0;
@@ -395,7 +450,8 @@ function detectEyes(data: Uint8ClampedArray, width: number, height: number): boo
         if (y > 0 && x > 0) {
           const topPixel = getGrayValue(data, ((y - 1) * width + x) * 4);
           const leftPixel = getGrayValue(data, (y * width + (x - 1)) * 4);
-          const gradient = Math.abs(gray - topPixel) + Math.abs(gray - leftPixel);
+          const gradient =
+            Math.abs(gray - topPixel) + Math.abs(gray - leftPixel);
 
           // Seuil de contour bas?? sur la variance de l'image
           const imageVariance = calculateImageVariance(data, width, height);
@@ -435,15 +491,20 @@ function detectEyes(data: Uint8ClampedArray, width: number, height: number): boo
     }
   }
 
-  const avgEyeZoneBrightness = eyeZoneCount > 0 ? eyeZoneBrightness / eyeZoneCount : 128;
+  const avgEyeZoneBrightness =
+    eyeZoneCount > 0 ? eyeZoneBrightness / eyeZoneCount : 128;
 
   // Plus la zone est sombre, plus on s'attend ?? des yeux
-  const dynamicThreshold = (255 - avgEyeZoneBrightness) / 255 * 0.2;
+  const dynamicThreshold = ((255 - avgEyeZoneBrightness) / 255) * 0.2;
 
   return avgEyeScore > dynamicThreshold;
 }
 
-function generateTags(file: File, blurAnalysis: { isBlurry: boolean; sharpnessScore: number }, colorAnalysis: { brightness: number; contrast: number; saturation: number }): string[] {
+function generateTags(
+  file: File,
+  blurAnalysis: { isBlurry: boolean; sharpnessScore: number },
+  colorAnalysis: { brightness: number; contrast: number; saturation: number }
+): string[] {
   const tags: string[] = [];
   const fileName = file.name.toLowerCase();
   const fileSize = file.size;
@@ -504,10 +565,18 @@ function generateTags(file: File, blurAnalysis: { isBlurry: boolean; sharpnessSc
   }
 
   // Tags bas??s sur le nom de fichier (plus complets)
-  if (fileName.includes('portrait') || fileName.includes('selfie') || fileName.includes('face')) {
+  if (
+    fileName.includes('portrait') ||
+    fileName.includes('selfie') ||
+    fileName.includes('face')
+  ) {
     tags.push('portrait', 'selfie');
   }
-  if (fileName.includes('landscape') || fileName.includes('paysage') || fileName.includes('nature')) {
+  if (
+    fileName.includes('landscape') ||
+    fileName.includes('paysage') ||
+    fileName.includes('nature')
+  ) {
     tags.push('landscape', 'paysage');
   }
   if (fileName.includes('macro') || fileName.includes('close')) {
@@ -516,18 +585,26 @@ function generateTags(file: File, blurAnalysis: { isBlurry: boolean; sharpnessSc
   if (fileName.includes('night') || fileName.includes('nuit')) {
     tags.push('nuit', 'night');
   }
-  if (fileName.includes('sunset') || fileName.includes('sunrise') || fileName.includes('coucher')) {
+  if (
+    fileName.includes('sunset') ||
+    fileName.includes('sunrise') ||
+    fileName.includes('coucher')
+  ) {
     tags.push('coucher-soleil', 'sunset');
   }
 
   // Tags bas??s sur la qualit?? technique (valeurs r??elles)
   const qualityThreshold = 0.5; // Seuil bas?? sur la qualit?? moyenne
-  if (blurAnalysis.sharpnessScore > qualityThreshold + 0.2 &&
-      colorAnalysis.contrast > qualityThreshold + 0.2 &&
-      colorAnalysis.saturation > qualityThreshold + 0.2) {
+  if (
+    blurAnalysis.sharpnessScore > qualityThreshold + 0.2 &&
+    colorAnalysis.contrast > qualityThreshold + 0.2 &&
+    colorAnalysis.saturation > qualityThreshold + 0.2
+  ) {
     tags.push('haute-qualit??', 'high-quality');
-  } else if (blurAnalysis.sharpnessScore < qualityThreshold - 0.3 ||
-             colorAnalysis.contrast < qualityThreshold - 0.3) {
+  } else if (
+    blurAnalysis.sharpnessScore < qualityThreshold - 0.3 ||
+    colorAnalysis.contrast < qualityThreshold - 0.3
+  ) {
     tags.push('qualit??-moyenne', 'medium-quality');
   }
 
@@ -541,7 +618,13 @@ function getGrayValue(data: Uint8ClampedArray, index: number): number {
   return 0.299 * r + 0.587 * g + 0.114 * b;
 }
 
-function resizeImageData(data: Uint8ClampedArray, srcWidth: number, srcHeight: number, dstWidth: number, dstHeight: number): Uint8ClampedArray {
+function resizeImageData(
+  data: Uint8ClampedArray,
+  srcWidth: number,
+  srcHeight: number,
+  dstWidth: number,
+  dstHeight: number
+): Uint8ClampedArray {
   const dstData = new Uint8ClampedArray(dstWidth * dstHeight * 4);
   const xRatio = srcWidth / dstWidth;
   const yRatio = srcHeight / dstHeight;
@@ -562,5 +645,3 @@ function resizeImageData(data: Uint8ClampedArray, srcWidth: number, srcHeight: n
 
   return dstData;
 }
-
-

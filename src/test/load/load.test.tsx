@@ -37,7 +37,8 @@ describe('Load Tests', () => {
 
   it('handles rapid analysis-queue churn without corrupting state', async () => {
     await renderApp();
-    const { addToAnalysisQueue, removeFromAnalysisQueue } = usePhotoStore.getState();
+    const { addToAnalysisQueue, removeFromAnalysisQueue } =
+      usePhotoStore.getState();
 
     for (let i = 0; i < 1000; i++) {
       addToAnalysisQueue([`photo-${i}`]);
@@ -55,7 +56,12 @@ describe('Load Tests', () => {
     addPhotos(photos);
 
     setDuplicateGroups([
-      { id: 'group-1', hash: 'a'.repeat(64), photos, bestPhotoId: photos[0].id },
+      {
+        id: 'group-1',
+        hash: 'a'.repeat(64),
+        photos,
+        bestPhotoId: photos[0].id,
+      },
     ]);
 
     expect(usePhotoStore.getState().photos).toHaveLength(100);
@@ -76,13 +82,18 @@ describe('Load Tests', () => {
 
     const promises: Promise<void>[] = [];
     for (let i = 0; i < 100; i++) {
-      promises.push(Promise.resolve().then(() =>
-        addPhotos([{
-          id: `test-photo-${i}`,
-          file: new File([''], `test-${i}.jpg`, { type: 'image/jpeg' }),
-          previewUrl: `mocked-url-${i}`,
-          analysis: null,
-        }])));
+      promises.push(
+        Promise.resolve().then(() =>
+          addPhotos([
+            {
+              id: `test-photo-${i}`,
+              file: new File([''], `test-${i}.jpg`, { type: 'image/jpeg' }),
+              previewUrl: `mocked-url-${i}`,
+              analysis: null,
+            },
+          ])
+        )
+      );
     }
     promises.push(Promise.resolve().then(() => setActiveTab('triage')));
     promises.push(Promise.resolve().then(() => setActiveTab('export')));
@@ -115,7 +126,10 @@ describe('Load Tests', () => {
     addPhotos(makePhotos(100));
 
     for (let i = 0; i < 100; i++) {
-      updatePhotoAnalysis(`photo-${i}`, { tags: [`tag-${i}`], sharpnessScore: Math.random() });
+      updatePhotoAnalysis(`photo-${i}`, {
+        tags: [`tag-${i}`],
+        sharpnessScore: Math.random(),
+      });
     }
 
     expect(usePhotoStore.getState().photos).toHaveLength(100);
@@ -129,7 +143,12 @@ describe('Load Tests', () => {
 
     for (let i = 0; i < 50; i++) {
       setDuplicateGroups([
-        { id: `group-${i}`, hash: 'a'.repeat(64), photos: photos.slice(0, 10), bestPhotoId: photos[0].id },
+        {
+          id: `group-${i}`,
+          hash: 'a'.repeat(64),
+          photos: photos.slice(0, 10),
+          bestPhotoId: photos[0].id,
+        },
       ]);
     }
 

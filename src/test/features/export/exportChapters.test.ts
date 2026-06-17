@@ -3,14 +3,22 @@ import { describe, expect, it } from 'vitest';
 import { buildExportChapters } from '../../../features/export/exportChapters';
 import { Photo, PhotoCollection } from '../../../types';
 
-const makePhoto = (id: string, name = `${id}.jpg`, analysis: Photo['analysis'] = {}): Photo => ({
+const makePhoto = (
+  id: string,
+  name = `${id}.jpg`,
+  analysis: Photo['analysis'] = {}
+): Photo => ({
   id,
   file: new File([''], name, { type: 'image/jpeg' }),
   previewUrl: `${id}.jpg`,
   analysis,
 });
 
-const makeCollection = (id: string, name: string, photoIds: string[]): PhotoCollection => ({
+const makeCollection = (
+  id: string,
+  name: string,
+  photoIds: string[]
+): PhotoCollection => ({
   id,
   name,
   photoIds,
@@ -43,7 +51,12 @@ describe('exportChapters', () => {
       },
     });
 
-    expect(chapters.map((chapter) => [chapter.name, chapter.photos.map((photo) => photo.id)])).toEqual([
+    expect(
+      chapters.map((chapter) => [
+        chapter.name,
+        chapter.photos.map((photo) => photo.id),
+      ])
+    ).toEqual([
       ['Préparatifs', ['prep-1']],
       ['Couple', ['couple-1']],
     ]);
@@ -51,7 +64,10 @@ describe('exportChapters', () => {
 
   it('applies export filters inside each chapter', () => {
     const keeper = makePhoto('keeper', 'keeper.jpg', { isPick: true });
-    const rejected = makePhoto('rejected', 'rejected.jpg', { isPick: true, isRejected: true });
+    const rejected = makePhoto('rejected', 'rejected.jpg', {
+      isPick: true,
+      isRejected: true,
+    });
 
     const chapters = buildExportChapters({
       photos: [keeper, rejected],

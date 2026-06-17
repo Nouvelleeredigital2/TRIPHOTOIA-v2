@@ -19,10 +19,10 @@ photographe sur tout le flux de post-production amont :
 
 L'application fonctionne selon **deux modes complémentaires** :
 
-| Mode | Stockage | Cible | Connexion requise |
-| --- | --- | --- | --- |
-| **Local** | Navigateur (IndexedDB / mémoire) | Tri rapide perso, hors-ligne | Non |
-| **Cloud** | Supabase (Postgres + Storage) | Projets, collaboration, partage client | Oui (compte) |
+| Mode      | Stockage                         | Cible                                  | Connexion requise |
+| --------- | -------------------------------- | -------------------------------------- | ----------------- |
+| **Local** | Navigateur (IndexedDB / mémoire) | Tri rapide perso, hors-ligne           | Non               |
+| **Cloud** | Supabase (Postgres + Storage)    | Projets, collaboration, partage client | Oui (compte)      |
 
 > Le mode local reste pleinement fonctionnel sans aucune configuration Supabase.
 > Le mode cloud s'active dès que les variables `VITE_SUPABASE_*` sont renseignées.
@@ -34,11 +34,13 @@ L'application fonctionne selon **deux modes complémentaires** :
 L'interface est organisée autour de trois onglets numérotés, plus le mode AutoFlow.
 
 ### Étape 1 — Ingestion (`src/features/ingestion`)
+
 - Glisser-déposer ou sélection de fichiers (JPEG, PNG, WebP, HEIC, RAW…).
 - Lancement de l'analyse IA à l'import (file d'attente persistée).
 - Aperçu de la progression et de la liste des photos importées.
 
 ### Étape 2 — Triage (`src/features/triage`)
+
 - Notation **0–5 étoiles**, flags **Pick / Reject / Unreviewed** (style Lightroom).
 - **Filtres intelligents** : 5 étoiles, Picks, Rejetées, Floues, Doublons, erreurs.
 - **Mode plein écran** (visionneuse immersive, zoom, navigation clavier).
@@ -46,11 +48,13 @@ L'interface est organisée autour de trois onglets numérotés, plus le mode Aut
 - **Panneau de détail** photo (métadonnées, histogramme RGB, scores IA).
 
 ### Étape 3 — Exportation (`src/features/export`)
+
 - Sélection à exporter (picks, favoris, collection…).
 - **Export ZIP** avec retouches appliquées (presets d'export).
 - Organisation par **chapitres** / collections.
 
 ### Développement (`src/features/development`)
+
 - Retouches de base avec **preview temps réel** (WebGL / GPU).
 - Pipeline de retouche déportée dans un **Web Worker** (`retouchWorker`).
 
@@ -66,22 +70,22 @@ en mode « Swipe ».
 
 **Raccourcis clavier (mode Swipe)** :
 
-| Touche | Action |
-| --- | --- |
-| `→` | Pick (garder) |
-| `←` | Reject (rejeter) |
-| `↑` | Favori + 5 étoiles |
+| Touche  | Action                       |
+| ------- | ---------------------------- |
+| `→`     | Pick (garder)                |
+| `←`     | Reject (rejeter)             |
+| `↑`     | Favori + 5 étoiles           |
 | `1`–`5` | Note manuelle (sans avancer) |
-| `Échap` | Retour au tableau de bord |
+| `Échap` | Retour au tableau de bord    |
 
 **Correspondance des décisions** :
 
-| Décision | Effet |
-| --- | --- |
-| `pick` | pick=vrai, rejected=faux, favorite=faux, classe=`keep` |
-| `reject` | rejected=vrai, pick=faux, favorite=faux, classe=`reject` |
-| `favorite` | pick=vrai, favorite=vrai, note=5, classe=`keep` |
-| `review` | tout faux, classe=`review` |
+| Décision   | Effet                                                    |
+| ---------- | -------------------------------------------------------- |
+| `pick`     | pick=vrai, rejected=faux, favorite=faux, classe=`keep`   |
+| `reject`   | rejected=vrai, pick=faux, favorite=faux, classe=`reject` |
+| `favorite` | pick=vrai, favorite=vrai, note=5, classe=`keep`          |
+| `review`   | tout faux, classe=`review`                               |
 
 Écrans AutoFlow : tableau de bord, écran d'import, analyse, mode Swipe,
 galerie, comparateur de doublons.
@@ -91,7 +95,9 @@ galerie, comparateur de doublons.
 ## 4. Intelligence artificielle & vision par ordinateur
 
 ### Analyse côté navigateur (`src/lib/computer-vision`, `src/services`)
+
 Plusieurs services d'analyse coexistent (déterministe local, worker, Gemini) :
+
 - **Détection de flou / score de netteté** (`blur-detection.ts`).
 - **Score qualité** multi-critères : netteté, composition, exposition
   (`photo-scoring.ts`) → notation automatique (`auto-rating.ts`, presets dans
@@ -102,6 +108,7 @@ Plusieurs services d'analyse coexistent (déterministe local, worker, Gemini) :
 - Analyse lourde déportée en **Web Workers** (`src/workers/imageAnalysisWorker.ts`).
 
 ### Fournisseur IA optionnel
+
 - **Google Gemini** (`services/geminiService.ts`) pour une analyse enrichie
   (sélectionnable via `ApiSelector`).
 
@@ -114,29 +121,35 @@ Le mode cloud transforme TreePhoto en outil multi-projets et collaboratif.
 ### 5.1 Modèle de données (schéma `public`)
 
 **Organisations & projets**
+
 - `organizations`, `organization_members` (rôles owner/admin/member)
 - `projects` (statut active/archived, opt-in `face_analysis_enabled`)
 
 **Photos & analyse**
+
 - `photos` (note, pick_status, classe AutoFlow, favori, soft-delete, statut d'analyse)
 - `photo_analysis` (scores netteté/composition/exposition, flou, hash perceptuel, tags)
 - `photo_embeddings` — vecteur **512 dims** (pgvector + index HNSW) pour la recherche sémantique
 - `people`, `photo_faces` — visages, vecteur **128 dims** (strict opt-in, jamais nommés automatiquement)
 
 **Organisation**
+
 - `collections`, `collection_photos` (manuelles / smart / système)
 - `jobs` — file de traitement asynchrone (thumbnail, qualité, hash, embedding, visages)
 
 **Sync locale & partage client**
+
 - `photo_metadata`, `cloud_collections`, `session_stats`
 - `share_links` (lien partagé par token), `share_approvals` (validations client)
 
 ### 5.2 Stockage (buckets)
+
 - `project-photos` — **privé**, 100 Mo/fichier, accès par appartenance au projet.
 - `shared-photos` — **public**, 50 Mo/fichier, écriture réservée au propriétaire
   (lecture publique via URL non devinable pour le partage client).
 
 ### 5.3 Sécurité (RLS + RPC)
+
 - **Row Level Security** activée sur toutes les tables.
 - Accès aux données filtré par appartenance via `is_organization_member` /
   `is_project_member`.
@@ -150,7 +163,9 @@ Le mode cloud transforme TreePhoto en outil multi-projets et collaboratif.
   révoqué.
 
 ### 5.4 Worker de traitement (`worker/`)
+
 Process serveur (jamais le navigateur) qui consomme la table `jobs` :
+
 - Poll → claim (verrou par `worker_id`) → traite → réécrit le résultat.
 - Types de jobs : `generate_thumbnail`, `quality_analysis`, `perceptual_hash`,
   `semantic_embedding`, `face_detection`.
@@ -165,6 +180,7 @@ node_modules/.bin/tsx --env-file=.env.local scripts/worker-e2e.mts
 ```
 
 ### 5.5 Recherche sémantique & visages
+
 - **Recherche image→image et texte→image** via les embeddings CLIP et la RPC
   `match_photo_embeddings` (similarité cosinus, scope projet).
 - **Visages** : détection anonyme uniquement, nommage toujours manuel, activable
@@ -184,15 +200,15 @@ node_modules/.bin/tsx --env-file=.env.local scripts/worker-e2e.mts
 
 ## 7. Stack technique
 
-| Domaine | Technologies |
-| --- | --- |
-| UI | React 19, TypeScript, Vite 6, Tailwind CSS 3, Framer Motion |
-| État | Zustand (+ immer), TanStack Query |
-| Composants | Radix UI, React Hook Form, React Hot Toast, lucide-react |
-| Backend | Supabase (Postgres, Auth, Storage, pgvector) |
-| Worker | Node + tsx, `@supabase/supabase-js` (service role) |
-| Qualité | ESLint, Prettier, Vitest, React Testing Library |
-| Divers | JSZip (export), react-dropzone, @fontsource (Space Grotesk auto-hébergée) |
+| Domaine    | Technologies                                                              |
+| ---------- | ------------------------------------------------------------------------- |
+| UI         | React 19, TypeScript, Vite 6, Tailwind CSS 3, Framer Motion               |
+| État       | Zustand (+ immer), TanStack Query                                         |
+| Composants | Radix UI, React Hook Form, React Hot Toast, lucide-react                  |
+| Backend    | Supabase (Postgres, Auth, Storage, pgvector)                              |
+| Worker     | Node + tsx, `@supabase/supabase-js` (service role)                        |
+| Qualité    | ESLint, Prettier, Vitest, React Testing Library                           |
+| Divers     | JSZip (export), react-dropzone, @fontsource (Space Grotesk auto-hébergée) |
 
 ---
 
@@ -250,12 +266,14 @@ pnpm worker           # worker de traitement des jobs cloud
 Copier `.env.example` vers `.env.local`.
 
 **Frontend (exposé au navigateur — clé publique uniquement)**
+
 ```
 VITE_SUPABASE_URL=https://<ref>.supabase.co
 VITE_SUPABASE_ANON_KEY=<clé anon publique>
 ```
 
 **Worker (serveur/VPS — JAMAIS exposé au navigateur)**
+
 ```
 SUPABASE_URL=https://<ref>.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<clé service_role secrète>

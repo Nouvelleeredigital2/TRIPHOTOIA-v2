@@ -66,14 +66,18 @@ export class AutoRetoucher {
       preserveOriginal: true,
       maxFileSize: 10 * 1024 * 1024, // 10MB
       quality: 90,
-      ...config
+      ...config,
     };
   }
 
   /**
    * Analyse une image et suggère des corrections
    */
-  async analyzeImage(imageData: Uint8Array, width: number, height: number): Promise<RetouchAnalysis> {
+  async analyzeImage(
+    imageData: Uint8Array,
+    width: number,
+    height: number
+  ): Promise<RetouchAnalysis> {
     const metrics = await this.calculateImageMetrics(imageData, width, height);
     const suggestedOptions = this.generateSuggestedOptions(metrics);
 
@@ -85,7 +89,7 @@ export class AutoRetoucher {
       needsWhiteBalance: this.needsWhiteBalanceCorrection(metrics.whiteBalance),
       needsExposure: this.needsExposureCorrection(metrics.exposure),
       confidence: this.calculateAnalysisConfidence(metrics),
-      suggestedOptions
+      suggestedOptions,
     };
   }
 
@@ -98,7 +102,9 @@ export class AutoRetoucher {
     height: number,
     options?: Partial<RetouchOptions>
   ): Promise<RetouchResult> {
-    const originalImage = this.config.preserveOriginal ? new Uint8Array(imageData) : imageData;
+    const originalImage = this.config.preserveOriginal
+      ? new Uint8Array(imageData)
+      : imageData;
 
     // Analyser l'image si nécessaire
     let analysis: RetouchAnalysis;
@@ -111,11 +117,24 @@ export class AutoRetoucher {
     }
 
     // Appliquer les corrections
-    const retouchedImage = await this.applyCorrections(imageData, width, height, options);
+    const retouchedImage = await this.applyCorrections(
+      imageData,
+      width,
+      height,
+      options
+    );
 
     // Calculer les métriques avant/après
-    const beforeMetrics = await this.calculateImageMetrics(originalImage, width, height);
-    const afterMetrics = await this.calculateImageMetrics(retouchedImage, width, height);
+    const beforeMetrics = await this.calculateImageMetrics(
+      originalImage,
+      width,
+      height
+    );
+    const afterMetrics = await this.calculateImageMetrics(
+      retouchedImage,
+      width,
+      height
+    );
 
     return {
       success: true,
@@ -124,18 +143,34 @@ export class AutoRetoucher {
       appliedOptions: options as RetouchOptions,
       analysis,
       beforeAfterMetrics: {
-        brightness: { before: beforeMetrics.brightness, after: afterMetrics.brightness },
-        contrast: { before: beforeMetrics.contrast, after: afterMetrics.contrast },
-        saturation: { before: beforeMetrics.saturation, after: afterMetrics.saturation },
-        sharpness: { before: beforeMetrics.sharpness, after: afterMetrics.sharpness }
-      }
+        brightness: {
+          before: beforeMetrics.brightness,
+          after: afterMetrics.brightness,
+        },
+        contrast: {
+          before: beforeMetrics.contrast,
+          after: afterMetrics.contrast,
+        },
+        saturation: {
+          before: beforeMetrics.saturation,
+          after: afterMetrics.saturation,
+        },
+        sharpness: {
+          before: beforeMetrics.sharpness,
+          after: afterMetrics.sharpness,
+        },
+      },
     };
   }
 
   /**
    * Calcule les métriques d'une image
    */
-  private async calculateImageMetrics(imageData: Uint8Array, width: number, height: number): Promise<{
+  private async calculateImageMetrics(
+    imageData: Uint8Array,
+    width: number,
+    height: number
+  ): Promise<{
     brightness: number;
     contrast: number;
     saturation: number;
@@ -152,19 +187,27 @@ export class AutoRetoucher {
       saturation: this.calculateSaturation(channels),
       sharpness: this.calculateSharpness(grayscale, width, height),
       whiteBalance: this.calculateWhiteBalance(channels),
-      exposure: this.calculateExposure(grayscale)
+      exposure: this.calculateExposure(grayscale),
     };
   }
 
   /**
    * Sépare les canaux de couleur
    */
-  private separateChannels(imageData: Uint8Array, width: number, height: number): {
+  private separateChannels(
+    imageData: Uint8Array,
+    width: number,
+    height: number
+  ): {
     red: number[];
     green: number[];
     blue: number[];
   } {
-    const channels = { red: [] as number[], green: [] as number[], blue: [] as number[] };
+    const channels = {
+      red: [] as number[],
+      green: [] as number[],
+      blue: [] as number[],
+    };
     const channelsCount = imageData.length / (width * height);
 
     for (let i = 0; i < width * height; i++) {
@@ -180,7 +223,11 @@ export class AutoRetoucher {
   /**
    * Convertit en niveaux de gris
    */
-  private convertToGrayscale(imageData: Uint8Array, width: number, height: number): number[] {
+  private convertToGrayscale(
+    imageData: Uint8Array,
+    width: number,
+    height: number
+  ): number[] {
     const grayscale: number[] = [];
     const channelsCount = imageData.length / (width * height);
 
@@ -209,14 +256,20 @@ export class AutoRetoucher {
    */
   private calculateContrast(grayscale: number[]): number {
     const mean = this.calculateBrightness(grayscale);
-    const variance = grayscale.reduce((sum, value) => sum + Math.pow(value - mean, 2), 0) / grayscale.length;
+    const variance =
+      grayscale.reduce((sum, value) => sum + Math.pow(value - mean, 2), 0) /
+      grayscale.length;
     return Math.sqrt(variance);
   }
 
   /**
    * Calcule la saturation
    */
-  private calculateSaturation(channels: { red: number[]; green: number[]; blue: number[] }): number {
+  private calculateSaturation(channels: {
+    red: number[];
+    green: number[];
+    blue: number[];
+  }): number {
     let totalSaturation = 0;
     const pixelCount = channels.red.length;
 
@@ -238,12 +291,16 @@ export class AutoRetoucher {
   /**
    * Calcule la netteté
    */
-  private calculateSharpness(grayscale: number[], width: number, height: number): number {
+  private calculateSharpness(
+    grayscale: number[],
+    width: number,
+    height: number
+  ): number {
     // Utilise le filtre de Laplace pour détecter les bords
     const laplacianKernel = [
       [0, -1, 0],
       [-1, 4, -1],
-      [0, -1, 0]
+      [0, -1, 0],
     ];
 
     let sharpness = 0;
@@ -270,13 +327,22 @@ export class AutoRetoucher {
   /**
    * Calcule la balance des blancs
    */
-  private calculateWhiteBalance(channels: { red: number[]; green: number[]; blue: number[] }): {
+  private calculateWhiteBalance(channels: {
+    red: number[];
+    green: number[];
+    blue: number[];
+  }): {
     temperature: number;
     tint: number;
   } {
-    const rMean = channels.red.reduce((sum, value) => sum + value, 0) / channels.red.length;
-    const gMean = channels.green.reduce((sum, value) => sum + value, 0) / channels.green.length;
-    const bMean = channels.blue.reduce((sum, value) => sum + value, 0) / channels.blue.length;
+    const rMean =
+      channels.red.reduce((sum, value) => sum + value, 0) / channels.red.length;
+    const gMean =
+      channels.green.reduce((sum, value) => sum + value, 0) /
+      channels.green.length;
+    const bMean =
+      channels.blue.reduce((sum, value) => sum + value, 0) /
+      channels.blue.length;
 
     // Calcul simplifié de la température et de la teinte
     const temperature = ((rMean + bMean) / 2 - gMean) * 2;
@@ -284,7 +350,7 @@ export class AutoRetoucher {
 
     return {
       temperature: Math.max(-100, Math.min(100, temperature)),
-      tint: Math.max(-100, Math.min(100, tint))
+      tint: Math.max(-100, Math.min(100, tint)),
     };
   }
 
@@ -294,7 +360,7 @@ export class AutoRetoucher {
   private calculateExposure(grayscale: number[]): number {
     const mean = this.calculateBrightness(grayscale);
     // Normalise l'exposition (0 = sous-exposé, 128 = correct, 255 = surexposé)
-    return (mean - 128) / 128 * 100;
+    return ((mean - 128) / 128) * 100;
   }
 
   /**
@@ -309,13 +375,14 @@ export class AutoRetoucher {
       saturation: this.suggestSaturation(metrics.saturation) * intensity,
       sharpness: this.suggestSharpness(metrics.sharpness) * intensity,
       whiteBalance: {
-        temperature: this.suggestTemperature(metrics.whiteBalance.temperature) * intensity,
-        tint: this.suggestTint(metrics.whiteBalance.tint) * intensity
+        temperature:
+          this.suggestTemperature(metrics.whiteBalance.temperature) * intensity,
+        tint: this.suggestTint(metrics.whiteBalance.tint) * intensity,
       },
       exposure: this.suggestExposure(metrics.exposure) * intensity,
       highlights: 0,
       shadows: 0,
-      vibrance: this.suggestVibrance(metrics.saturation) * intensity
+      vibrance: this.suggestVibrance(metrics.saturation) * intensity,
     };
   }
 
@@ -348,7 +415,11 @@ export class AutoRetoucher {
         value = this.adjustExposure(value, options.exposure);
 
         // Balance des blancs
-        if (c === 0) value = this.adjustTemperature(value, options.whiteBalance.temperature);
+        if (c === 0)
+          value = this.adjustTemperature(
+            value,
+            options.whiteBalance.temperature
+          );
         if (c === 2) value = this.adjustTint(value, options.whiteBalance.tint);
 
         // Saturation
@@ -365,7 +436,7 @@ export class AutoRetoucher {
    * Ajuste la luminosité
    */
   private adjustBrightness(value: number, adjustment: number): number {
-    return value + (adjustment * 2.55);
+    return value + adjustment * 2.55;
   }
 
   /**
@@ -387,22 +458,26 @@ export class AutoRetoucher {
    * Ajuste la température
    */
   private adjustTemperature(value: number, adjustment: number): number {
-    return value + (adjustment * 0.5);
+    return value + adjustment * 0.5;
   }
 
   /**
    * Ajuste la teinte
    */
   private adjustTint(value: number, adjustment: number): number {
-    return value + (adjustment * 0.3);
+    return value + adjustment * 0.3;
   }
 
   /**
    * Ajuste la saturation
    */
-  private adjustSaturation(value: number, adjustment: number, _channel: number): number {
+  private adjustSaturation(
+    value: number,
+    adjustment: number,
+    _channel: number
+  ): number {
     // Saturation affecte différemment chaque canal
-    const factor = 1 + (adjustment / 100);
+    const factor = 1 + adjustment / 100;
     return value * factor;
   }
 
@@ -468,8 +543,14 @@ export class AutoRetoucher {
     return sharpness < 50;
   }
 
-  private needsWhiteBalanceCorrection(whiteBalance: { temperature: number; tint: number }): boolean {
-    return Math.abs(whiteBalance.temperature) > 20 || Math.abs(whiteBalance.tint) > 20;
+  private needsWhiteBalanceCorrection(whiteBalance: {
+    temperature: number;
+    tint: number;
+  }): boolean {
+    return (
+      Math.abs(whiteBalance.temperature) > 20 ||
+      Math.abs(whiteBalance.tint) > 20
+    );
   }
 
   private needsExposureCorrection(exposure: number): boolean {

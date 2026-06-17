@@ -6,21 +6,31 @@ const migrationPath = join(
   process.cwd(),
   'supabase',
   'migrations',
-  '20260531010000_treephoto_cloud_project_mutations.sql',
+  '20260531010000_treephoto_cloud_project_mutations.sql'
 );
 
 describe('cloud project mutations migration', () => {
   const sql = readFileSync(migrationPath, 'utf8').toLowerCase();
 
   it('defines rename / archive / soft-delete RPCs as security definer', () => {
-    expect(sql).toContain('create or replace function public.rename_user_project');
-    expect(sql).toContain('create or replace function public.archive_user_project');
-    expect(sql).toContain('create or replace function public.set_cloud_photo_deleted');
-    expect((sql.match(/security definer/g) ?? []).length).toBeGreaterThanOrEqual(3);
+    expect(sql).toContain(
+      'create or replace function public.rename_user_project'
+    );
+    expect(sql).toContain(
+      'create or replace function public.archive_user_project'
+    );
+    expect(sql).toContain(
+      'create or replace function public.set_cloud_photo_deleted'
+    );
+    expect(
+      (sql.match(/security definer/g) ?? []).length
+    ).toBeGreaterThanOrEqual(3);
   });
 
   it('checks project membership before mutating', () => {
-    expect((sql.match(/is_project_member/g) ?? []).length).toBeGreaterThanOrEqual(3);
+    expect(
+      (sql.match(/is_project_member/g) ?? []).length
+    ).toBeGreaterThanOrEqual(3);
   });
 
   it('enforces unique project name on rename (A-40)', () => {
@@ -36,7 +46,11 @@ describe('cloud project mutations migration', () => {
   });
 
   it('grants execution to authenticated users', () => {
-    expect(sql).toContain('grant execute on function public.rename_user_project(uuid, text) to authenticated');
-    expect(sql).toContain('grant execute on function public.set_cloud_photo_deleted(uuid, boolean) to authenticated');
+    expect(sql).toContain(
+      'grant execute on function public.rename_user_project(uuid, text) to authenticated'
+    );
+    expect(sql).toContain(
+      'grant execute on function public.set_cloud_photo_deleted(uuid, boolean) to authenticated'
+    );
   });
 });

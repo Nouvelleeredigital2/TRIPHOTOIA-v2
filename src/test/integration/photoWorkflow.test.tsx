@@ -6,7 +6,9 @@ describe('Photo Workflow Integration', () => {
     await renderApp();
     expect(screen.getByText('Tree Photo IA')).toBeInTheDocument();
     // IngestionTab is lazy-loaded — wait for Suspense to resolve
-    await waitFor(() => expect(screen.getByText('Ingestion Tab')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('Ingestion Tab')).toBeInTheDocument()
+    );
   });
 
   it('switches to triage tab on click', async () => {

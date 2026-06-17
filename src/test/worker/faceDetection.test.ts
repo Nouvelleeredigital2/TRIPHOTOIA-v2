@@ -8,7 +8,9 @@ import {
 describe('deterministic face detector', () => {
   it('detects at least one face with a 128-dim embedding and bounding box', async () => {
     const detector = createDeterministicFaceDetector();
-    const faces = await detector.detect({ storagePath: 'projects/p1/photo.jpg' });
+    const faces = await detector.detect({
+      storagePath: 'projects/p1/photo.jpg',
+    });
     expect(faces.length).toBeGreaterThanOrEqual(1);
     faces.forEach((face) => {
       expect(face.embedding).toHaveLength(FACE_EMBEDDING_DIMENSIONS);
@@ -32,7 +34,9 @@ describe('deterministic face detector', () => {
 
   it('never assigns a name or person to detected faces', async () => {
     const detector = createDeterministicFaceDetector();
-    const faces = await detector.detect({ storagePath: 'projects/p1/photo.jpg' });
+    const faces = await detector.detect({
+      storagePath: 'projects/p1/photo.jpg',
+    });
     faces.forEach((face) => {
       expect(face).not.toHaveProperty('personId');
       expect(face).not.toHaveProperty('displayName');
@@ -51,10 +55,14 @@ describe('createFaceDetector', () => {
   });
 
   it('throws on an unknown provider', () => {
-    expect(() => createFaceDetector({ FACE_PROVIDER: 'mystery' })).toThrow(/Unknown FACE_PROVIDER/);
+    expect(() => createFaceDetector({ FACE_PROVIDER: 'mystery' })).toThrow(
+      /Unknown FACE_PROVIDER/
+    );
   });
 
   it('reports the onnx provider as a not-yet-wired extension point', () => {
-    expect(() => createFaceDetector({ FACE_PROVIDER: 'onnx' })).toThrow(/not wired yet/);
+    expect(() => createFaceDetector({ FACE_PROVIDER: 'onnx' })).toThrow(
+      /not wired yet/
+    );
   });
 });

@@ -40,9 +40,31 @@ export class WorkerAnalysisService {
   private pendingTasks: PendingTask[] = [];
   private workerTaskMap: Map<Worker, string> = new Map();
 
-  constructor(maxWorkers: number = navigator.hardwareConcurrency || 4) {
-    this.maxWorkers = Math.min(maxWorkers, 8); // Limiter ?? 8 workers max
+  constructor(
+    // P0-C : pool borné. Par défaut (nb. cœurs - 1), plafonné entre 1 et 4 pour
+    // éviter la saturation mémoire/CPU sur de gros lots.
+    maxWorkers: number = Math.max(
+      1,
+      Math.min(4, (navigator.hardwareConcurrency ?? 4) - 1)
+    )
+  ) {
+    this.maxWorkers = Math.max(1, Math.min(4, maxWorkers));
     this.initializeWorkers();
+  }
+
+  /**
+   * Crée un Web Worker d'analyse pixel réel. P0-B : aucun fallback vers un
+   * worker simulé — en cas d'échec total, le service retombe sur l'analyse
+   * locale Canvas réelle (`fallbackAnalysis`), jamais sur des scores fabriqués.
+   */
+  private createWorker(): Worker {
+    const worker = new Worker(
+      new URL('../workers/imageAnalysisWorker.ts', import.meta.url),
+      { type: 'module' }
+    );
+    worker.onmessage = this.handleWorkerMessage.bind(this);
+    worker.onerror = this.handleWorkerError.bind(this);
+    return worker;
   }
 
   /**
@@ -51,27 +73,12 @@ export class WorkerAnalysisService {
   private initializeWorkers(): void {
     for (let i = 0; i < this.maxWorkers; i++) {
       try {
-        // Essayer d'abord le worker complexe, puis le simple en fallback
-        let worker: Worker;
-        try {
-          worker = new Worker(
-            new URL('../workers/imageAnalysisWorker.ts', import.meta.url),
-            { type: 'module' }
-          );
-        } catch (complexError) {
-          console.warn('Worker complexe ??chou??, utilisation du worker simple:', complexError);
-          worker = new Worker(
-            new URL('../workers/simpleImageWorker.ts', import.meta.url),
-            { type: 'module' }
-          );
-        }
-
-        worker.onmessage = this.handleWorkerMessage.bind(this);
-        worker.onerror = this.handleWorkerError.bind(this);
-
-        this.workers.push(worker);
+        this.workers.push(this.createWorker());
       } catch (error) {
-        console.warn('Impossible de cr??er un Web Worker, utilisation du mode synchrone:', error);
+        console.warn(
+          'Impossible de créer un Web Worker, utilisation du mode synchrone:',
+          error
+        );
       }
     }
   }
@@ -105,7 +112,7 @@ export class WorkerAnalysisService {
 
       task.resolve(photoAnalysis);
     } else if (type === 'ANALYSIS_ERROR') {
-      task.reject(new Error(payload.error || 'Erreur d\'analyse'));
+      task.reject(new Error(payload.error || "Erreur d'analyse"));
     }
 
     // Traiter la prochaine t??che en attente
@@ -123,44 +130,49 @@ export class WorkerAnalysisService {
 
     if (taskId) {
       this.failTask(taskId, new Error(error.message));
-      this.workerTaskMap.delete(worker);
     }
 
-    this.activeWorkers.delete(worker);
-
-    // Red??marrer le worker si possible
-    this.restartWorker();
+    // P0-C : retrait à l'index exact + terminaison + nettoyage des listeners,
+    // puis remplacement borné par la taille du pool.
+    this.replaceWorker(worker);
     this.processNextTask();
   }
 
   /**
-   * Red??marre un worker en cas d'erreur
+   * Remplace un worker fautif. P0-C : on retire le worker en erreur à son index
+   * exact, on le termine, puis on le remplace sans dépasser la taille du pool.
    */
-  private restartWorker(): void {
+  private replaceWorker(faulty: Worker): void {
+    const index = this.workers.indexOf(faulty);
     try {
-      // Utiliser le worker simple pour le red??marrage
-      const newWorker = new Worker(
-        new URL('../workers/simpleImageWorker.ts', import.meta.url),
-        { type: 'module' }
-      );
+      faulty.onmessage = null;
+      faulty.onerror = null;
+      faulty.terminate();
+    } catch {
+      // worker déjà terminé : rien à faire.
+    }
 
-      newWorker.onmessage = this.handleWorkerMessage.bind(this);
-      newWorker.onerror = this.handleWorkerError.bind(this);
+    if (index !== -1) {
+      this.workers.splice(index, 1);
+    }
+    this.activeWorkers.delete(faulty);
+    this.workerTaskMap.delete(faulty);
 
-      this.workers.push(newWorker);
-    } catch (error) {
-      console.error('Impossible de red??marrer le worker:', error);
+    // On ne remplace que si l'on reste sous la taille maximale du pool.
+    if (this.workers.length < this.maxWorkers) {
+      try {
+        this.workers.push(this.createWorker());
+      } catch (error) {
+        console.error('Impossible de remplacer le worker:', error);
+      }
     }
   }
 
-  private releaseWorkerForTask(taskId: string): void {
+  private findWorkerByTask(taskId: string): Worker | undefined {
     for (const [worker, assignedTaskId] of this.workerTaskMap.entries()) {
-      if (assignedTaskId === taskId) {
-        this.workerTaskMap.delete(worker);
-        this.activeWorkers.delete(worker);
-        break;
-      }
+      if (assignedTaskId === taskId) return worker;
     }
+    return undefined;
   }
 
   private failTask(taskId: string, error: Error): void {
@@ -171,7 +183,7 @@ export class WorkerAnalysisService {
   }
 
   private extractTask(taskId: string): PendingTask | undefined {
-    const taskIndex = this.pendingTasks.findIndex(task => task.id === taskId);
+    const taskIndex = this.pendingTasks.findIndex((task) => task.id === taskId);
     if (taskIndex === -1) {
       return undefined;
     }
@@ -187,10 +199,14 @@ export class WorkerAnalysisService {
   private processNextTask(): void {
     if (this.pendingTasks.length === 0) return;
 
-    const availableWorker = this.workers.find(worker => !this.activeWorkers.has(worker));
+    const availableWorker = this.workers.find(
+      (worker) => !this.activeWorkers.has(worker)
+    );
     if (!availableWorker) return;
 
-    const taskIndex = this.pendingTasks.findIndex(task => task.status === 'pending');
+    const taskIndex = this.pendingTasks.findIndex(
+      (task) => task.status === 'pending'
+    );
     if (taskIndex === -1) {
       return;
     }
@@ -204,8 +220,8 @@ export class WorkerAnalysisService {
       type: 'ANALYZE_IMAGE',
       payload: {
         file: task.file,
-        id: task.id
-      }
+        id: task.id,
+      },
     };
 
     availableWorker.postMessage(message);
@@ -214,28 +230,64 @@ export class WorkerAnalysisService {
   /**
    * Analyse un lot de photos en utilisant les Web Workers
    */
-  async analyzePhotosBatch(files: File[]): Promise<PhotoAnalysis[]> {
+  async analyzePhotosBatch(
+    files: File[],
+    options: { signal?: AbortSignal } = {}
+  ): Promise<PhotoAnalysis[]> {
     if (files.length === 0) {
       return [];
     }
 
-    console.log(`???? Analyse avec Web Workers de ${files.length} photo(s)...`);
+    const { signal } = options;
+    // P0-C : annulation. Si déjà annulé, on renvoie une erreur par fichier
+    // (jamais un score), sans rien dispatcher.
+    if (signal?.aborted) {
+      return files.map(() => ({ error: 'Analyse annulée' }));
+    }
 
     // Si pas de workers disponibles, utiliser l'analyse synchrone
     if (this.workers.length === 0) {
-      console.warn('Aucun Web Worker disponible, utilisation de l\'analyse synchrone');
+      console.warn(
+        "Aucun Web Worker disponible, utilisation de l'analyse synchrone"
+      );
       return this.fallbackAnalysis(files);
     }
 
+    const ids = files.map(
+      (file, index) => `${file.name}-${file.size}-${file.lastModified}-${index}`
+    );
+    const abortedIds = new Set<string>();
+
+    // P0-C : à l'annulation, on rejette les tâches encore en file pour ce lot et
+    // on termine le worker éventuellement bloqué dessus, sans toucher aux autres
+    // lots ni laisser de tâche pendante.
+    const onAbort = () => {
+      for (const id of ids) {
+        if (this.pendingTasks.some((t) => t.id === id)) {
+          abortedIds.add(id);
+          const stuck = this.findWorkerByTask(id);
+          this.failTask(id, new Error('Analyse annulée'));
+          if (stuck) this.replaceWorker(stuck);
+        }
+      }
+      this.processNextTask();
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
+
     try {
       const promises = files.map((file, index) => {
-        const id = `${file.name}-${file.size}-${file.lastModified}-${index}`;
+        const id = ids[index];
 
         return new Promise<PhotoAnalysis>((resolvePromise, rejectPromise) => {
           const handleTimeout = () => {
-            console.warn(`??? Timeout pour ${file.name}, fallback vers l'analyse locale`);
+            console.warn(`⏱️ Timeout pour ${file.name}`);
+            // P0-C : le timeout n'affecte que cette photo. Le worker bloqué est
+            // terminé puis remplacé (jamais réutilisé avec une tâche périmée).
+            const stuck = this.findWorkerByTask(id);
             this.failTask(id, new Error(`Timeout pour ${file.name}`));
-            this.releaseWorkerForTask(id);
+            if (stuck) {
+              this.replaceWorker(stuck);
+            }
             this.processNextTask();
           };
 
@@ -253,7 +305,7 @@ export class WorkerAnalysisService {
             reject: (error: Error) => {
               clearTimeout(timeoutId);
               rejectPromise(error);
-            }
+            },
           };
 
           this.pendingTasks.push(task);
@@ -261,14 +313,41 @@ export class WorkerAnalysisService {
         });
       });
 
-      const results = await Promise.all(promises);
-      console.log(`??? Analyse termin??e pour ${results.length} photo(s)`);
+      // P0-C / P0-B : résultat par fichier (jamais « tout ou rien »). Un échec
+      // ou un timeout isolé n'invalide pas le lot : seules les photos en échec
+      // retombent sur l'analyse locale réelle (Canvas), jamais sur un score
+      // fabriqué.
+      const settled = await Promise.allSettled(promises);
 
-      return results;
+      // Les photos annulées ne retombent pas sur l'analyse locale : elles
+      // portent une erreur d'annulation explicite.
+      const failedIndexes: number[] = [];
+      settled.forEach((outcome, index) => {
+        if (outcome.status === 'rejected' && !abortedIds.has(ids[index])) {
+          failedIndexes.push(index);
+        }
+      });
+
+      let fallbackByIndex = new Map<number, PhotoAnalysis>();
+      if (failedIndexes.length > 0) {
+        const fallbackResults = await this.fallbackAnalysis(
+          failedIndexes.map((i) => files[i])
+        );
+        fallbackByIndex = new Map(
+          failedIndexes.map((i, k) => [i, fallbackResults[k]])
+        );
+      }
+
+      return settled.map((outcome, index) => {
+        if (outcome.status === 'fulfilled') return outcome.value;
+        if (abortedIds.has(ids[index])) return { error: 'Analyse annulée' };
+        return fallbackByIndex.get(index) ?? { error: 'Analyse échouée' };
+      });
     } catch (error) {
-      console.error('Erreur lors de l\'analyse avec Web Workers:', error);
-      console.log('???? Fallback vers l\'analyse locale...');
+      console.error("Erreur lors de l'analyse avec Web Workers:", error);
       return this.fallbackAnalysis(files);
+    } finally {
+      signal?.removeEventListener('abort', onAbort);
     }
   }
 
@@ -282,16 +361,30 @@ export class WorkerAnalysisService {
   }
 
   /**
-   * Nettoie les workers
+   * Termine tous les workers et rejette proprement les tâches en attente.
+   * P0-C : aucune tâche pendante, timer ou listener ne survit à la destruction.
    */
-  cleanup(): void {
-    this.workers.forEach(worker => {
+  dispose(): void {
+    this.workers.forEach((worker) => {
+      worker.onmessage = null;
+      worker.onerror = null;
       worker.terminate();
     });
     this.workers = [];
     this.activeWorkers.clear();
-    this.pendingTasks.forEach(task => clearTimeout(task.timeoutId));
+    this.workerTaskMap.clear();
+
+    const pending = this.pendingTasks;
     this.pendingTasks = [];
+    pending.forEach((task) => {
+      clearTimeout(task.timeoutId);
+      task.reject(new Error('Analyse annulée (service arrêté)'));
+    });
+  }
+
+  /** @deprecated Utiliser {@link dispose}. Conservé pour compatibilité. */
+  cleanup(): void {
+    this.dispose();
   }
 
   /**
@@ -305,11 +398,10 @@ export class WorkerAnalysisService {
     return {
       totalWorkers: this.workers.length,
       activeWorkers: this.activeWorkers.size,
-      pendingTasks: this.pendingTasks.length
+      pendingTasks: this.pendingTasks.length,
     };
   }
 }
 
 // Instance singleton
 export const workerAnalysisService = new WorkerAnalysisService();
-

@@ -33,7 +33,9 @@ export function parseEmbedding(value: unknown): number[] | null {
   if (typeof value === 'string') {
     try {
       const parsed = JSON.parse(value);
-      return Array.isArray(parsed) ? parsed.map((entry) => Number(entry)) : null;
+      return Array.isArray(parsed)
+        ? parsed.map((entry) => Number(entry))
+        : null;
     } catch {
       return null;
     }
@@ -47,7 +49,9 @@ export function formatSimilarityScore(similarity: number): string {
   return `${Math.round(clamped * 100)} % similaire`;
 }
 
-function requireSupabase(client: SupabaseClient | null = supabase): SupabaseClient {
+function requireSupabase(
+  client: SupabaseClient | null = supabase
+): SupabaseClient {
   if (!client) {
     throw new Error('Supabase non configuré');
   }
@@ -63,7 +67,7 @@ interface MatchParams {
 
 async function matchEmbeddings(
   db: SupabaseClient,
-  { projectId, embedding, matchCount, excludePhotoId = null }: MatchParams,
+  { projectId, embedding, matchCount, excludePhotoId = null }: MatchParams
 ): Promise<SemanticSearchResponse> {
   const { data, error } = await db.rpc('match_photo_embeddings', {
     query_embedding: embedding,
@@ -76,8 +80,12 @@ async function matchEmbeddings(
     return { source: 'fallback', results: [], reason: 'rpc-error' };
   }
 
-  const results = ((data ?? []) as Array<{ photo_id: string; similarity: number }>)
-    .map((row) => ({ photoId: row.photo_id, similarity: Number(row.similarity) }));
+  const results = (
+    (data ?? []) as Array<{ photo_id: string; similarity: number }>
+  ).map((row) => ({
+    photoId: row.photo_id,
+    similarity: Number(row.similarity),
+  }));
 
   if (results.length === 0) {
     return { source: 'fallback', results: [], reason: 'no-results' };
@@ -110,12 +118,19 @@ export async function searchSimilarToPhoto({
 
   if (error) throw error;
 
-  const embedding = parseEmbedding((data as { embedding?: unknown } | null)?.embedding);
+  const embedding = parseEmbedding(
+    (data as { embedding?: unknown } | null)?.embedding
+  );
   if (!embedding) {
     return { source: 'fallback', results: [], reason: 'no-embedding' };
   }
 
-  return matchEmbeddings(db, { projectId, embedding, matchCount, excludePhotoId: photoId });
+  return matchEmbeddings(db, {
+    projectId,
+    embedding,
+    matchCount,
+    excludePhotoId: photoId,
+  });
 }
 
 export type TextEmbedder = (query: string) => Promise<number[]>;
@@ -126,7 +141,7 @@ export type TextEmbedder = (query: string) => Promise<number[]>;
  * configuré (l'appelant retombe alors sur le fallback mot-clé V1).
  */
 export function createEdgeTextEmbedder(
-  client: SupabaseClient | null = supabase,
+  client: SupabaseClient | null = supabase
 ): TextEmbedder | null {
   if (!client) return null;
   return async (query: string): Promise<number[]> => {

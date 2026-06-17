@@ -55,20 +55,34 @@ describe('PhotoStore', () => {
     };
 
     addPhotos([mockPhoto]);
-    updatePhotoAnalysis('test-photo', { tags: ['nature'], sharpnessScore: 0.8 });
+    updatePhotoAnalysis('test-photo', {
+      tags: ['nature'],
+      sharpnessScore: 0.8,
+    });
 
     const { photos } = usePhotoStore.getState();
-    expect(photos[0].analysis).toEqual({ tags: ['nature'], sharpnessScore: 0.8 });
+    expect(photos[0].analysis).toEqual({
+      tags: ['nature'],
+      sharpnessScore: 0.8,
+    });
   });
 
   it('should manage analysis queue', () => {
-    const { addToAnalysisQueue, removeFromAnalysisQueue } = usePhotoStore.getState();
+    const { addToAnalysisQueue, removeFromAnalysisQueue } =
+      usePhotoStore.getState();
 
     addToAnalysisQueue(['photo1', 'photo2', 'photo3']);
-    expect(usePhotoStore.getState().analysisQueue).toEqual(['photo1', 'photo2', 'photo3']);
+    expect(usePhotoStore.getState().analysisQueue).toEqual([
+      'photo1',
+      'photo2',
+      'photo3',
+    ]);
 
     removeFromAnalysisQueue(['photo1']);
-    expect(usePhotoStore.getState().analysisQueue).toEqual(['photo2', 'photo3']);
+    expect(usePhotoStore.getState().analysisQueue).toEqual([
+      'photo2',
+      'photo3',
+    ]);
   });
 
   it('should handle undo actions', () => {
@@ -77,7 +91,11 @@ describe('PhotoStore', () => {
     // Add an undo action
     addUndoAction({
       type: 'SET_BEST',
-      payload: { groupId: 'group1', previousBestId: 'photo1', newBestId: 'photo2' },
+      payload: {
+        groupId: 'group1',
+        previousBestId: 'photo1',
+        newBestId: 'photo2',
+      },
     });
 
     expect(usePhotoStore.getState().undoStack).toHaveLength(1);
@@ -115,7 +133,9 @@ describe('PhotoStore', () => {
     const firstState = usePhotoStore.getState();
 
     expect(createdIds).toHaveLength(11);
-    expect(firstState.collectionOrder.map((id) => firstState.collections[id]?.name)).toEqual([
+    expect(
+      firstState.collectionOrder.map((id) => firstState.collections[id]?.name)
+    ).toEqual([
       'Collection principale',
       'Préparatifs',
       'Cérémonie',

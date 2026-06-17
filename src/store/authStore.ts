@@ -26,7 +26,10 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   signIn: async (email, password) => {
     if (!supabase) throw new Error('Supabase non configuré');
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     if (error) throw error;
   },
 
@@ -58,7 +61,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
 
     // Écouter les changements d'état auth
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       set({
         user: session?.user ?? null,
         session: session ?? null,

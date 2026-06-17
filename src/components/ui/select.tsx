@@ -1,4 +1,11 @@
-import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 type SelectContextValue = {
   open: boolean;
@@ -23,7 +30,9 @@ export function Select({
 }>) {
   const [open, setOpen] = useState(false);
   const [internalValue, setInternalValue] = useState<string | undefined>(value);
-  const [selectedLabel, setSelectedLabel] = useState<string | undefined>(undefined);
+  const [selectedLabel, setSelectedLabel] = useState<string | undefined>(
+    undefined
+  );
 
   // Keep internal value in sync if controlled
   React.useEffect(() => {
@@ -31,46 +40,64 @@ export function Select({
   }, [value]);
 
   // useCallback : sinon setValue est recréé à chaque rendu et invalide le useMemo du contexte.
-  const setValue = useCallback((newValue: string, label?: string) => {
-    setInternalValue(newValue);
-    if (label) setSelectedLabel(label);
-    onValueChange?.(newValue);
-    setOpen(false);
-  }, [onValueChange]);
+  const setValue = useCallback(
+    (newValue: string, label?: string) => {
+      setInternalValue(newValue);
+      if (label) setSelectedLabel(label);
+      onValueChange?.(newValue);
+      setOpen(false);
+    },
+    [onValueChange]
+  );
 
   const ctx = useMemo<SelectContextValue>(
-    () => ({ open, setOpen, value: internalValue, setValue, selectedLabel, placeholder }),
+    () => ({
+      open,
+      setOpen,
+      value: internalValue,
+      setValue,
+      selectedLabel,
+      placeholder,
+    }),
     [open, internalValue, selectedLabel, placeholder, setValue]
   );
 
-  return <SelectContext.Provider value={ctx}>{children}</SelectContext.Provider>;
+  return (
+    <SelectContext.Provider value={ctx}>{children}</SelectContext.Provider>
+  );
 }
 
-export function SelectTrigger({ children, className = '' }: React.PropsWithChildren<{ className?: string }>) {
+export function SelectTrigger({
+  children,
+  className = '',
+}: React.PropsWithChildren<{ className?: string }>) {
   const ctx = useContext(SelectContext);
   if (!ctx) return null;
 
-  const label = ctx.selectedLabel ?? (ctx.value ?? ctx.placeholder ?? 'Sélectionner');
+  const label =
+    ctx.selectedLabel ?? ctx.value ?? ctx.placeholder ?? 'Sélectionner';
 
   return (
     <button
       type="button"
       onClick={() => ctx.setOpen(!ctx.open)}
       className={
-        'inline-flex items-center justify-between rounded-md border px-3 py-2 text-sm bg-background hover:bg-accent w-full ' +
+        'inline-flex w-full items-center justify-between rounded-md border bg-background px-3 py-2 text-sm hover:bg-accent ' +
         className
       }
     >
-      <span className="truncate">
-        {children ?? label}
-      </span>
+      <span className="truncate">{children ?? label}</span>
       <svg
         className="ml-2 h-4 w-4 opacity-70"
         viewBox="0 0 20 20"
         fill="currentColor"
         aria-hidden="true"
       >
-        <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+        <path
+          fillRule="evenodd"
+          d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z"
+          clipRule="evenodd"
+        />
       </svg>
     </button>
   );
@@ -89,7 +116,7 @@ export function SelectContent({
   return (
     <div className="relative z-50">
       <div
-        className={`absolute mt-2 w-56 rounded-md border bg-card shadow-lg p-1 max-h-64 overflow-auto ${className}`}
+        className={`absolute mt-2 max-h-64 w-56 overflow-auto rounded-md border bg-card p-1 shadow-lg ${className}`}
         ref={menuRef}
         role="listbox"
       >
@@ -99,7 +126,10 @@ export function SelectContent({
   );
 }
 
-export function SelectItem({ value, children }: React.PropsWithChildren<{ value: string }>) {
+export function SelectItem({
+  value,
+  children,
+}: React.PropsWithChildren<{ value: string }>) {
   const ctx = useContext(SelectContext);
   if (!ctx) return null;
 
@@ -112,7 +142,9 @@ export function SelectItem({ value, children }: React.PropsWithChildren<{ value:
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       // Créer un événement factice pour handleClick
-      const fakeEvent = { currentTarget: e.currentTarget } as React.MouseEvent<HTMLDivElement>;
+      const fakeEvent = {
+        currentTarget: e.currentTarget,
+      } as React.MouseEvent<HTMLDivElement>;
       handleClick(fakeEvent);
     }
   };
@@ -139,6 +171,11 @@ export function SelectItem({ value, children }: React.PropsWithChildren<{ value:
 export function SelectValue({ placeholder }: { placeholder?: string }) {
   const ctx = useContext(SelectContext);
   if (!ctx) return null;
-  const label = ctx.selectedLabel ?? (ctx.value ?? placeholder ?? ctx.placeholder ?? 'Sélectionner');
+  const label =
+    ctx.selectedLabel ??
+    ctx.value ??
+    placeholder ??
+    ctx.placeholder ??
+    'Sélectionner';
   return <span>{label}</span>;
 }

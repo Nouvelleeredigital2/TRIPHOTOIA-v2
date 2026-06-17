@@ -26,7 +26,10 @@ function computeHistogram(src: string): Promise<HistData | null> {
         canvas.width = Math.max(1, Math.floor(img.width * scale));
         canvas.height = Math.max(1, Math.floor(img.height * scale));
         const ctx = canvas.getContext('2d');
-        if (!ctx) { resolve(null); return; }
+        if (!ctx) {
+          resolve(null);
+          return;
+        }
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
 
@@ -60,7 +63,12 @@ interface RGBHistogramProps {
   showLegend?: boolean;
 }
 
-export function RGBHistogram({ src, height = 64, className = '', showLegend = false }: RGBHistogramProps) {
+export function RGBHistogram({
+  src,
+  height = 64,
+  className = '',
+  showLegend = false,
+}: RGBHistogramProps) {
   const [histData, setHistData] = useState<HistData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -76,13 +84,15 @@ export function RGBHistogram({ src, height = 64, className = '', showLegend = fa
       }
     });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [src]);
 
   if (loading) {
     return (
       <div
-        className={`bg-black/80 rounded animate-pulse flex items-center justify-center ${className}`}
+        className={`flex animate-pulse items-center justify-center rounded bg-black/80 ${className}`}
         style={{ height }}
       >
         <span className="text-xs text-white/30">Calcul…</span>
@@ -97,7 +107,7 @@ export function RGBHistogram({ src, height = 64, className = '', showLegend = fa
   return (
     <div className={className}>
       <div
-        className="relative bg-black rounded overflow-hidden"
+        className="relative overflow-hidden rounded bg-black"
         style={{ height }}
       >
         {(['r', 'g', 'b'] as const).map((ch) => {
@@ -124,9 +134,16 @@ export function RGBHistogram({ src, height = 64, className = '', showLegend = fa
 
       {showLegend && (
         <div className="flex justify-center gap-3 pt-1">
-          {[['R', '#ef4444'], ['V', '#22c55e'], ['B', '#3b82f6']].map(([ch, color]) => (
+          {[
+            ['R', '#ef4444'],
+            ['V', '#22c55e'],
+            ['B', '#3b82f6'],
+          ].map(([ch, color]) => (
             <span key={ch} className="flex items-center gap-1 text-xs">
-              <span className="w-2 h-2 rounded-sm inline-block" style={{ backgroundColor: color }} />
+              <span
+                className="inline-block h-2 w-2 rounded-sm"
+                style={{ backgroundColor: color }}
+              />
               {ch}
             </span>
           ))}

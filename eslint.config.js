@@ -43,7 +43,14 @@ const baseConfig = {
     // Accessibilité : règles actives. Les vrais éléments interactifs ont reçu
     // role/tabIndex/clavier ; les surfaces de geste/backdrop/wrapper ont des
     // exceptions ciblées documentées au cas par cas.
-    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrors: 'none' }],
+    '@typescript-eslint/no-unused-vars': [
+      'error',
+      {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrors: 'none',
+      },
+    ],
     '@typescript-eslint/no-explicit-any': 'error',
     'react-hooks/exhaustive-deps': 'error',
     'jsx-a11y/anchor-is-valid': 'error',
@@ -57,7 +64,15 @@ const baseConfig = {
 };
 
 export default [
-  { ignores: ['dist/', 'node_modules/', 'coverage/', 'components/', 'App.tsx', 'index.tsx', 'services/', 'test-cv.js', 'supabase/functions/'] },
+  {
+    ignores: [
+      'dist/',
+      'node_modules/',
+      'coverage/',
+      'index.tsx',
+      'supabase/functions/',
+    ],
+  },
   js.configs.recommended,
   {
     ...baseConfig,

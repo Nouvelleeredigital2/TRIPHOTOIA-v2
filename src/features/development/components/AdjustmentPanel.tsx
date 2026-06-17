@@ -31,17 +31,30 @@ const CONTROL_CONFIG: Array<{
     title: 'Balance des blancs',
     description: 'Ajustez la température et la teinte de votre image.',
     controls: [
-      { key: 'temperature', label: 'Température', min: -100, max: 100, step: 1 },
+      {
+        key: 'temperature',
+        label: 'Température',
+        min: -100,
+        max: 100,
+        step: 1,
+      },
       { key: 'tint', label: 'Teinte', min: -100, max: 100, step: 1 },
     ],
   },
   {
     title: 'Tonalité',
-    description: 'Contrôlez l’exposition globale et les détails dans les hautes lumières et les ombres.',
+    description:
+      'Contrôlez l’exposition globale et les détails dans les hautes lumières et les ombres.',
     controls: [
       { key: 'exposure', label: 'Exposition', min: -100, max: 100, step: 1 },
       { key: 'contrast', label: 'Contraste', min: -100, max: 100, step: 1 },
-      { key: 'highlights', label: 'Hautes lumières', min: -100, max: 100, step: 1 },
+      {
+        key: 'highlights',
+        label: 'Hautes lumières',
+        min: -100,
+        max: 100,
+        step: 1,
+      },
       { key: 'shadows', label: 'Ombres', min: -100, max: 100, step: 1 },
       { key: 'whites', label: 'Blancs', min: -100, max: 100, step: 1 },
       { key: 'blacks', label: 'Noirs', min: -100, max: 100, step: 1 },
@@ -61,12 +74,22 @@ const CONTROL_CONFIG: Array<{
   {
     title: 'Contraste ciblé',
     description: 'Renforcez les tons moyens sans écraser les extrêmes.',
-    controls: [{ key: 'midtoneContrast', label: 'Contraste tons moyens', min: -100, max: 100, step: 1 }],
+    controls: [
+      {
+        key: 'midtoneContrast',
+        label: 'Contraste tons moyens',
+        min: -100,
+        max: 100,
+        step: 1,
+      },
+    ],
   },
   {
     title: 'Netteté',
     description: 'Renforcez la netteté perçue sans perdre les détails fins.',
-    controls: [{ key: 'sharpness', label: 'Netteté', min: 0, max: 100, step: 1 }],
+    controls: [
+      { key: 'sharpness', label: 'Netteté', min: 0, max: 100, step: 1 },
+    ],
   },
 ];
 
@@ -96,10 +119,15 @@ export const AdjustmentPanel: React.FC<AdjustmentPanelProps> = ({
       <header className="rounded-xl bg-gradient-to-r from-primary/15 via-primary/10 to-transparent px-5 py-4 shadow-sm ring-1 ring-primary/20">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-1">
-            <p className="text-xs uppercase tracking-[0.3em] text-primary/70">Assistant de retouche</p>
-            <h3 className="text-lg font-semibold text-primary-foreground">Réglages de développement</h3>
+            <p className="text-xs uppercase tracking-[0.3em] text-primary/70">
+              Assistant de retouche
+            </p>
+            <h3 className="text-lg font-semibold text-primary-foreground">
+              Réglages de développement
+            </h3>
             <p className="text-sm text-primary-foreground/80">
-              Ajustez finement les curseurs ou laissez l’intelligence automatique proposer un preset.
+              Ajustez finement les curseurs ou laissez l’intelligence
+              automatique proposer un preset.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -151,11 +179,13 @@ export const AdjustmentPanel: React.FC<AdjustmentPanelProps> = ({
             </div>
             {lastAutoPreset ? (
               <p className="mt-2 text-xs text-primary/70">
-                Dernier preset appliqué. Ajustez librement les curseurs selon vos goûts.
+                Dernier preset appliqué. Ajustez librement les curseurs selon
+                vos goûts.
               </p>
             ) : (
               <p className="mt-2 text-xs text-primary/70">
-                Lancez l’analyse automatique pour obtenir une base équilibrée et adaptée à votre photo.
+                Lancez l’analyse automatique pour obtenir une base équilibrée et
+                adaptée à votre photo.
               </p>
             )}
           </div>
@@ -170,14 +200,21 @@ export const AdjustmentPanel: React.FC<AdjustmentPanelProps> = ({
           >
             <div>
               <h4 className="text-sm font-semibold">{section.title}</h4>
-              <p className="text-xs text-muted-foreground">{section.description}</p>
+              <p className="text-xs text-muted-foreground">
+                {section.description}
+              </p>
             </div>
 
             <div className="space-y-3">
               {section.controls.map((control) => (
-                <div key={control.key} className="space-y-2 rounded-lg bg-muted/10 p-3">
+                <div
+                  key={control.key}
+                  className="space-y-2 rounded-lg bg-muted/10 p-3"
+                >
                   <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-foreground">{control.label}</span>
+                    <span className="font-medium text-foreground">
+                      {control.label}
+                    </span>
                     <span className="font-mono text-xs text-muted-foreground">
                       {formatValue(formattedOptions[control.key])}
                     </span>
@@ -188,7 +225,9 @@ export const AdjustmentPanel: React.FC<AdjustmentPanelProps> = ({
                     max={control.max}
                     step={control.step ?? 1}
                     value={formattedOptions[control.key]}
-                    onChange={(event) => onChange(control.key, Number(event.target.value))}
+                    onChange={(event) =>
+                      onChange(control.key, Number(event.target.value))
+                    }
                     className="w-full accent-primary"
                     disabled={isProcessing}
                   />

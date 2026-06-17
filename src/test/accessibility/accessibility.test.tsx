@@ -1,7 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '../test-utils';
 import { Button } from '../../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '../../components/ui/card';
 
 describe('Accessibility Tests', () => {
   it('should have proper button accessibility', () => {
@@ -40,11 +45,7 @@ describe('Accessibility Tests', () => {
   });
 
   it('should have proper ARIA labels', () => {
-    render(
-      <Button aria-label="Close dialog">
-        ×
-      </Button>
-    );
+    render(<Button aria-label="Close dialog">×</Button>);
 
     const button = screen.getByRole('button', { name: 'Close dialog' });
     expect(button).toBeInTheDocument();
@@ -89,7 +90,7 @@ describe('Accessibility Tests', () => {
     const buttons = screen.getAllByRole('button');
 
     // Test that all buttons are focusable
-    buttons.forEach(button => {
+    buttons.forEach((button) => {
       button.focus();
       expect(document.activeElement).toBe(button);
     });

@@ -39,14 +39,20 @@ describe('cloudProjectStore', () => {
       { localPhotoId: 'local-photo-2', cloudPhotoId: 'cloud-photo-2' },
     ]);
 
-    expect(useCloudProjectStore.getState().getCloudPhotoId('local-photo-1')).toBe('cloud-photo-1');
-    expect(useCloudProjectStore.getState().getCloudPhotoId('missing-photo')).toBeUndefined();
+    expect(
+      useCloudProjectStore.getState().getCloudPhotoId('local-photo-1')
+    ).toBe('cloud-photo-1');
+    expect(
+      useCloudProjectStore.getState().getCloudPhotoId('missing-photo')
+    ).toBeUndefined();
   });
 
   it('clears cloud photo links when the cloud project is closed', () => {
-    useCloudProjectStore.getState().linkCloudPhotos([
-      { localPhotoId: 'local-photo-1', cloudPhotoId: 'cloud-photo-1' },
-    ]);
+    useCloudProjectStore
+      .getState()
+      .linkCloudPhotos([
+        { localPhotoId: 'local-photo-1', cloudPhotoId: 'cloud-photo-1' },
+      ]);
 
     useCloudProjectStore.getState().clearActiveProject();
 
@@ -59,9 +65,11 @@ describe('cloudProjectStore', () => {
       organizationId: 'org-1',
       name: 'Projet 1',
     });
-    useCloudProjectStore.getState().linkCloudPhotos([
-      { localPhotoId: 'local-photo-1', cloudPhotoId: 'cloud-photo-1' },
-    ]);
+    useCloudProjectStore
+      .getState()
+      .linkCloudPhotos([
+        { localPhotoId: 'local-photo-1', cloudPhotoId: 'cloud-photo-1' },
+      ]);
 
     useCloudProjectStore.getState().setActiveProject({
       id: 'project-2',

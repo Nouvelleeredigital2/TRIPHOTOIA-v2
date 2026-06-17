@@ -22,7 +22,7 @@ export function ComparisonView({
   photoB,
   open,
   onClose,
-  onSelectWinner
+  onSelectWinner,
 }: ComparisonViewProps) {
   const [selectedSide, setSelectedSide] = useState<'A' | 'B' | null>(null);
 
@@ -64,7 +64,7 @@ export function ComparisonView({
   const handleSelectWinner = (side: 'A' | 'B') => {
     const { photoA: pA, photoB: pB } = handlersRef.current;
     const winner = side === 'A' ? pA : pB;
-    const loser  = side === 'A' ? pB : pA;
+    const loser = side === 'A' ? pB : pA;
 
     setSelectedSide(side);
 
@@ -73,7 +73,9 @@ export function ComparisonView({
     // Ensure loser is Rejected
     if (!loser.analysis?.isRejected) togglePhotoReject(loser.id);
 
-    toast.success(`${side === 'A' ? '←' : '→'} Photo ${side} sélectionnée comme Pick`);
+    toast.success(
+      `${side === 'A' ? '←' : '→'} Photo ${side} sélectionnée comme Pick`
+    );
 
     if (onSelectWinner) onSelectWinner(winner.id);
 
@@ -87,9 +89,9 @@ export function ComparisonView({
     const isSelected = selectedSide === side;
 
     return (
-      <div className="relative flex-1 flex flex-col items-center justify-center p-8">
+      <div className="relative flex flex-1 flex-col items-center justify-center p-8">
         {/* Label */}
-        <div className="absolute top-4 left-4">
+        <div className="absolute left-4 top-4">
           <Badge
             variant={isSelected ? 'default' : 'secondary'}
             className={`text-lg font-bold ${isSelected ? 'bg-green-600' : ''}`}
@@ -100,33 +102,33 @@ export function ComparisonView({
 
         {/* Image */}
         <motion.div
-          className={`relative max-w-full max-h-full transition-all duration-300 ${
-            isSelected ? 'ring-4 ring-green-500 rounded-lg' : ''
+          className={`relative max-h-full max-w-full transition-all duration-300 ${
+            isSelected ? 'rounded-lg ring-4 ring-green-500' : ''
           }`}
           animate={{ scale: isSelected ? 1.02 : 1 }}
         >
           <img
             src={photo.previewUrl}
             alt={photo.file.name}
-            className="max-w-full max-h-[70vh] object-contain rounded-lg"
+            className="max-h-[70vh] max-w-full rounded-lg object-contain"
           />
 
           {isSelected && (
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="absolute top-4 right-4 bg-green-600 text-white rounded-full p-3"
+              className="absolute right-4 top-4 rounded-full bg-green-600 p-3 text-white"
             >
-              <Check className="w-8 h-8" />
+              <Check className="h-8 w-8" />
             </motion.div>
           )}
         </motion.div>
 
         {/* Infos */}
         <div className="mt-4 space-y-2 text-center">
-          <div className="text-white font-medium">{photo.file.name}</div>
+          <div className="font-medium text-white">{photo.file.name}</div>
 
-          <div className="flex items-center justify-center gap-3 flex-wrap">
+          <div className="flex flex-wrap items-center justify-center gap-3">
             <StarRating
               rating={photo.analysis?.rating || 0}
               onRatingChange={(rating) => setPhotoRating(photo.id, rating)}
@@ -136,8 +138,11 @@ export function ComparisonView({
 
             {photo.analysis?.colorLabel && (
               <span
-                className="w-4 h-4 rounded-full border-2 border-white/50 shrink-0"
-                style={{ backgroundColor: COLOR_LABEL_META[photo.analysis.colorLabel].dot }}
+                className="h-4 w-4 shrink-0 rounded-full border-2 border-white/50"
+                style={{
+                  backgroundColor:
+                    COLOR_LABEL_META[photo.analysis.colorLabel].dot,
+                }}
                 title={COLOR_LABEL_META[photo.analysis.colorLabel].label}
               />
             )}
@@ -153,7 +158,9 @@ export function ComparisonView({
 
           <div className="flex gap-4 text-xs text-white/60">
             {photo.analysis?.sharpnessScore !== undefined && (
-              <span>Netteté: {Math.round(photo.analysis.sharpnessScore * 100)}%</span>
+              <span>
+                Netteté: {Math.round(photo.analysis.sharpnessScore * 100)}%
+              </span>
             )}
             <span>{(photo.file.size / 1024 / 1024).toFixed(2)} MB</span>
             <span>{photo.file.type.split('/')[1]?.toUpperCase()}</span>
@@ -169,7 +176,7 @@ export function ComparisonView({
         >
           {isSelected ? (
             <>
-              <Check className="w-5 h-5 mr-2" />
+              <Check className="mr-2 h-5 w-5" />
               Sélectionnée
             </>
           ) : (
@@ -189,13 +196,13 @@ export function ComparisonView({
         className="fixed inset-0 z-50 bg-black"
       >
         {/* Header */}
-        <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-4">
+        <div className="absolute left-0 right-0 top-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <h3 className="text-white font-semibold text-lg">Comparaison A/B</h3>
-              <Badge variant="secondary">
-                Choisissez la meilleure photo
-              </Badge>
+              <h3 className="text-lg font-semibold text-white">
+                Comparaison A/B
+              </h3>
+              <Badge variant="secondary">Choisissez la meilleure photo</Badge>
             </div>
 
             <Button
@@ -204,13 +211,13 @@ export function ComparisonView({
               className="text-white hover:bg-white/20"
               onClick={onClose}
             >
-              <X className="w-5 h-5" />
+              <X className="h-5 w-5" />
             </Button>
           </div>
         </div>
 
         {/* Grille de comparaison */}
-        <div className="absolute inset-0 flex pt-20 pb-8">
+        <div className="absolute inset-0 flex pb-8 pt-20">
           {renderPhotoSide(photoA, 'A')}
 
           {/* Séparateur */}
@@ -221,10 +228,16 @@ export function ComparisonView({
 
         {/* Instructions */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
-          <div className="bg-black/80 backdrop-blur-sm rounded-lg px-6 py-3 flex gap-6 text-xs text-white/60">
-            <span><kbd className="px-2 py-1 bg-white/10 rounded">←</kbd> Choisir A</span>
-            <span><kbd className="px-2 py-1 bg-white/10 rounded">→</kbd> Choisir B</span>
-            <span><kbd className="px-2 py-1 bg-white/10 rounded">C/ESC</kbd> Quitter</span>
+          <div className="flex gap-6 rounded-lg bg-black/80 px-6 py-3 text-xs text-white/60 backdrop-blur-sm">
+            <span>
+              <kbd className="rounded bg-white/10 px-2 py-1">←</kbd> Choisir A
+            </span>
+            <span>
+              <kbd className="rounded bg-white/10 px-2 py-1">→</kbd> Choisir B
+            </span>
+            <span>
+              <kbd className="rounded bg-white/10 px-2 py-1">C/ESC</kbd> Quitter
+            </span>
           </div>
         </div>
       </motion.div>

@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import 'fake-indexeddb/auto';
-import { saveFullCatalogue, loadFullCatalogue, CatalogueState } from '../../lib/catalogue-persistence';
+import {
+  saveFullCatalogue,
+  loadFullCatalogue,
+  CatalogueState,
+} from '../../lib/catalogue-persistence';
 import type { Photo } from '../../types';
 
 // Regression test for the IndexedDB persistence bug: saveFullCatalogue used to

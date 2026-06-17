@@ -66,17 +66,19 @@ function expandPattern(
     return nameWithoutExt;
   }
 
-  return pattern
-    .replace(/\{name\}/g, nameWithoutExt)
-    .replace(/\{index\}/g, String(index + 1).padStart(4, '0'))
-    .replace(/\{date\}/g, todayISO)
-    .replace(/\{rating\}/g, String(photo.analysis?.rating ?? 0))
-    .replace(/\{label\}/g, photo.analysis?.colorLabel ?? '')
-    .replace(/\{pick\}/g, photo.analysis?.isPick ? 'pick' : '')
-    .replace(/\{session\}/g, 'session')
-    // Nettoyer les doubles underscores/tirets issus de tokens vides
-    .replace(/[_-]{2,}/g, '_')
-    .replace(/^[_-]+|[_-]+$/g, '');
+  return (
+    pattern
+      .replace(/\{name\}/g, nameWithoutExt)
+      .replace(/\{index\}/g, String(index + 1).padStart(4, '0'))
+      .replace(/\{date\}/g, todayISO)
+      .replace(/\{rating\}/g, String(photo.analysis?.rating ?? 0))
+      .replace(/\{label\}/g, photo.analysis?.colorLabel ?? '')
+      .replace(/\{pick\}/g, photo.analysis?.isPick ? 'pick' : '')
+      .replace(/\{session\}/g, 'session')
+      // Nettoyer les doubles underscores/tirets issus de tokens vides
+      .replace(/[_-]{2,}/g, '_')
+      .replace(/^[_-]+|[_-]+$/g, '')
+  );
 }
 
 /**
@@ -85,12 +87,20 @@ function expandPattern(
  * A-32 : avec un filigrane et le format « original », l'image est ré-encodée en JPEG
  * (cf. processImage) — l'extension doit donc être .jpeg, pas l'extension d'origine.
  */
-function getExportFileName(photo: Photo, options: ExportOptions, index: number): string {
+function getExportFileName(
+  photo: Photo,
+  options: ExportOptions,
+  index: number
+): string {
   const baseName = expandPattern(options.renamePattern, photo, index);
-  const watermarkedOriginal = options.format === 'original' && !!options.watermark?.text?.trim();
-  const ext = options.format === 'original'
-    ? (watermarkedOriginal ? 'jpeg' : (photo.file.name.split('.').pop() ?? 'jpg'))
-    : options.format;
+  const watermarkedOriginal =
+    options.format === 'original' && !!options.watermark?.text?.trim();
+  const ext =
+    options.format === 'original'
+      ? watermarkedOriginal
+        ? 'jpeg'
+        : (photo.file.name.split('.').pop() ?? 'jpg')
+      : options.format;
   return `${baseName}.${ext}`;
 }
 
@@ -193,10 +203,7 @@ function applyWatermark(
 /**
  * Converts, resizes, and optionally watermarks an image.
  */
-async function processImage(
-  file: File,
-  options: ExportOptions
-): Promise<Blob> {
+async function processImage(file: File, options: ExportOptions): Promise<Blob> {
   // If format original AND no watermark → return as-is
   if (options.format === 'original' && !options.watermark?.text) {
     return file;
@@ -235,7 +242,8 @@ async function processImage(
       }
 
       // Output format — when 'original' with watermark we encode as jpeg
-      const outputFormat = options.format === 'original' ? 'jpeg' : options.format;
+      const outputFormat =
+        options.format === 'original' ? 'jpeg' : options.format;
       const mimeType = `image/${outputFormat}`;
       const quality = options.quality / 100;
 
@@ -300,7 +308,10 @@ export async function exportPhotoChaptersAsZip(
   onProgress?: (progress: number) => void
 ): Promise<ExportResult> {
   const zip = new JSZip();
-  const total = chapters.reduce((sum, chapter) => sum + chapter.photos.length, 0);
+  const total = chapters.reduce(
+    (sum, chapter) => sum + chapter.photos.length,
+    0
+  );
   let processed = 0;
   let exported = 0;
   const failedNames: string[] = [];
@@ -319,7 +330,10 @@ export async function exportPhotoChaptersAsZip(
 
     for (let photoIndex = 0; photoIndex < chapter.photos.length; photoIndex++) {
       const photo = chapter.photos[photoIndex];
-      const fileName = dedupeFileName(getExportFileName(photo, options, photoIndex), used);
+      const fileName = dedupeFileName(
+        getExportFileName(photo, options, photoIndex),
+        used
+      );
 
       try {
         const processedBlob = await processImage(photo.file, options);
@@ -348,10 +362,14 @@ export function supportsDirectoryExport(): boolean {
 export async function exportPhotosToDirectory(
   photos: Photo[],
   options: ExportOptions,
-  onProgress?: (progress: number) => void,
+  onProgress?: (progress: number) => void
 ): Promise<DirectoryExportResult> {
-  type ShowDirectoryPicker = (opts?: { mode?: string }) => Promise<FileSystemDirectoryHandle>;
-  const pick = (window as unknown as { showDirectoryPicker: ShowDirectoryPicker }).showDirectoryPicker;
+  type ShowDirectoryPicker = (opts?: {
+    mode?: string;
+  }) => Promise<FileSystemDirectoryHandle>;
+  const pick = (
+    window as unknown as { showDirectoryPicker: ShowDirectoryPicker }
+  ).showDirectoryPicker;
   const dirHandle = await pick({ mode: 'readwrite' });
 
   const total = photos.length;
@@ -364,7 +382,9 @@ export async function exportPhotosToDirectory(
     const fileName = dedupeFileName(getExportFileName(photo, options, i), used);
     try {
       const blob = await processImage(photo.file, options);
-      const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
+      const fileHandle = await dirHandle.getFileHandle(fileName, {
+        create: true,
+      });
       const writable = await fileHandle.createWritable();
       await writable.write(blob);
       await writable.close();

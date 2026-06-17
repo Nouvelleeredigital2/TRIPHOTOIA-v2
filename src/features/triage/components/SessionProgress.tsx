@@ -11,9 +11,9 @@ export function SessionProgress({ photos }: SessionProgressProps) {
     const analyzed = photos.filter((p) => p.analysis && !p.analysis.error);
     if (analyzed.length === 0) return null;
 
-    const picks    = analyzed.filter((p) => p.analysis?.isPick).length;
+    const picks = analyzed.filter((p) => p.analysis?.isPick).length;
     const rejected = analyzed.filter((p) => p.analysis?.isRejected).length;
-    const rated    = analyzed.filter((p) => (p.analysis?.rating ?? 0) > 0).length;
+    const rated = analyzed.filter((p) => (p.analysis?.rating ?? 0) > 0).length;
 
     // Actionnée = a au moins un flag, une note, ou un pick/reject
     const actionedIds = new Set<string>();
@@ -29,10 +29,18 @@ export function SessionProgress({ photos }: SessionProgressProps) {
     });
 
     const actioned = actionedIds.size;
-    const pending  = analyzed.length - actioned;
-    const pct      = Math.round((actioned / analyzed.length) * 100);
+    const pending = analyzed.length - actioned;
+    const pct = Math.round((actioned / analyzed.length) * 100);
 
-    return { total: analyzed.length, picks, rejected, rated, actioned, pending, pct };
+    return {
+      total: analyzed.length,
+      picks,
+      rejected,
+      rated,
+      actioned,
+      pending,
+      pct,
+    };
   }, [photos]);
 
   if (!stats || stats.total === 0) return null;
@@ -41,28 +49,38 @@ export function SessionProgress({ photos }: SessionProgressProps) {
     <div className="space-y-1.5 px-1">
       {/* Ligne de stats */}
       <div className="flex items-center justify-between text-xs">
-        <span className="text-muted-foreground font-medium">
-          <span className="text-foreground font-semibold">{stats.actioned}</span>
+        <span className="font-medium text-muted-foreground">
+          <span className="font-semibold text-foreground">
+            {stats.actioned}
+          </span>
           {' / '}
-          {stats.total} triées
-          {' '}
+          {stats.total} triées{' '}
           <span className="text-muted-foreground">({stats.pct}%)</span>
         </span>
 
         <div className="flex items-center gap-3 text-muted-foreground">
           {stats.picks > 0 && (
             <span title="Picks">
-              🎯 <span className="font-semibold text-foreground">{stats.picks}</span>
+              🎯{' '}
+              <span className="font-semibold text-foreground">
+                {stats.picks}
+              </span>
             </span>
           )}
           {stats.rejected > 0 && (
             <span title="Rejetées">
-              ❌ <span className="font-semibold text-foreground">{stats.rejected}</span>
+              ❌{' '}
+              <span className="font-semibold text-foreground">
+                {stats.rejected}
+              </span>
             </span>
           )}
           {stats.rated > 0 && (
             <span title="Notées">
-              ⭐ <span className="font-semibold text-foreground">{stats.rated}</span>
+              ⭐{' '}
+              <span className="font-semibold text-foreground">
+                {stats.rated}
+              </span>
             </span>
           )}
           {stats.pending > 0 && (
@@ -74,7 +92,7 @@ export function SessionProgress({ photos }: SessionProgressProps) {
       </div>
 
       {/* Barre de progression */}
-      <div className="h-1 bg-muted rounded-full overflow-hidden">
+      <div className="h-1 overflow-hidden rounded-full bg-muted">
         <motion.div
           className="h-full rounded-full bg-gradient-to-r from-primary/80 to-primary"
           initial={{ width: 0 }}

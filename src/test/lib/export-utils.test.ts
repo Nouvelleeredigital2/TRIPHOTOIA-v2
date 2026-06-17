@@ -1,7 +1,10 @@
 import JSZip from 'jszip';
 import { describe, expect, it } from 'vitest';
 
-import { exportPhotoChaptersAsZip, exportPhotosAsZip } from '../../lib/export-utils';
+import {
+  exportPhotoChaptersAsZip,
+  exportPhotosAsZip,
+} from '../../lib/export-utils';
 import { Photo } from '../../types';
 
 const makePhoto = (id: string, filename: string): Photo => ({
@@ -15,13 +18,21 @@ describe('export-utils', () => {
   it('exports photo chapters as folders in a ZIP file', async () => {
     const { blob } = await exportPhotoChaptersAsZip(
       [
-        { collectionId: 'prep', name: 'Préparatifs', photos: [makePhoto('one', 'one.jpg')] },
-        { collectionId: 'client', name: 'Client', photos: [makePhoto('two', 'two.jpg')] },
+        {
+          collectionId: 'prep',
+          name: 'Préparatifs',
+          photos: [makePhoto('one', 'one.jpg')],
+        },
+        {
+          collectionId: 'client',
+          name: 'Client',
+          photos: [makePhoto('two', 'two.jpg')],
+        },
       ],
       {
         format: 'original',
         quality: 90,
-      },
+      }
     );
 
     const zip = await JSZip.loadAsync(blob);
@@ -36,11 +47,19 @@ describe('export-utils', () => {
 
   it('deduplicates colliding file names within a ZIP (A-30)', async () => {
     const { blob, exported, failed } = await exportPhotosAsZip(
-      [makePhoto('a', 'IMG.jpg'), makePhoto('b', 'IMG.jpg'), makePhoto('c', 'IMG.jpg')],
-      { format: 'original', quality: 90 },
+      [
+        makePhoto('a', 'IMG.jpg'),
+        makePhoto('b', 'IMG.jpg'),
+        makePhoto('c', 'IMG.jpg'),
+      ],
+      { format: 'original', quality: 90 }
     );
     const zip = await JSZip.loadAsync(blob);
-    expect(Object.keys(zip.files).sort()).toEqual(['IMG-2.jpg', 'IMG-3.jpg', 'IMG.jpg']);
+    expect(Object.keys(zip.files).sort()).toEqual([
+      'IMG-2.jpg',
+      'IMG-3.jpg',
+      'IMG.jpg',
+    ]);
     expect(exported).toBe(3);
     expect(failed).toBe(0);
   });

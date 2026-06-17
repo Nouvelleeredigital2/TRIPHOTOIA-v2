@@ -27,26 +27,28 @@ export function useCataloguePersistence(): { lastSavedAt: Date | null } {
     if (isRestoredRef.current) return;
     isRestoredRef.current = true;
 
-    loadFullCatalogue().then((saved) => {
-      if (!saved || saved.photos.length === 0) return;
+    loadFullCatalogue()
+      .then((saved) => {
+        if (!saved || saved.photos.length === 0) return;
 
-      const currentPhotos = usePhotoStore.getState().photos;
-      if (currentPhotos.length > 0) return; // L'utilisateur a déjà chargé des photos
+        const currentPhotos = usePhotoStore.getState().photos;
+        if (currentPhotos.length > 0) return; // L'utilisateur a déjà chargé des photos
 
-      // Restauration transactionnelle unique : photos + collections + ordre + collection
-      // active + tags + notes + doublons + rejets (A-47). Évite les divergences et ne
-      // pollue pas la pile undo.
-      usePhotoStore.getState().restoreCatalogueState(saved);
+        // Restauration transactionnelle unique : photos + collections + ordre + collection
+        // active + tags + notes + doublons + rejets (A-47). Évite les divergences et ne
+        // pollue pas la pile undo.
+        usePhotoStore.getState().restoreCatalogueState(saved);
 
-      // Réalimenter le LSH depuis les photos restaurées
-      lshRebuildFromEntries(
-        saved.photos
-          .filter((p) => p.analysis?.perceptualHash)
-          .map((p) => ({ id: p.id, hash: p.analysis!.perceptualHash! })),
-      );
-    }).catch((err) => {
-      console.warn('[useCataloguePersistence] restauration échouée:', err);
-    });
+        // Réalimenter le LSH depuis les photos restaurées
+        lshRebuildFromEntries(
+          saved.photos
+            .filter((p) => p.analysis?.perceptualHash)
+            .map((p) => ({ id: p.id, hash: p.analysis!.perceptualHash! }))
+        );
+      })
+      .catch((err) => {
+        console.warn('[useCataloguePersistence] restauration échouée:', err);
+      });
   }, []);
 
   // Auto-sauvegarde debounce sur les mutations du store

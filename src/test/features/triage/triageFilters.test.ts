@@ -10,7 +10,9 @@ import {
 import { DuplicateGroup, Photo } from '../../../types';
 
 const makePhoto = (id: string, overrides: Partial<Photo> = {}): Photo => {
-  const file = new File([''], overrides.file?.name ?? `${id}.jpg`, { type: 'image/jpeg' });
+  const file = new File([''], overrides.file?.name ?? `${id}.jpg`, {
+    type: 'image/jpeg',
+  });
 
   return {
     id,
@@ -25,7 +27,7 @@ const runFilter = (
   activeFilter: TriageFilterType,
   photos: Photo[],
   duplicateGroups: DuplicateGroup[] = [],
-  rejectedPhotoIds = new Set<string>(),
+  rejectedPhotoIds = new Set<string>()
 ) =>
   filterTriagePhotos({
     photos,
@@ -47,21 +49,36 @@ describe('triageFilters', () => {
     expect(isReviewPhoto(review, new Set())).toBe(true);
     expect(isReviewPhoto(pick, new Set())).toBe(false);
     expect(isReviewPhoto(reject, new Set())).toBe(false);
-    expect(isReviewPhoto(externalReject, new Set(['external-reject']))).toBe(false);
-    expect(runFilter('review', [review, pick, reject, externalReject], [], new Set(['external-reject']))).toEqual([
-      'review',
-    ]);
+    expect(isReviewPhoto(externalReject, new Set(['external-reject']))).toBe(
+      false
+    );
+    expect(
+      runFilter(
+        'review',
+        [review, pick, reject, externalReject],
+        [],
+        new Set(['external-reject'])
+      )
+    ).toEqual(['review']);
   });
 
   it('treats five-star picks as favorites', () => {
-    const favorite = makePhoto('favorite', { analysis: { isPick: true, rating: 5 } });
-    const fourStarPick = makePhoto('four-star-pick', { analysis: { isPick: true, rating: 4 } });
-    const fiveStarReview = makePhoto('five-star-review', { analysis: { rating: 5 } });
+    const favorite = makePhoto('favorite', {
+      analysis: { isPick: true, rating: 5 },
+    });
+    const fourStarPick = makePhoto('four-star-pick', {
+      analysis: { isPick: true, rating: 4 },
+    });
+    const fiveStarReview = makePhoto('five-star-review', {
+      analysis: { rating: 5 },
+    });
 
     expect(isFavoritePhoto(favorite)).toBe(true);
     expect(isFavoritePhoto(fourStarPick)).toBe(false);
     expect(isFavoritePhoto(fiveStarReview)).toBe(false);
-    expect(runFilter('favorites', [favorite, fourStarPick, fiveStarReview])).toEqual(['favorite']);
+    expect(
+      runFilter('favorites', [favorite, fourStarPick, fiveStarReview])
+    ).toEqual(['favorite']);
   });
 
   it('preserves duplicate filtering while adding Studio Grid filters', () => {
@@ -77,15 +94,22 @@ describe('triageFilters', () => {
       },
     ];
 
-    expect(runFilter('duplicates', [duplicateA, duplicateB, standalone], duplicateGroups)).toEqual([
-      'duplicate-a',
-      'duplicate-b',
-    ]);
+    expect(
+      runFilter(
+        'duplicates',
+        [duplicateA, duplicateB, standalone],
+        duplicateGroups
+      )
+    ).toEqual(['duplicate-a', 'duplicate-b']);
   });
 
   it('searches filename, ai tags, user tags and exif camera fields', () => {
-    const named = makePhoto('named', { file: new File([''], 'Laura-party.jpg', { type: 'image/jpeg' }) });
-    const aiTagged = makePhoto('ai-tagged', { analysis: { tags: ['ceremony'] } });
+    const named = makePhoto('named', {
+      file: new File([''], 'Laura-party.jpg', { type: 'image/jpeg' }),
+    });
+    const aiTagged = makePhoto('ai-tagged', {
+      analysis: { tags: ['ceremony'] },
+    });
     const userTagged = makePhoto('user-tagged');
     const exif = makePhoto('exif', {
       metadata: {
@@ -159,7 +183,7 @@ describe('triageFilters', () => {
           collectionId: 'collection-client',
         },
         now: '2026-05-28T10:00:00.000Z',
-      }),
+      })
     ).toEqual({
       id: 'search-1',
       name: 'Picks mai',

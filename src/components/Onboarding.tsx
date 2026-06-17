@@ -12,31 +12,38 @@ interface OnboardingStep {
 const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     title: 'Bienvenue dans Tree Photo IA ! 👋',
-    description: 'Votre assistant intelligent pour trier et organiser vos photos. Laissez-nous vous guider à travers les fonctionnalités principales.',
+    description:
+      'Votre assistant intelligent pour trier et organiser vos photos. Laissez-nous vous guider à travers les fonctionnalités principales.',
   },
   {
     title: '1. Collections 📁',
-    description: 'Commencez par créer une collection pour regrouper vos photos. Nommez-la selon votre projet puis sélectionnez-la pour toutes les étapes suivantes.',
+    description:
+      'Commencez par créer une collection pour regrouper vos photos. Nommez-la selon votre projet puis sélectionnez-la pour toutes les étapes suivantes.',
   },
   {
     title: '2. Ingestion 📸',
-    description: 'Glissez-déposez vos photos ou cliquez pour les sélectionner dans la collection active. L\'IA analysera automatiquement chaque image pour détecter la qualité, le contenu et les doublons.',
+    description:
+      "Glissez-déposez vos photos ou cliquez pour les sélectionner dans la collection active. L'IA analysera automatiquement chaque image pour détecter la qualité, le contenu et les doublons.",
   },
   {
     title: '3. Triage 🎯',
-    description: 'Examinez vos photos analysées, gérez les doublons détectés, rejetez les photos indésirables et sélectionnez celles à développer.',
+    description:
+      'Examinez vos photos analysées, gérez les doublons détectés, rejetez les photos indésirables et sélectionnez celles à développer.',
   },
   {
     title: '4. Développement 🎨',
-    description: 'Retouchez vos photos avec 15 paramètres professionnels. Utilisez la synchronisation pour appliquer les mêmes réglages à plusieurs photos.',
+    description:
+      'Retouchez vos photos avec 15 paramètres professionnels. Utilisez la synchronisation pour appliquer les mêmes réglages à plusieurs photos.',
   },
   {
     title: '5. Export 📦',
-    description: 'Exportez vos photos triées dans le format de votre choix (JPEG, PNG, WebP). Choisissez la qualité et les dimensions souhaitées.',
+    description:
+      'Exportez vos photos triées dans le format de votre choix (JPEG, PNG, WebP). Choisissez la qualité et les dimensions souhaitées.',
   },
   {
     title: 'Prêt à commencer ! 🚀',
-    description: 'Vous êtes maintenant prêt à utiliser Tree Photo IA. Commencez par créer votre première collection puis importer vos photos.',
+    description:
+      'Vous êtes maintenant prêt à utiliser Tree Photo IA. Commencez par créer votre première collection puis importer vos photos.',
   },
 ];
 
@@ -91,7 +98,7 @@ export function Onboarding() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
             onClick={handleSkip}
           />
 
@@ -100,32 +107,34 @@ export function Onboarding() {
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg"
+            className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2"
           >
-            <div className="bg-card border border-border rounded-lg shadow-2xl p-6 m-4">
+            <div className="m-4 rounded-lg border border-border bg-card p-6 shadow-2xl">
               {/* Header */}
-              <div className="flex items-start justify-between mb-4">
+              <div className="mb-4 flex items-start justify-between">
                 <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-foreground mb-2">
+                  <h2 className="mb-2 text-2xl font-bold text-foreground">
                     {step.title}
                   </h2>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span>Étape {currentStep + 1} sur {ONBOARDING_STEPS.length}</span>
+                    <span>
+                      Étape {currentStep + 1} sur {ONBOARDING_STEPS.length}
+                    </span>
                   </div>
                 </div>
                 <button
                   onClick={handleSkip}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-muted-foreground transition-colors hover:text-foreground"
                   aria-label="Fermer"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="h-5 w-5" />
                 </button>
               </div>
 
               {/* Progress Bar */}
-              <div className="w-full bg-secondary rounded-full h-2 mb-6">
+              <div className="mb-6 h-2 w-full rounded-full bg-secondary">
                 <motion.div
-                  className="bg-primary h-2 rounded-full"
+                  className="h-2 rounded-full bg-primary"
                   initial={{ width: 0 }}
                   animate={{ width: `${progress}%` }}
                   transition={{ duration: 0.3 }}
@@ -133,7 +142,7 @@ export function Onboarding() {
               </div>
 
               {/* Content */}
-              <p className="text-muted-foreground mb-6 leading-relaxed">
+              <p className="mb-6 leading-relaxed text-muted-foreground">
                 {step.description}
               </p>
 
@@ -149,15 +158,14 @@ export function Onboarding() {
 
                 <div className="flex gap-2">
                   {currentStep > 0 && (
-                    <Button
-                      variant="outline"
-                      onClick={handlePrevious}
-                    >
+                    <Button variant="outline" onClick={handlePrevious}>
                       Précédent
                     </Button>
                   )}
                   <Button onClick={handleNext}>
-                    {currentStep < ONBOARDING_STEPS.length - 1 ? 'Suivant' : 'Commencer'}
+                    {currentStep < ONBOARDING_STEPS.length - 1
+                      ? 'Suivant'
+                      : 'Commencer'}
                   </Button>
                 </div>
               </div>

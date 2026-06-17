@@ -1,5 +1,13 @@
 import React from 'react';
-import { describe, it, beforeEach, afterEach, expect, vi, type Mock } from 'vitest';
+import {
+  describe,
+  it,
+  beforeEach,
+  afterEach,
+  expect,
+  vi,
+  type Mock,
+} from 'vitest';
 import { render } from '@testing-library/react';
 import { act, waitFor } from '@testing-library/react';
 
@@ -8,8 +16,8 @@ import { usePhotoStore } from '../../store/photoStore';
 import { useAiErrorStore } from '../../store/aiErrorStore';
 import { Photo } from '../../types';
 
-// usePhotoAnalysis.ts imports from '../../../services/geminiService' (root-level services/)
-vi.mock('../../../services/geminiService', () => ({
+// usePhotoAnalysis.ts imports the façade from '@/services/geminiService' (src/services/).
+vi.mock('@/services/geminiService', () => ({
   analyzePhotosBatch: vi.fn(),
 }));
 
@@ -19,11 +27,13 @@ vi.mock('../../lib/analysis-queue-persistence', () => ({
   clearAnalysisState: vi.fn().mockResolvedValue(undefined),
 }));
 
-const { analyzePhotosBatch } = await import('../../../services/geminiService');
+const { analyzePhotosBatch } = await import('@/services/geminiService');
 const persistence = await import('../../lib/analysis-queue-persistence');
 
 const createMockPhoto = (overrides?: Partial<Photo>): Photo => {
-  const file = new File([''], overrides?.file?.name ?? 'photo.jpg', { type: 'image/jpeg' });
+  const file = new File([''], overrides?.file?.name ?? 'photo.jpg', {
+    type: 'image/jpeg',
+  });
   return {
     id: overrides?.id ?? 'photo-1',
     file,
@@ -48,7 +58,10 @@ describe('usePhotoAnalysis integration', () => {
     usePhotoStore.getState().clearAll();
     useAiErrorStore.getState().clearAll();
 
-    (persistence.loadAnalysisState as Mock).mockResolvedValue({ photos: [], queue: [] });
+    (persistence.loadAnalysisState as Mock).mockResolvedValue({
+      photos: [],
+      queue: [],
+    });
     (persistence.saveAnalysisState as Mock).mockResolvedValue(undefined);
     (persistence.clearAnalysisState as Mock).mockResolvedValue(undefined);
   });
@@ -71,7 +84,8 @@ describe('usePhotoAnalysis integration', () => {
     (analyzePhotosBatch as Mock).mockResolvedValue([{ tags: ['ok'] }]);
 
     const photo = createMockPhoto();
-    const { addPhotos, addToAnalysisQueue, setIsProcessing } = usePhotoStore.getState();
+    const { addPhotos, addToAnalysisQueue, setIsProcessing } =
+      usePhotoStore.getState();
     act(() => {
       addPhotos([photo]);
       addToAnalysisQueue([photo.id]);
@@ -89,7 +103,7 @@ describe('usePhotoAnalysis integration', () => {
       () => {
         expect(usePhotoStore.getState().analysisQueue).toHaveLength(0);
       },
-      { timeout: 10000 },
+      { timeout: 10000 }
     );
 
     expect(usePhotoStore.getState().isProcessing).toBe(false);
@@ -131,14 +145,20 @@ describe('usePhotoAnalysis integration', () => {
         const errors = useAiErrorStore.getState().errors;
         // pushError sets status to 'new' by default; markAsNotified is called by UI components,
         // not by the hook — so we check for 'new' or 'notified' (any non-resolved state).
-        expect(errors.some((error) => error.photoId === photo.id && error.status !== 'resolved')).toBe(true);
+        expect(
+          errors.some(
+            (error) => error.photoId === photo.id && error.status !== 'resolved'
+          )
+        ).toBe(true);
       },
-      { timeout: 10000 },
+      { timeout: 10000 }
     );
 
     const warningError = useAiErrorStore
       .getState()
-      .errors.find((error) => error.photoId === photo.id && error.status !== 'resolved');
+      .errors.find(
+        (error) => error.photoId === photo.id && error.status !== 'resolved'
+      );
     expect(warningError?.severity).toBe('warning');
 
     (analyzePhotosBatch as Mock).mockResolvedValue([{ tags: ['retry'] }]);
@@ -156,10 +176,12 @@ describe('usePhotoAnalysis integration', () => {
       () => {
         const resolved = useAiErrorStore
           .getState()
-          .errors.find((error) => error.photoId === photo.id && error.status === 'resolved');
+          .errors.find(
+            (error) => error.photoId === photo.id && error.status === 'resolved'
+          );
         expect(resolved).toBeDefined();
       },
-      { timeout: 10000 },
+      { timeout: 10000 }
     );
   }, 15000);
 });

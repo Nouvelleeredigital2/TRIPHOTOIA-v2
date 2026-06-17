@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Badge } from './ui/badge';
 
 interface KeyboardShortcutsHelpProps {
@@ -27,9 +22,18 @@ const SECTIONS: ShortcutSection[] = [
     title: '🖼️ Navigation (Triage)',
     shortcuts: [
       { keys: ['←', '→'], description: 'Photo précédente / suivante' },
-      { keys: ['K', 'J'], description: 'Photo précédente / suivante (Lightroom)' },
-      { keys: ['L'], description: 'Mode culling plein écran (revue photo par photo)' },
-      { keys: ['Ctrl', 'A'], description: 'Sélectionner toutes les photos visibles' },
+      {
+        keys: ['K', 'J'],
+        description: 'Photo précédente / suivante (Lightroom)',
+      },
+      {
+        keys: ['L'],
+        description: 'Mode culling plein écran (revue photo par photo)',
+      },
+      {
+        keys: ['Ctrl', 'A'],
+        description: 'Sélectionner toutes les photos visibles',
+      },
     ],
   },
   {
@@ -48,7 +52,10 @@ const SECTIONS: ShortcutSection[] = [
       { keys: ['7'], description: '🟡 Jaune' },
       { keys: ['8'], description: '🟢 Vert' },
       { keys: ['9'], description: '🔵 Bleu' },
-      { keys: ['0+6–9'], description: 'Violet (via label couleur 5 = Violet dans fullscreen)' },
+      {
+        keys: ['0+6–9'],
+        description: 'Violet (via label couleur 5 = Violet dans fullscreen)',
+      },
     ],
   },
   {
@@ -68,14 +75,17 @@ const SECTIONS: ShortcutSection[] = [
     shortcuts: [
       { keys: ['C'], description: 'Comparaison A/B de deux photos' },
       { keys: ['D'], description: 'Ajouter à la sélection Développement' },
-      { keys: ['E'], description: 'Aller à l\'Export' },
+      { keys: ['E'], description: "Aller à l'Export" },
       { keys: ['Del'], description: 'Supprimer la photo sélectionnée' },
     ],
   },
   {
     title: '📋 Presse-papier',
     shortcuts: [
-      { keys: ['Ctrl', 'Shift', 'C'], description: 'Copier note / flag / label' },
+      {
+        keys: ['Ctrl', 'Shift', 'C'],
+        description: 'Copier note / flag / label',
+      },
       { keys: ['Ctrl', 'Shift', 'V'], description: 'Coller sur la sélection' },
     ],
   },
@@ -91,39 +101,54 @@ const SECTIONS: ShortcutSection[] = [
 
 function Kbd({ children }: { children: React.ReactNode }) {
   return (
-    <kbd className="inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-mono font-semibold text-foreground min-w-[1.75rem]">
+    <kbd className="inline-flex min-w-[1.75rem] items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs font-semibold text-foreground">
       {children}
     </kbd>
   );
 }
 
-export function KeyboardShortcutsHelp({ open, onOpenChange }: KeyboardShortcutsHelpProps) {
+export function KeyboardShortcutsHelp({
+  open,
+  onOpenChange,
+}: KeyboardShortcutsHelpProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto" description="Liste des raccourcis clavier disponibles dans l'application.">
+      <DialogContent
+        className="max-h-[85vh] max-w-2xl overflow-y-auto"
+        description="Liste des raccourcis clavier disponibles dans l'application."
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             Raccourcis clavier
-            <Badge variant="secondary" className="text-xs">Style Lightroom</Badge>
+            <Badge variant="secondary" className="text-xs">
+              Style Lightroom
+            </Badge>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-2">
+        <div className="mt-2 grid grid-cols-1 gap-5 sm:grid-cols-2">
           {SECTIONS.map((section) => (
             <div key={section.title} className="space-y-2">
-              <h3 className="text-xs font-semibold tracking-wider text-muted-foreground border-b border-border pb-1">
+              <h3 className="border-b border-border pb-1 text-xs font-semibold tracking-wider text-muted-foreground">
                 {section.title}
               </h3>
               <div className="space-y-1.5">
                 {section.shortcuts.map((shortcut, i) => (
-                  <div key={i} className="flex items-center justify-between gap-2">
-                    <span className="text-sm text-foreground leading-tight">{shortcut.description}</span>
-                    <div className="flex items-center gap-1 shrink-0">
+                  <div
+                    key={i}
+                    className="flex items-center justify-between gap-2"
+                  >
+                    <span className="text-sm leading-tight text-foreground">
+                      {shortcut.description}
+                    </span>
+                    <div className="flex shrink-0 items-center gap-1">
                       {shortcut.keys.map((k, ki) => (
                         <React.Fragment key={ki}>
                           <Kbd>{k}</Kbd>
                           {ki < shortcut.keys.length - 1 && (
-                            <span className="text-xs text-muted-foreground">+</span>
+                            <span className="text-xs text-muted-foreground">
+                              +
+                            </span>
                           )}
                         </React.Fragment>
                       ))}
@@ -135,7 +160,7 @@ export function KeyboardShortcutsHelp({ open, onOpenChange }: KeyboardShortcutsH
           ))}
         </div>
 
-        <p className="text-xs text-muted-foreground mt-4 border-t border-border pt-3">
+        <p className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground">
           Les raccourcis sont inactifs quand le curseur est dans un champ texte.
           Appuyez sur <Kbd>?</Kbd> pour ouvrir/fermer cette aide.
         </p>

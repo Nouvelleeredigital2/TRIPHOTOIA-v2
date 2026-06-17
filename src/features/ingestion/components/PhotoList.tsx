@@ -14,7 +14,12 @@ interface PhotoListProps {
   onToggleCollection: (photoId: string) => void;
 }
 
-export function PhotoList({ photos, analyzingPhotoIds, collectionPhotoIds, onToggleCollection }: PhotoListProps) {
+export function PhotoList({
+  photos,
+  analyzingPhotoIds,
+  collectionPhotoIds,
+  onToggleCollection,
+}: PhotoListProps) {
   if (photos.length === 0) {
     return null;
   }
@@ -24,7 +29,7 @@ export function PhotoList({ photos, analyzingPhotoIds, collectionPhotoIds, onTog
       <h3 className="text-lg font-semibold">
         Photos chargées ({photos.length})
       </h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         <AnimatePresence>
           {photos.map((photo, index) => {
             const isAnalyzing = analyzingPhotoIds.has(photo.id);
@@ -41,13 +46,13 @@ export function PhotoList({ photos, analyzingPhotoIds, collectionPhotoIds, onTog
                 transition={{ duration: 0.2, delay: index * 0.05 }}
               >
                 <Card className="overflow-hidden">
-                  <div className="aspect-square relative">
+                  <div className="relative aspect-square">
                     <img
                       src={photo.previewUrl}
                       alt={photo.file.name}
-                      className="w-full h-full object-cover"
+                      className="h-full w-full object-cover"
                     />
-                    <div className="absolute top-2 right-2 flex gap-1">
+                    <div className="absolute right-2 top-2 flex gap-1">
                       {isAnalyzing && (
                         <Badge variant="default" className="text-xs">
                           Analyse...
@@ -66,32 +71,41 @@ export function PhotoList({ photos, analyzingPhotoIds, collectionPhotoIds, onTog
                     </div>
                     {isAnalyzing && <AnalyzingBadgeSkeleton />}
                   </div>
-                  <CardContent className="p-3 space-y-2">
+                  <CardContent className="space-y-2 p-3">
                     <div className="space-y-1">
-                      <p className="text-sm font-medium truncate" title={photo.file.name}>
+                      <p
+                        className="truncate text-sm font-medium"
+                        title={photo.file.name}
+                      >
                         {photo.file.name}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {formatFileSize(photo.file.size)}
                       </p>
                       {hasAnalysis && !hasError && (
-                        <div className="flex flex-wrap gap-1 mt-2">
+                        <div className="mt-2 flex flex-wrap gap-1">
                           {photo.analysis?.tags?.slice(0, 3).map((tag) => (
-                            <Badge key={tag} variant="outline" className="text-xs">
+                            <Badge
+                              key={tag}
+                              variant="outline"
+                              className="text-xs"
+                            >
                               {tag}
                             </Badge>
                           ))}
                         </div>
                       )}
                     </div>
-                    <div className="pt-2 flex justify-end">
+                    <div className="flex justify-end pt-2">
                       <Button
                         size="sm"
                         variant={inCollection ? 'secondary' : 'outline'}
                         onClick={() => onToggleCollection(photo.id)}
                         className="text-xs"
                       >
-                        {inCollection ? 'Retirer de la collection' : 'Ajouter à la collection'}
+                        {inCollection
+                          ? 'Retirer de la collection'
+                          : 'Ajouter à la collection'}
                       </Button>
                     </div>
                   </CardContent>

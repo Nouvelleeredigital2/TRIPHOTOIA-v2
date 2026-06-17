@@ -157,12 +157,23 @@ void main() {
 // ---------- Processor class ----------
 
 const UNIFORM_NAMES = [
-  'u_image', 'u_texelSize',
-  'u_exposure', 'u_contrast',
-  'u_temperature', 'u_tint',
-  'u_highlights', 'u_shadows', 'u_whites', 'u_blacks',
-  'u_clarity', 'u_texture_str', 'u_dehaze',
-  'u_vibrance', 'u_saturation', 'u_midtoneContrast', 'u_sharpness',
+  'u_image',
+  'u_texelSize',
+  'u_exposure',
+  'u_contrast',
+  'u_temperature',
+  'u_tint',
+  'u_highlights',
+  'u_shadows',
+  'u_whites',
+  'u_blacks',
+  'u_clarity',
+  'u_texture_str',
+  'u_dehaze',
+  'u_vibrance',
+  'u_saturation',
+  'u_midtoneContrast',
+  'u_sharpness',
 ] as const;
 
 export class WebGLRetouchProcessor {
@@ -171,13 +182,17 @@ export class WebGLRetouchProcessor {
   private program: WebGLProgram | null = null;
   private tex: WebGLTexture | null = null;
   private vao: WebGLVertexArrayObject | null = null;
-  private locs: Partial<Record<(typeof UNIFORM_NAMES)[number], WebGLUniformLocation>> = {};
+  private locs: Partial<
+    Record<(typeof UNIFORM_NAMES)[number], WebGLUniformLocation>
+  > = {};
   private _supported = false;
 
   constructor() {
     this.canvas = document.createElement('canvas');
     try {
-      const gl = this.canvas.getContext('webgl2', { premultipliedAlpha: false });
+      const gl = this.canvas.getContext('webgl2', {
+        premultipliedAlpha: false,
+      });
       if (!gl) return;
       this.gl = gl;
       this.setup(gl);
@@ -191,7 +206,10 @@ export class WebGLRetouchProcessor {
   }
 
   // Synchronous — no pixel readback, result is the WebGL canvas itself.
-  applyRetouch(image: HTMLImageElement, options: RetouchOptions): HTMLCanvasElement {
+  applyRetouch(
+    image: HTMLImageElement,
+    options: RetouchOptions
+  ): HTMLCanvasElement {
     const gl = this.gl;
     if (!gl || !this._supported || !this.program || !this.vao) {
       throw new Error('WebGL not ready');
@@ -209,15 +227,19 @@ export class WebGLRetouchProcessor {
     gl.useProgram(this.program);
     gl.bindVertexArray(this.vao);
 
-    const set1i = (name: typeof UNIFORM_NAMES[number], v: number) => {
+    const set1i = (name: (typeof UNIFORM_NAMES)[number], v: number) => {
       const loc = this.locs[name];
       if (loc) gl.uniform1i(loc, v);
     };
-    const set1f = (name: typeof UNIFORM_NAMES[number], v: number) => {
+    const set1f = (name: (typeof UNIFORM_NAMES)[number], v: number) => {
       const loc = this.locs[name];
       if (loc) gl.uniform1f(loc, v);
     };
-    const set2f = (name: typeof UNIFORM_NAMES[number], x: number, y: number) => {
+    const set2f = (
+      name: (typeof UNIFORM_NAMES)[number],
+      x: number,
+      y: number
+    ) => {
       const loc = this.locs[name];
       if (loc) gl.uniform2f(loc, x, y);
     };
@@ -227,21 +249,21 @@ export class WebGLRetouchProcessor {
 
     // Normalize -100..100 → -1..1
     const n = (v: number) => v / 100;
-    set1f('u_exposure',       n(options.exposure));
-    set1f('u_contrast',       n(options.contrast));
-    set1f('u_temperature',    n(options.temperature));
-    set1f('u_tint',           n(options.tint));
-    set1f('u_highlights',     n(options.highlights));
-    set1f('u_shadows',        n(options.shadows));
-    set1f('u_whites',         n(options.whites));
-    set1f('u_blacks',         n(options.blacks));
-    set1f('u_clarity',        n(options.clarity));
-    set1f('u_texture_str',    n(options.texture));
-    set1f('u_dehaze',         n(options.dehaze));
-    set1f('u_vibrance',       n(options.vibrance));
-    set1f('u_saturation',     n(options.saturation));
-    set1f('u_midtoneContrast',n(options.midtoneContrast));
-    set1f('u_sharpness',      Math.max(0, n(options.sharpness)));
+    set1f('u_exposure', n(options.exposure));
+    set1f('u_contrast', n(options.contrast));
+    set1f('u_temperature', n(options.temperature));
+    set1f('u_tint', n(options.tint));
+    set1f('u_highlights', n(options.highlights));
+    set1f('u_shadows', n(options.shadows));
+    set1f('u_whites', n(options.whites));
+    set1f('u_blacks', n(options.blacks));
+    set1f('u_clarity', n(options.clarity));
+    set1f('u_texture_str', n(options.texture));
+    set1f('u_dehaze', n(options.dehaze));
+    set1f('u_vibrance', n(options.vibrance));
+    set1f('u_saturation', n(options.saturation));
+    set1f('u_midtoneContrast', n(options.midtoneContrast));
+    set1f('u_sharpness', Math.max(0, n(options.sharpness)));
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
@@ -251,16 +273,16 @@ export class WebGLRetouchProcessor {
   dispose(): void {
     const gl = this.gl;
     if (!gl) return;
-    if (this.tex)     gl.deleteTexture(this.tex);
+    if (this.tex) gl.deleteTexture(this.tex);
     if (this.program) gl.deleteProgram(this.program);
-    if (this.vao)     gl.deleteVertexArray(this.vao);
+    if (this.vao) gl.deleteVertexArray(this.vao);
     this._supported = false;
   }
 
   // ── Private setup ────────────────────────────────────────────────────────
 
   private setup(gl: WebGL2RenderingContext): void {
-    const vert = this.compile(gl, gl.VERTEX_SHADER,   VERT_SRC);
+    const vert = this.compile(gl, gl.VERTEX_SHADER, VERT_SRC);
     const frag = this.compile(gl, gl.FRAGMENT_SHADER, FRAG_SRC);
     if (!vert || !frag) return;
 
@@ -278,14 +300,14 @@ export class WebGLRetouchProcessor {
     // Full-screen quad (two triangles as TRIANGLE_STRIP)
     //  positions: clip-space [-1,+1]
     //  texCoords: UV [0,1], Y-flipped to match image origin
-    const positions = new Float32Array([-1, -1,  1, -1,  -1, 1,   1, 1]);
-    const texCoords = new Float32Array([ 0,  1,  1,  1,   0, 0,   1, 0]);
+    const positions = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
+    const texCoords = new Float32Array([0, 1, 1, 1, 0, 0, 1, 0]);
 
     this.vao = gl.createVertexArray()!;
     gl.bindVertexArray(this.vao);
 
     this.bindAttrib(gl, prog, 'a_position', positions, 2);
-    this.bindAttrib(gl, prog, 'a_texCoord', texCoords,  2);
+    this.bindAttrib(gl, prog, 'a_texCoord', texCoords, 2);
 
     gl.bindVertexArray(null);
 
@@ -306,7 +328,11 @@ export class WebGLRetouchProcessor {
     this._supported = true;
   }
 
-  private compile(gl: WebGL2RenderingContext, type: number, src: string): WebGLShader | null {
+  private compile(
+    gl: WebGL2RenderingContext,
+    type: number,
+    src: string
+  ): WebGLShader | null {
     const s = gl.createShader(type)!;
     gl.shaderSource(s, src);
     gl.compileShader(s);
@@ -322,7 +348,7 @@ export class WebGLRetouchProcessor {
     prog: WebGLProgram,
     name: string,
     data: Float32Array,
-    size: number,
+    size: number
   ): void {
     const buf = gl.createBuffer()!;
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);

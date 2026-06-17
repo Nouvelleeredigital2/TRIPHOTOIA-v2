@@ -26,7 +26,10 @@ export class PerformanceTracker {
   /**
    * Démarre le suivi d'une opération
    */
-  startOperation(operation: string, metadata?: Record<string, unknown>): string {
+  startOperation(
+    operation: string,
+    metadata?: Record<string, unknown>
+  ): string {
     const id = `${operation}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     const metric: PerformanceMetric = {
@@ -34,7 +37,7 @@ export class PerformanceTracker {
       operation,
       startTime: performance.now(),
       success: false,
-      metadata
+      metadata,
     };
 
     this.activeOperations.set(id, metric);
@@ -62,8 +65,8 @@ export class PerformanceTracker {
    * Obtient les métriques récentes
    */
   getRecentMetrics(minutes: number = 5): PerformanceMetric[] {
-    const cutoff = performance.now() - (minutes * 60 * 1000);
-    return this.metrics.filter(m => (m.startTime ?? 0) > cutoff);
+    const cutoff = performance.now() - minutes * 60 * 1000;
+    return this.metrics.filter((m) => (m.startTime ?? 0) > cutoff);
   }
 
   /**
@@ -77,7 +80,9 @@ export class PerformanceTracker {
    * Obtient un instantané des opérations toujours en cours
    */
   getActiveOperationsSnapshot(): PerformanceMetric[] {
-    return Array.from(this.activeOperations.values()).map((metric) => ({ ...metric }));
+    return Array.from(this.activeOperations.values()).map((metric) => ({
+      ...metric,
+    }));
   }
 
   /**
@@ -87,32 +92,40 @@ export class PerformanceTracker {
     totalOperations: number;
     averageDuration: number;
     successRate: number;
-    operationsByType: Record<string, { count: number; avgDuration: number; successRate: number }>;
+    operationsByType: Record<
+      string,
+      { count: number; avgDuration: number; successRate: number }
+    >;
   } {
     const recent = this.getRecentMetrics();
 
     const totalOperations = recent.length;
     const totalDuration = recent.reduce((sum, m) => sum + (m.duration || 0), 0);
-    const averageDuration = totalOperations > 0 ? totalDuration / totalOperations : 0;
+    const averageDuration =
+      totalOperations > 0 ? totalDuration / totalOperations : 0;
 
-    const successfulOps = recent.filter(m => m.success).length;
-    const successRate = totalOperations > 0 ? successfulOps / totalOperations : 0;
+    const successfulOps = recent.filter((m) => m.success).length;
+    const successRate =
+      totalOperations > 0 ? successfulOps / totalOperations : 0;
 
-    const operationsByType: Record<string, {
-      count: number;
-      totalDuration: number;
-      successful: number;
-      avgDuration: number;
-      successRate: number;
-    }> = {};
-    recent.forEach(metric => {
+    const operationsByType: Record<
+      string,
+      {
+        count: number;
+        totalDuration: number;
+        successful: number;
+        avgDuration: number;
+        successRate: number;
+      }
+    > = {};
+    recent.forEach((metric) => {
       if (!operationsByType[metric.operation]) {
         operationsByType[metric.operation] = {
           count: 0,
           totalDuration: 0,
           successful: 0,
           avgDuration: 0,
-          successRate: 0
+          successRate: 0,
         };
       }
 
@@ -124,9 +137,10 @@ export class PerformanceTracker {
     });
 
     // Calculate averages and success rates
-    Object.keys(operationsByType).forEach(op => {
+    Object.keys(operationsByType).forEach((op) => {
       const stats = operationsByType[op];
-      stats.avgDuration = stats.count > 0 ? stats.totalDuration / stats.count : 0;
+      stats.avgDuration =
+        stats.count > 0 ? stats.totalDuration / stats.count : 0;
       stats.successRate = stats.count > 0 ? stats.successful / stats.count : 0;
     });
 
@@ -134,7 +148,7 @@ export class PerformanceTracker {
       totalOperations,
       averageDuration,
       successRate,
-      operationsByType
+      operationsByType,
     };
   }
 
@@ -148,7 +162,9 @@ export class PerformanceTracker {
     // Log warnings for slow operations
     Object.entries(stats.operationsByType).forEach(([op, stats]) => {
       if (stats.avgDuration > 1000) {
-        console.warn(`⚠️ Slow operation detected: ${op} (${stats.avgDuration.toFixed(2)}ms avg)`);
+        console.warn(
+          `⚠️ Slow operation detected: ${op} (${stats.avgDuration.toFixed(2)}ms avg)`
+        );
       }
     });
   }
@@ -162,7 +178,10 @@ export class AnalysisCache {
   /**
    * Génère une clé de cache pour les paramètres d'analyse
    */
-  private generateCacheKey(file: File, options?: Record<string, unknown>): string {
+  private generateCacheKey(
+    file: File,
+    options?: Record<string, unknown>
+  ): string {
     const fileKey = `${file.name}-${file.size}-${file.lastModified}`;
     const optionsKey = options ? JSON.stringify(options) : '';
     return `${fileKey}-${optionsKey}`;
@@ -171,7 +190,12 @@ export class AnalysisCache {
   /**
    * Met en cache un résultat d'analyse
    */
-  set<T>(file: File, data: T, options?: Record<string, unknown>, ttl?: number): void {
+  set<T>(
+    file: File,
+    data: T,
+    options?: Record<string, unknown>,
+    ttl?: number
+  ): void {
     const key = this.generateCacheKey(file, options);
 
     // Clean up old entries if cache is full
@@ -182,7 +206,7 @@ export class AnalysisCache {
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
-      ttl: ttl || this.defaultTTL
+      ttl: ttl || this.defaultTTL,
     });
   }
 
@@ -235,7 +259,7 @@ export class AnalysisCache {
       }
     }
 
-    toDelete.forEach(key => this.cache.delete(key));
+    toDelete.forEach((key) => this.cache.delete(key));
   }
 
   /**
@@ -263,7 +287,8 @@ export class AnalysisCache {
 
     for (const entry of this.cache.values()) {
       const age = now - entry.timestamp;
-      if (age < 60000) { // Less than 1 minute
+      if (age < 60000) {
+        // Less than 1 minute
         recent++;
       } else if (age < entry.ttl) {
         old++;
@@ -276,7 +301,7 @@ export class AnalysisCache {
       size: this.cache.size,
       maxSize: this.maxSize,
       hitRate: totalRequests > 0 ? hits / totalRequests : 0,
-      entriesByAge: { recent, old, expired }
+      entriesByAge: { recent, old, expired },
     };
   }
 }

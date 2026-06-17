@@ -46,7 +46,7 @@ export class ImageProcessor {
     const operationId = performanceTracker.startOperation('analyzeImage', {
       fileName: file.name,
       fileSize: file.size,
-      fileType: file.type
+      fileType: file.type,
     });
 
     try {
@@ -64,17 +64,13 @@ export class ImageProcessor {
       // Analyses parallèles avec suivi de performance
       const analysisStartTime = performance.now();
 
-      const [
-        blurAnalysis,
-        colorAnalysis,
-        compositionAnalysis,
-        metadata
-      ] = await Promise.all([
-        this.analyzeBlur(imageData),
-        this.analyzeColors(imageData),
-        this.analyzeComposition(imageData),
-        this.extractMetadata(image)
-      ]);
+      const [blurAnalysis, colorAnalysis, compositionAnalysis, metadata] =
+        await Promise.all([
+          this.analyzeBlur(imageData),
+          this.analyzeColors(imageData),
+          this.analyzeComposition(imageData),
+          this.extractMetadata(image),
+        ]);
 
       const analysisDuration = performance.now() - analysisStartTime;
 
@@ -85,15 +81,21 @@ export class ImageProcessor {
         tags: this.generateTags(imageData, metadata),
         perceptualHash: this.generatePerceptualHash(imageData),
         compositionScore: compositionAnalysis,
-        suggestedRetouch: this.suggestRetouch(imageData, blurAnalysis, colorAnalysis),
-        metadata
+        suggestedRetouch: this.suggestRetouch(
+          imageData,
+          blurAnalysis,
+          colorAnalysis
+        ),
+        metadata,
       };
 
       // Cache the result
       analysisCache.set(file, result, { analysisDuration }, 300000); // 5 minutes TTL
 
       performanceTracker.endOperation(operationId, true);
-      console.log(`✅ Analysis completed for ${file.name} in ${analysisDuration.toFixed(2)}ms`);
+      console.log(
+        `✅ Analysis completed for ${file.name} in ${analysisDuration.toFixed(2)}ms`
+      );
 
       return result;
     } catch (error) {
@@ -146,7 +148,9 @@ export class ImageProcessor {
     const sobelSharpness = this.calculateSobelSharpness(imageData);
 
     // Weighted combination: 40% Laplacian, 30% FFT, 30% Sobel for optimal accuracy
-    const combinedSharpness = (laplacianVariance * 0.4 + fftSharpness * 0.3 + sobelSharpness * 0.3) / 1000;
+    const combinedSharpness =
+      (laplacianVariance * 0.4 + fftSharpness * 0.3 + sobelSharpness * 0.3) /
+      1000;
     const sharpnessScore = Math.min(Math.max(combinedSharpness, 0), 1.0);
     const isBlurry = sharpnessScore < 0.3;
 
@@ -174,20 +178,25 @@ export class ImageProcessor {
     const leadingLinesScore = this.analyzeLeadingLines(data, width, height);
 
     // Overall composition score (weighted average)
-    const overallCompositionScore = (ruleOfThirdsScore * 0.4 + symmetryScore * 0.3 + leadingLinesScore * 0.3);
+    const overallCompositionScore =
+      ruleOfThirdsScore * 0.4 + symmetryScore * 0.3 + leadingLinesScore * 0.3;
 
     return {
       ruleOfThirdsScore,
       symmetryScore,
       leadingLinesScore,
-      overallCompositionScore
+      overallCompositionScore,
     };
   }
 
   /**
    * Analyse le respect de la règle des tiers
    */
-  private analyzeRuleOfThirds(data: Uint8ClampedArray, width: number, height: number): number {
+  private analyzeRuleOfThirds(
+    data: Uint8ClampedArray,
+    width: number,
+    height: number
+  ): number {
     // Points d'intérêt de la règle des tiers (intersections des lignes)
     const thirdWidth = width / 3;
     const thirdHeight = height / 3;
@@ -196,7 +205,7 @@ export class ImageProcessor {
       { x: thirdWidth, y: thirdHeight },
       { x: 2 * thirdWidth, y: thirdHeight },
       { x: thirdWidth, y: 2 * thirdHeight },
-      { x: 2 * thirdWidth, y: 2 * thirdHeight }
+      { x: 2 * thirdWidth, y: 2 * thirdHeight },
     ];
 
     let totalInterest = 0;
@@ -208,7 +217,14 @@ export class ImageProcessor {
 
       if (x >= 0 && x < width && y >= 0 && y < height) {
         // Calculate local contrast around the point
-        const contrast = this.calculateLocalContrast(data, width, height, x, y, 20);
+        const contrast = this.calculateLocalContrast(
+          data,
+          width,
+          height,
+          x,
+          y,
+          20
+        );
         totalInterest += contrast;
         maxPossible += 1;
       }
@@ -220,7 +236,11 @@ export class ImageProcessor {
   /**
    * Analyse la symétrie de l'image
    */
-  private analyzeSymmetry(data: Uint8ClampedArray, width: number, height: number): number {
+  private analyzeSymmetry(
+    data: Uint8ClampedArray,
+    width: number,
+    height: number
+  ): number {
     let symmetryScore = 0;
     let totalComparisons = 0;
 
@@ -247,7 +267,11 @@ export class ImageProcessor {
   /**
    * Analyse les lignes directrices (leading lines)
    */
-  private analyzeLeadingLines(data: Uint8ClampedArray, width: number, height: number): number {
+  private analyzeLeadingLines(
+    data: Uint8ClampedArray,
+    width: number,
+    height: number
+  ): number {
     // Use edge detection to find potential leading lines
     const edges = this.detectEdges(data, width, height);
 
@@ -276,24 +300,29 @@ export class ImageProcessor {
   /**
    * Détecte les contours avec l'opérateur Sobel
    */
-  private detectEdges(data: Uint8ClampedArray, width: number, height: number): boolean[] {
+  private detectEdges(
+    data: Uint8ClampedArray,
+    width: number,
+    height: number
+  ): boolean[] {
     const edges = new Array(width * height).fill(false);
 
     const sobelX = [
       [-1, 0, 1],
       [-2, 0, 2],
-      [-1, 0, 1]
+      [-1, 0, 1],
     ];
 
     const sobelY = [
       [-1, -2, -1],
       [0, 0, 0],
-      [1, 2, 1]
+      [1, 2, 1],
     ];
 
     for (let y = 1; y < height - 1; y++) {
       for (let x = 1; x < width - 1; x++) {
-        let gx = 0, gy = 0;
+        let gx = 0,
+          gy = 0;
 
         for (let ky = 0; ky < 3; ky++) {
           for (let kx = 0; kx < 3; kx++) {
@@ -316,7 +345,14 @@ export class ImageProcessor {
   /**
    * Calcule le contraste local autour d'un point
    */
-  private calculateLocalContrast(data: Uint8ClampedArray, width: number, height: number, centerX: number, centerY: number, radius: number): number {
+  private calculateLocalContrast(
+    data: Uint8ClampedArray,
+    width: number,
+    height: number,
+    centerX: number,
+    centerY: number,
+    radius: number
+  ): number {
     let min = 255;
     let max = 0;
     let pixelCount = 0;
@@ -350,13 +386,13 @@ export class ImageProcessor {
     const sobelX = [
       [-1, 0, 1],
       [-2, 0, 2],
-      [-1, 0, 1]
+      [-1, 0, 1],
     ];
 
     const sobelY = [
       [-1, -2, -1],
       [0, 0, 0],
-      [1, 2, 1]
+      [1, 2, 1],
     ];
 
     let gradientSum = 0;
@@ -389,7 +425,10 @@ export class ImageProcessor {
     }
 
     const mean = gradientSum / sampleCount;
-    const variance = Math.max((gradientSumSquared / sampleCount) - mean * mean, 0);
+    const variance = Math.max(
+      gradientSumSquared / sampleCount - mean * mean,
+      0
+    );
     const normalized = Math.min(variance / 5000, 1);
 
     return normalized * 1000;
@@ -437,7 +476,11 @@ export class ImageProcessor {
   /**
    * Simplified 2D FFT implementation for sharpness analysis
    */
-  private simpleFFT2D(data: Float64Array, width: number, height: number): Float64Array {
+  private simpleFFT2D(
+    data: Float64Array,
+    width: number,
+    height: number
+  ): Float64Array {
     const result = new Float64Array(width * height);
 
     // This is a simplified FFT approximation for performance
@@ -450,9 +493,14 @@ export class ImageProcessor {
         // Simple frequency analysis using gradient magnitude
         let gradientSum = 0;
         const neighbors = [
-          [-1, -1], [-1, 0], [-1, 1],
-          [0, -1],           [0, 1],
-          [1, -1],  [1, 0],  [1, 1]
+          [-1, -1],
+          [-1, 0],
+          [-1, 1],
+          [0, -1],
+          [0, 1],
+          [1, -1],
+          [1, 0],
+          [1, 1],
         ];
 
         for (const [dx, dy] of neighbors) {
@@ -481,7 +529,7 @@ export class ImageProcessor {
     const laplacianKernel = [
       [0, -1, 0],
       [-1, 4, -1],
-      [0, -1, 0]
+      [0, -1, 0],
     ];
 
     let sum = 0;
@@ -508,7 +556,7 @@ export class ImageProcessor {
     }
 
     const mean = sum / count;
-    const variance = (sumSquared / count) - (mean * mean);
+    const variance = sumSquared / count - mean * mean;
     return variance;
   }
 
@@ -547,7 +595,8 @@ export class ImageProcessor {
 
       // Saturation (écart-type des composantes RGB)
       const mean = brightness;
-      const variance = ((r - mean) ** 2 + (g - mean) ** 2 + (b - mean) ** 2) / 3;
+      const variance =
+        ((r - mean) ** 2 + (g - mean) ** 2 + (b - mean) ** 2) / 3;
       const saturation = Math.sqrt(variance);
       totalSaturation += saturation;
 
@@ -573,7 +622,7 @@ export class ImageProcessor {
     return {
       brightness: normalizedBrightness,
       contrast: normalizedContrast,
-      saturation: normalizedSaturation
+      saturation: normalizedSaturation,
     };
   }
 
@@ -603,10 +652,17 @@ export class ImageProcessor {
 
           // Calculer le contraste local
           const brightness = (r + g + b) / 3;
-          const neighbors = this.getNeighborBrightness(data, width, height, x, y);
+          const neighbors = this.getNeighborBrightness(
+            data,
+            width,
+            height,
+            x,
+            y
+          );
           const localContrast = Math.abs(brightness - neighbors.avg);
 
-          if (localContrast > 30) { // Seuil de contraste pour les yeux
+          if (localContrast > 30) {
+            // Seuil de contraste pour les yeux
             eyeRegions++;
             totalContrast += localContrast;
           }
@@ -622,7 +678,13 @@ export class ImageProcessor {
   /**
    * Obtient la luminosité moyenne des voisins d'un pixel
    */
-  private getNeighborBrightness(data: Uint8ClampedArray, width: number, height: number, x: number, y: number): { avg: number; count: number } {
+  private getNeighborBrightness(
+    data: Uint8ClampedArray,
+    width: number,
+    height: number,
+    x: number,
+    y: number
+  ): { avg: number; count: number } {
     let sum = 0;
     let count = 0;
 
@@ -630,9 +692,16 @@ export class ImageProcessor {
       for (let dx = -1; dx <= 1; dx++) {
         const nx = x + dx;
         const ny = y + dy;
-        if (nx >= 0 && nx < width && ny >= 0 && ny < height && !(dx === 0 && dy === 0)) {
+        if (
+          nx >= 0 &&
+          nx < width &&
+          ny >= 0 &&
+          ny < height &&
+          !(dx === 0 && dy === 0)
+        ) {
           const index = (ny * width + nx) * 4;
-          const brightness = (data[index] + data[index + 1] + data[index + 2]) / 3;
+          const brightness =
+            (data[index] + data[index + 1] + data[index + 2]) / 3;
           sum += brightness;
           count++;
         }
@@ -645,13 +714,17 @@ export class ImageProcessor {
   /**
    * Génère des tags pour l'image
    */
-  private generateTags(imageData: ImageData, _metadata: { dominantColors: string[] }): string[] {
+  private generateTags(
+    imageData: ImageData,
+    _metadata: { dominantColors: string[] }
+  ): string[] {
     const { data, width, height } = imageData;
     const tags: string[] = [];
 
     // Analyser les couleurs dominantes
     const colorCounts = new Map<string, number>();
-    for (let i = 0; i < data.length; i += 4 * 10) { // Échantillonnage tous les 10 pixels
+    for (let i = 0; i < data.length; i += 4 * 10) {
+      // Échantillonnage tous les 10 pixels
       const r = data[i];
       const g = data[i + 1];
       const b = data[i + 2];
@@ -666,7 +739,9 @@ export class ImageProcessor {
     }
 
     // Trier les couleurs par fréquence
-    const sortedColors = Array.from(colorCounts.entries()).sort((a, b) => b[1] - a[1]);
+    const sortedColors = Array.from(colorCounts.entries()).sort(
+      (a, b) => b[1] - a[1]
+    );
 
     // Ajouter des tags basés sur les couleurs dominantes
     if (sortedColors.length > 0) {
@@ -745,7 +820,13 @@ export class ImageProcessor {
   /**
    * Redimensionne une image
    */
-  private resizeImage(data: Uint8ClampedArray, srcWidth: number, srcHeight: number, dstWidth: number, dstHeight: number): Uint8ClampedArray {
+  private resizeImage(
+    data: Uint8ClampedArray,
+    srcWidth: number,
+    srcHeight: number,
+    dstWidth: number,
+    dstHeight: number
+  ): Uint8ClampedArray {
     const dstData = new Uint8ClampedArray(dstWidth * dstHeight * 4);
     const xRatio = srcWidth / dstWidth;
     const yRatio = srcHeight / dstHeight;
@@ -780,14 +861,18 @@ export class ImageProcessor {
       width: image.width,
       height: image.height,
       aspectRatio: image.width / image.height,
-      dominantColors: [] // Sera rempli par analyzeColors
+      dominantColors: [], // Sera rempli par analyzeColors
     };
   }
 
   /**
    * Suggère des ajustements de retouche optimisés pour GPU
    */
-  private suggestRetouch(imageData: ImageData, blurAnalysis: { isBlurry: boolean; sharpnessScore: number }, colorAnalysis: { brightness: number; contrast: number; saturation: number }): {
+  private suggestRetouch(
+    imageData: ImageData,
+    blurAnalysis: { isBlurry: boolean; sharpnessScore: number },
+    colorAnalysis: { brightness: number; contrast: number; saturation: number }
+  ): {
     brightness: number;
     contrast: number;
     saturation: number;

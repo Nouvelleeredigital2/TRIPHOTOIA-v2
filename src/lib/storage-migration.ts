@@ -21,8 +21,8 @@ const LS_KEY_MAP: Record<string, string> = {
   'triphotoia-export-presets': 'treephoto-export-presets',
   'triphotoia-presets': 'treephoto-presets',
   'triphotoia-onboarding-completed': 'treephoto-onboarding-completed',
-  'triphotoia_autoAdvance': 'treephoto_autoAdvance',
-  'triphotoia_approvals': 'treephoto_approvals',
+  triphotoia_autoAdvance: 'treephoto_autoAdvance',
+  triphotoia_approvals: 'treephoto_approvals',
 };
 
 /** Anciennes → nouvelles bases IndexedDB. */
@@ -56,7 +56,8 @@ export function migrateLocalStorageKeys(): void {
 function req<T>(request: IDBRequest<T>): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error('IDB request failed'));
+    request.onerror = () =>
+      reject(request.error ?? new Error('IDB request failed'));
   });
 }
 
@@ -86,7 +87,8 @@ function openExisting(name: string): Promise<IDBDatabase | null> {
       // On la laisse telle quelle ; le onsuccess détectera l'absence de stores.
     };
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error('IDB open failed'));
+    request.onerror = () =>
+      reject(request.error ?? new Error('IDB open failed'));
   });
 }
 
@@ -97,7 +99,10 @@ interface StoreDump {
   keys: IDBValidKey[];
 }
 
-async function renameIndexedDb(oldName: string, newName: string): Promise<void> {
+async function renameIndexedDb(
+  oldName: string,
+  newName: string
+): Promise<void> {
   if (typeof indexedDB === 'undefined') return;
 
   const oldDb = await openExisting(oldName);
@@ -121,7 +126,9 @@ async function renameIndexedDb(oldName: string, newName: string): Promise<void> 
     if (targetHasStores) {
       const tnames = Array.from(targetCheck.objectStoreNames);
       const ttx = targetCheck.transaction(tnames, 'readonly');
-      const counts = await Promise.all(tnames.map((s) => req(ttx.objectStore(s).count())));
+      const counts = await Promise.all(
+        tnames.map((s) => req(ttx.objectStore(s).count()))
+      );
       targetHasData = counts.some((c) => c > 0);
     }
     targetCheck.close();
@@ -167,7 +174,8 @@ async function renameIndexedDb(oldName: string, newName: string): Promise<void> 
       }
     };
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error('IDB create failed'));
+    request.onerror = () =>
+      reject(request.error ?? new Error('IDB create failed'));
   });
 
   // 3. Copie des enregistrements.
@@ -191,13 +199,15 @@ async function renameIndexedDb(oldName: string, newName: string): Promise<void> 
 }
 
 export async function migrateIndexedDbDatabases(): Promise<void> {
-  if (typeof localStorage !== 'undefined' && localStorage.getItem(IDB_FLAG)) return;
+  if (typeof localStorage !== 'undefined' && localStorage.getItem(IDB_FLAG))
+    return;
 
   try {
     for (const [oldName, newName] of Object.entries(IDB_NAME_MAP)) {
       await renameIndexedDb(oldName, newName);
     }
-    if (typeof localStorage !== 'undefined') localStorage.setItem(IDB_FLAG, '1');
+    if (typeof localStorage !== 'undefined')
+      localStorage.setItem(IDB_FLAG, '1');
   } catch (error) {
     // En cas d'échec, on ne pose pas le flag : nouvelle tentative au prochain lancement
     // (renameIndexedDb est idempotent).

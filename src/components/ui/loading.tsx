@@ -16,10 +16,15 @@ const sizeClasses = {
 
 export function Loading({ size = 'md', className, text }: LoadingProps) {
   return (
-    <div className={cn('flex flex-col items-center justify-center gap-2', className)}>
+    <div
+      className={cn(
+        'flex flex-col items-center justify-center gap-2',
+        className
+      )}
+    >
       <motion.div
         className={cn(
-          'border-2 border-primary border-t-transparent rounded-full animate-spin',
+          'animate-spin rounded-full border-2 border-primary border-t-transparent',
           sizeClasses[size]
         )}
         animate={{ rotate: 360 }}
@@ -42,7 +47,11 @@ export function Loading({ size = 'md', className, text }: LoadingProps) {
   );
 }
 
-export function LoadingOverlay({ children, isLoading, text }: {
+export function LoadingOverlay({
+  children,
+  isLoading,
+  text,
+}: {
   children: React.ReactNode;
   isLoading: boolean;
   text?: string;
@@ -55,7 +64,7 @@ export function LoadingOverlay({ children, isLoading, text }: {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10"
+          className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm"
         >
           <Loading text={text} />
         </motion.div>

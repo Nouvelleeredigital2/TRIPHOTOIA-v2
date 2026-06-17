@@ -9,13 +9,19 @@ global.URL.revokeObjectURL = vi.fn();
 describe('Security Tests', () => {
   beforeEach(() => {
     // Reset the store's in-memory state between tests
-    usePhotoStore.setState({ photos: [], analysisQueue: [], isProcessing: false });
+    usePhotoStore.setState({
+      photos: [],
+      analysisQueue: [],
+      isProcessing: false,
+    });
   });
 
   it('should sanitize file names', () => {
     const store = usePhotoStore.getState();
 
-    const maliciousFile = new File([''], '../../../etc/passwd', { type: 'image/jpeg' });
+    const maliciousFile = new File([''], '../../../etc/passwd', {
+      type: 'image/jpeg',
+    });
     const maliciousPhoto: Photo = {
       id: 'malicious-photo',
       file: maliciousFile,
@@ -35,7 +41,9 @@ describe('Security Tests', () => {
   it('should handle malicious file types', () => {
     const { addPhotos } = usePhotoStore.getState();
 
-    const maliciousFile = new File([''], 'malicious.exe', { type: 'application/x-executable' });
+    const maliciousFile = new File([''], 'malicious.exe', {
+      type: 'application/x-executable',
+    });
     const maliciousPhoto: Photo = {
       id: 'malicious-photo',
       file: maliciousFile,
@@ -134,7 +142,9 @@ describe('Security Tests', () => {
     const promises = [];
 
     for (let i = 0; i < 100; i++) {
-      const maliciousFile = new File([''], `malicious-${i}.exe`, { type: 'application/x-executable' });
+      const maliciousFile = new File([''], `malicious-${i}.exe`, {
+        type: 'application/x-executable',
+      });
       const maliciousPhoto = {
         id: `malicious-photo-${i}`,
         file: maliciousFile,
@@ -142,7 +152,9 @@ describe('Security Tests', () => {
         analysis: null,
       };
 
-      promises.push(Promise.resolve().then(() => store.addPhotos([maliciousPhoto])));
+      promises.push(
+        Promise.resolve().then(() => store.addPhotos([maliciousPhoto]))
+      );
     }
 
     // Clear concurrently

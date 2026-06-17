@@ -7,6 +7,7 @@ L'application utilise maintenant un système d'API modulaire qui permet de chois
 ## 🔧 **APIs Supportées**
 
 ### **1. 🏠 Analyse Locale (Par défaut)**
+
 - **Type** : Traitement 100% local
 - **Coût** : Gratuit
 - **Confidentialité** : 100% - Aucune donnée envoyée
@@ -19,6 +20,7 @@ L'application utilise maintenant un système d'API modulaire qui permet de chois
   - Suggestions de retouche
 
 ### **2. 🤗 Hugging Face**
+
 - **Type** : API gratuite
 - **Coût** : Gratuit (avec limites)
 - **Confidentialité** : Données envoyées à Hugging Face
@@ -29,6 +31,7 @@ L'application utilise maintenant un système d'API modulaire qui permet de chois
   - Pas de clé API requise
 
 ### **3. ⚡ Replicate**
+
 - **Type** : API payante
 - **Coût** : Payant selon l'utilisation
 - **Confidentialité** : Données envoyées à Replicate
@@ -39,6 +42,7 @@ L'application utilise maintenant un système d'API modulaire qui permet de chois
   - Clé API requise
 
 ### **4. 👁️ Clarifai**
+
 - **Type** : API payante spécialisée
 - **Coût** : Payant selon l'utilisation
 - **Confidentialité** : Données envoyées à Clarifai
@@ -51,6 +55,7 @@ L'application utilise maintenant un système d'API modulaire qui permet de chois
 ## 🚀 **Comment utiliser**
 
 ### **Interface utilisateur**
+
 1. Ouvrez l'onglet "Ingestion & Analyse"
 2. Cliquez sur "Configurer" dans la section "Configuration de l'analyse"
 3. Choisissez votre provider préféré
@@ -58,6 +63,7 @@ L'application utilise maintenant un système d'API modulaire qui permet de chois
 5. Chargez vos photos
 
 ### **Programmatiquement**
+
 ```typescript
 import { setAnalysisProvider } from './services/geminiService';
 
@@ -65,15 +71,15 @@ import { setAnalysisProvider } from './services/geminiService';
 setAnalysisProvider({ provider: 'local' });
 
 // Utiliser Hugging Face
-setAnalysisProvider({ 
+setAnalysisProvider({
   provider: 'huggingface',
-  apiKey: 'your_api_key_here' // Optionnel
+  apiKey: 'your_api_key_here', // Optionnel
 });
 
 // Utiliser Replicate
-setAnalysisProvider({ 
+setAnalysisProvider({
   provider: 'replicate',
-  apiKey: 'your_api_key_here'
+  apiKey: 'your_api_key_here',
 });
 ```
 
@@ -87,20 +93,21 @@ L'application utilise un système de fallback intelligent :
 
 ## 📊 **Comparaison des APIs**
 
-| Fonctionnalité | Local | Hugging Face | Replicate | Clarifai |
-|----------------|-------|--------------|-----------|----------|
-| **Coût** | Gratuit | Gratuit | Payant | Payant |
-| **Confidentialité** | 100% | Partielle | Partielle | Partielle |
-| **Hors ligne** | ✅ | ❌ | ❌ | ❌ |
-| **Détection de flou** | ✅ | ❌ | ✅ | ✅ |
-| **Classification** | Basique | Avancée | Avancée | Avancée |
-| **Détection d'objets** | ❌ | ✅ | ✅ | ✅ |
-| **Détection de visages** | Basique | ✅ | ✅ | ✅ |
-| **Latence** | Instantané | Réseau | Réseau | Réseau |
+| Fonctionnalité           | Local      | Hugging Face | Replicate | Clarifai  |
+| ------------------------ | ---------- | ------------ | --------- | --------- |
+| **Coût**                 | Gratuit    | Gratuit      | Payant    | Payant    |
+| **Confidentialité**      | 100%       | Partielle    | Partielle | Partielle |
+| **Hors ligne**           | ✅         | ❌           | ❌        | ❌        |
+| **Détection de flou**    | ✅         | ❌           | ✅        | ✅        |
+| **Classification**       | Basique    | Avancée      | Avancée   | Avancée   |
+| **Détection d'objets**   | ❌         | ✅           | ✅        | ✅        |
+| **Détection de visages** | Basique    | ✅           | ✅        | ✅        |
+| **Latence**              | Instantané | Réseau       | Réseau    | Réseau    |
 
 ## 🛠️ **Configuration**
 
 ### **Variables d'environnement**
+
 ```env
 # Hugging Face (optionnel)
 HUGGINGFACE_API_KEY=your_key_here
@@ -113,11 +120,12 @@ CLARIFAI_API_KEY=your_key_here
 ```
 
 ### **Configuration par défaut**
+
 ```typescript
 const defaultConfig = {
   provider: 'local', // Analyse locale par défaut
   apiKey: undefined,
-  model: undefined
+  model: undefined,
 };
 ```
 
@@ -126,11 +134,18 @@ const defaultConfig = {
 Pour ajouter une nouvelle API, suivez ces étapes :
 
 1. **Ajouter le type dans `AnalysisProvider`** :
+
 ```typescript
-export type AnalysisProvider = 'local' | 'huggingface' | 'replicate' | 'clarifai' | 'nouvelle_api';
+export type AnalysisProvider =
+  | 'local'
+  | 'huggingface'
+  | 'replicate'
+  | 'clarifai'
+  | 'nouvelle_api';
 ```
 
 2. **Implémenter la fonction d'analyse** :
+
 ```typescript
 async function analyzeWithNouvelleAPI(files: File[]): Promise<PhotoAnalysis[]> {
   // Implémentation de l'API
@@ -138,6 +153,7 @@ async function analyzeWithNouvelleAPI(files: File[]): Promise<PhotoAnalysis[]> {
 ```
 
 3. **Ajouter le cas dans le switch** :
+
 ```typescript
 case 'nouvelle_api':
   return await analyzeWithNouvelleAPI(files);
@@ -148,16 +164,19 @@ case 'nouvelle_api':
 ## 🐛 **Dépannage**
 
 ### **Erreur de clé API**
+
 - Vérifiez que la clé API est correcte
 - Vérifiez que la clé a les bonnes permissions
 - Consultez les logs de la console
 
 ### **Fallback vers l'analyse locale**
+
 - Normal en cas d'erreur API
 - Vérifiez votre connexion internet
 - Vérifiez les quotas API
 
 ### **Performance lente**
+
 - Utilisez l'analyse locale pour de meilleures performances
 - Réduisez la taille des images
 - Vérifiez la latence réseau
@@ -165,6 +184,7 @@ case 'nouvelle_api':
 ## 📈 **Métriques et monitoring**
 
 L'application enregistre automatiquement :
+
 - Provider utilisé
 - Temps d'analyse
 - Erreurs rencontrées

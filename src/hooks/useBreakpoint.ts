@@ -33,7 +33,10 @@ export function useBreakpoint() {
 
   const isMobile = currentBreakpoint === 'xs' || currentBreakpoint === 'sm';
   const isTablet = currentBreakpoint === 'md';
-  const isDesktop = currentBreakpoint === 'lg' || currentBreakpoint === 'xl' || currentBreakpoint === '2xl';
+  const isDesktop =
+    currentBreakpoint === 'lg' ||
+    currentBreakpoint === 'xl' ||
+    currentBreakpoint === '2xl';
 
   return {
     currentBreakpoint,

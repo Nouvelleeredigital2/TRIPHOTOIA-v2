@@ -27,7 +27,13 @@ const generateId = () => {
 
 interface AiErrorState {
   errors: AiError[];
-  pushError: (error: Omit<AiError, 'id' | 'timestamp' | 'status'> & { id?: string; timestamp?: number; status?: AiErrorStatus }) => AiError;
+  pushError: (
+    error: Omit<AiError, 'id' | 'timestamp' | 'status'> & {
+      id?: string;
+      timestamp?: number;
+      status?: AiErrorStatus;
+    }
+  ) => AiError;
   markAsNotified: (id: string) => void;
   resolveError: (id: string) => void;
   resolveErrorsForPhoto: (photoId: string, source?: AiErrorSource) => void;

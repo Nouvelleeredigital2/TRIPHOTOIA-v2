@@ -1,10 +1,21 @@
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import React, {
+  useState,
+  useMemo,
+  useCallback,
+  useRef,
+  useEffect,
+} from 'react';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { usePhotoStore } from '../../store/photoStore';
 import { useAuthStore } from '../../store/authStore';
 import { trackStats } from '../../lib/sync-utils';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { formatFileSize } from '../../lib/utils';
@@ -43,8 +54,12 @@ const fsaAvailable = supportsDirectoryExport();
 function ExportTab() {
   const duplicateGroups = usePhotoStore((state) => state.duplicateGroups);
   const rejectedPhotoIds = usePhotoStore((state) => state.rejectedPhotoIds);
-  const pendingExportFilterMode = usePhotoStore((state) => state.pendingExportFilterMode);
-  const setPendingExportFilterMode = usePhotoStore((state) => state.setPendingExportFilterMode);
+  const pendingExportFilterMode = usePhotoStore(
+    (state) => state.pendingExportFilterMode
+  );
+  const setPendingExportFilterMode = usePhotoStore(
+    (state) => state.setPendingExportFilterMode
+  );
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
 
@@ -101,24 +116,33 @@ function ExportTab() {
   }, [form, pendingExportFilterMode, setPendingExportFilterMode]);
 
   // ── Preset handlers (after form so no TDZ) ──────────────────────────────
-  const handleLoadPreset = useCallback((id: string) => {
-    const preset = presets.find((p) => p.id === id);
-    if (!preset) return;
-    form.reset(preset.data);
-    setSelectedPresetId(id);
-    toast.success(`Preset "${preset.name}" chargé`);
-  }, [presets, form]);
+  const handleLoadPreset = useCallback(
+    (id: string) => {
+      const preset = presets.find((p) => p.id === id);
+      if (!preset) return;
+      form.reset(preset.data);
+      setSelectedPresetId(id);
+      toast.success(`Preset "${preset.name}" chargé`);
+    },
+    [presets, form]
+  );
 
-  const [overwriteTarget, setOverwriteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [overwriteTarget, setOverwriteTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
-  const doUpdatePreset = useCallback((id: string, label: string) => {
-    updatePreset(id, form.getValues());
-    refreshPresets();
-    setSelectedPresetId(id);
-    setSavePresetName('');
-    setShowSaveInput(false);
-    toast.success(`Preset "${label}" mis à jour`);
-  }, [form, refreshPresets]);
+  const doUpdatePreset = useCallback(
+    (id: string, label: string) => {
+      updatePreset(id, form.getValues());
+      refreshPresets();
+      setSelectedPresetId(id);
+      setSavePresetName('');
+      setShowSaveInput(false);
+      toast.success(`Preset "${label}" mis à jour`);
+    },
+    [form, refreshPresets]
+  );
 
   const handleSavePreset = useCallback(() => {
     // A-33 : nom obligatoire (plus de repli silencieux « Preset »).
@@ -133,7 +157,9 @@ function ExportTab() {
       return;
     }
     // A-33 : si le nom entre en collision avec un preset existant, confirmer l'écrasement.
-    const clash = presets.find((p) => p.name.trim().toLowerCase() === name.toLowerCase());
+    const clash = presets.find(
+      (p) => p.name.trim().toLowerCase() === name.toLowerCase()
+    );
     if (clash) {
       setOverwriteTarget({ id: clash.id, name: clash.name });
       return;
@@ -144,7 +170,14 @@ function ExportTab() {
     setSavePresetName('');
     setShowSaveInput(false);
     toast.success(`Preset "${created.name}" sauvegardé`);
-  }, [savePresetName, selectedPresetId, presets, form, refreshPresets, doUpdatePreset]);
+  }, [
+    savePresetName,
+    selectedPresetId,
+    presets,
+    form,
+    refreshPresets,
+    doUpdatePreset,
+  ]);
 
   const [presetDeleteOpen, setPresetDeleteOpen] = useState(false);
 
@@ -162,7 +195,8 @@ function ExportTab() {
     toast.success(`Preset "${preset?.name ?? ''}" supprimé`);
   }, [selectedPresetId, presets, refreshPresets]);
 
-  const presetToDeleteName = presets.find((p) => p.id === selectedPresetId)?.name ?? '';
+  const presetToDeleteName =
+    presets.find((p) => p.id === selectedPresetId)?.name ?? '';
 
   const {
     includeRejected,
@@ -206,7 +240,9 @@ function ExportTab() {
   const filterModeWatch = form.watch('filterMode');
 
   const exportStats = useMemo(() => {
-    const analyzedPhotos = activePhotos.filter((p) => p.analysis && !p.analysis.error);
+    const analyzedPhotos = activePhotos.filter(
+      (p) => p.analysis && !p.analysis.error
+    );
     const photos = buildPhotosToExport({
       photos: activePhotos,
       duplicateGroups,
@@ -220,14 +256,32 @@ function ExportTab() {
     });
 
     const totalSize = photos.reduce((sum, p) => sum + p.file.size, 0);
-    const duplicatePhotoIds = buildDuplicatePhotoIds(analyzedPhotos, duplicateGroups);
+    const duplicatePhotoIds = buildDuplicatePhotoIds(
+      analyzedPhotos,
+      duplicateGroups
+    );
     const duplicatesCount = duplicateGroups.filter((g) =>
       g.photos.some((p) => duplicatePhotoIds.has(p.id))
     ).length;
-    const rejectedCount = photos.filter((p) => rejectedPhotoIds.has(p.id) || p.analysis?.isRejected).length;
+    const rejectedCount = photos.filter(
+      (p) => rejectedPhotoIds.has(p.id) || p.analysis?.isRejected
+    ).length;
 
-    return { count: photos.length, totalSize, duplicates: duplicatesCount, rejected: rejectedCount };
-  }, [activePhotos, duplicateGroups, rejectedPhotoIds, includeRejected, includeDuplicates, filterModeWatch, minRatingWatch]);
+    return {
+      count: photos.length,
+      totalSize,
+      duplicates: duplicatesCount,
+      rejected: rejectedCount,
+    };
+  }, [
+    activePhotos,
+    duplicateGroups,
+    rejectedPhotoIds,
+    includeRejected,
+    includeDuplicates,
+    filterModeWatch,
+    minRatingWatch,
+  ]);
 
   // A-31 : nombre réel de photos exportables par chapitres (selon les filtres courants),
   // pour ne pas activer le bouton si rien n'est exportable.
@@ -246,30 +300,48 @@ function ExportTab() {
       },
     });
     return chapters.reduce((sum, c) => sum + c.photos.length, 0);
-  }, [allPhotos, collections, collectionOrder, duplicateGroups, rejectedPhotoIds, includeRejected, includeDuplicates, filterModeWatch, minRatingWatch]);
+  }, [
+    allPhotos,
+    collections,
+    collectionOrder,
+    duplicateGroups,
+    rejectedPhotoIds,
+    includeRejected,
+    includeDuplicates,
+    filterModeWatch,
+    minRatingWatch,
+  ]);
 
   // ── Handle submit ─────────────────────────────────────────────────────────
 
   // A-29 : feedback honnête succès complet / partiel / échec total.
   const reportExportResult = (
     result: { exported: number; failed: number; failedNames: string[] },
-    mode: 'ZIP' | 'dossier' | 'chapitres',
+    mode: 'ZIP' | 'dossier' | 'chapitres'
   ) => {
     // A-46 : comptabiliser les exports réussis dans les analytics.
     if (result.exported > 0) {
       const uid = useAuthStore.getState().user?.id;
-      if (uid) trackStats(uid, { exports_count: result.exported }).catch(() => {});
+      if (uid)
+        trackStats(uid, { exports_count: result.exported }).catch(() => {});
     }
     if (result.failed === 0) {
-      toast.success(`Export ${mode} terminé : ${result.exported} photo${result.exported > 1 ? 's' : ''}.`);
+      toast.success(
+        `Export ${mode} terminé : ${result.exported} photo${result.exported > 1 ? 's' : ''}.`
+      );
     } else if (result.exported === 0) {
-      toast.error(`Échec de l'export : aucune des ${result.failed} photos n'a pu être traitée.`);
+      toast.error(
+        `Échec de l'export : aucune des ${result.failed} photos n'a pu être traitée.`
+      );
     } else {
       const sample = result.failedNames.slice(0, 3).join(', ');
-      const more = result.failedNames.length > 3 ? ` (+${result.failedNames.length - 3})` : '';
+      const more =
+        result.failedNames.length > 3
+          ? ` (+${result.failedNames.length - 3})`
+          : '';
       toast(
         `Export ${mode} terminé avec ${result.failed} erreur(s) — ${result.exported} réussie(s). Échecs : ${sample}${more}`,
-        { icon: '⚠️', duration: 7000 },
+        { icon: '⚠️', duration: 7000 }
       );
     }
   };
@@ -290,24 +362,34 @@ function ExportTab() {
       maxWidth: data.maxWidth,
       maxHeight: data.maxHeight,
       renamePattern: data.renamePattern || undefined,
-      watermark: data.watermarkEnabled && data.watermarkText.trim()
-        ? {
-            text: data.watermarkText,
-            position: data.watermarkPosition as WatermarkPosition,
-            size: data.watermarkSize,
-            opacity: data.watermarkOpacity,
-            color: data.watermarkColor,
-          }
-        : undefined,
+      watermark:
+        data.watermarkEnabled && data.watermarkText.trim()
+          ? {
+              text: data.watermarkText,
+              position: data.watermarkPosition as WatermarkPosition,
+              size: data.watermarkSize,
+              opacity: data.watermarkOpacity,
+              color: data.watermarkColor,
+            }
+          : undefined,
     };
 
     try {
       let result: { exported: number; failed: number; failedNames: string[] };
       if (fsaAvailable) {
-        result = await exportPhotosToDirectory(photosToExport, options, (p) => setExportProgress(p));
+        result = await exportPhotosToDirectory(photosToExport, options, (p) =>
+          setExportProgress(p)
+        );
       } else {
-        const zipResult = await exportPhotosAsZip(photosToExport, options, (p) => setExportProgress(p));
-        downloadBlob(zipResult.blob, generateZipFileName(activeCollection?.name));
+        const zipResult = await exportPhotosAsZip(
+          photosToExport,
+          options,
+          (p) => setExportProgress(p)
+        );
+        downloadBlob(
+          zipResult.blob,
+          generateZipFileName(activeCollection?.name)
+        );
         result = zipResult;
       }
       reportExportResult(result, fsaAvailable ? 'dossier' : 'ZIP');
@@ -350,21 +432,24 @@ function ExportTab() {
       maxWidth: data.maxWidth,
       maxHeight: data.maxHeight,
       renamePattern: data.renamePattern || undefined,
-      watermark: data.watermarkEnabled && data.watermarkText.trim()
-        ? {
-            text: data.watermarkText,
-            position: data.watermarkPosition as WatermarkPosition,
-            size: data.watermarkSize,
-            opacity: data.watermarkOpacity,
-            color: data.watermarkColor,
-          }
-        : undefined,
+      watermark:
+        data.watermarkEnabled && data.watermarkText.trim()
+          ? {
+              text: data.watermarkText,
+              position: data.watermarkPosition as WatermarkPosition,
+              size: data.watermarkSize,
+              opacity: data.watermarkOpacity,
+              color: data.watermarkColor,
+            }
+          : undefined,
     };
 
     try {
       setIsExporting(true);
       setExportProgress(0);
-      const result = await exportPhotoChaptersAsZip(chapters, options, (p) => setExportProgress(p));
+      const result = await exportPhotoChaptersAsZip(chapters, options, (p) =>
+        setExportProgress(p)
+      );
       downloadBlob(result.blob, generateZipFileName('chapitres-mariage'));
       reportExportResult(result, 'chapitres');
     } catch (error) {
@@ -384,9 +469,11 @@ function ExportTab() {
       transition={{ duration: 0.3 }}
       className="space-y-6"
     >
-      <div className="text-center space-y-2">
+      <div className="space-y-2 text-center">
         <h2 className="text-3xl font-bold">Exportation</h2>
-        <p className="text-muted-foreground">Configurez et exportez vos photos triées</p>
+        <p className="text-muted-foreground">
+          Configurez et exportez vos photos triées
+        </p>
       </div>
 
       {/* ── Presets d'export ── */}
@@ -403,11 +490,13 @@ function ExportTab() {
                 if (e.target.value) handleLoadPreset(e.target.value);
                 else setSelectedPresetId('');
               }}
-              className="flex-1 min-w-[160px] h-9 rounded-lg border border-border/60 bg-background text-sm px-2 text-foreground"
+              className="h-9 min-w-[160px] flex-1 rounded-lg border border-border/60 bg-background px-2 text-sm text-foreground"
             >
               <option value="">— Sélectionner un preset —</option>
               {presets.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
               ))}
             </select>
 
@@ -424,7 +513,7 @@ function ExportTab() {
                 }}
                 title="Sauvegarder la configuration actuelle comme preset"
               >
-                <BookmarkPlus className="w-4 h-4" />
+                <BookmarkPlus className="h-4 w-4" />
                 Sauvegarder
               </Button>
             ) : (
@@ -436,10 +525,13 @@ function ExportTab() {
                   onChange={(e) => setSavePresetName(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleSavePreset();
-                    if (e.key === 'Escape') { setShowSaveInput(false); setSavePresetName(''); }
+                    if (e.key === 'Escape') {
+                      setShowSaveInput(false);
+                      setSavePresetName('');
+                    }
                   }}
                   placeholder="Nom du preset"
-                  className="h-9 rounded-lg border border-border/60 bg-background text-sm px-2 w-44 outline-none focus:ring-1 focus:ring-primary/50"
+                  className="h-9 w-44 rounded-lg border border-border/60 bg-background px-2 text-sm outline-none focus:ring-1 focus:ring-primary/50"
                 />
                 <Button type="button" size="sm" onClick={handleSavePreset}>
                   OK
@@ -448,7 +540,10 @@ function ExportTab() {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => { setShowSaveInput(false); setSavePresetName(''); }}
+                  onClick={() => {
+                    setShowSaveInput(false);
+                    setSavePresetName('');
+                  }}
                 >
                   ✕
                 </Button>
@@ -465,21 +560,21 @@ function ExportTab() {
                 onClick={handleDeletePreset}
                 title="Supprimer ce preset"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="h-4 w-4" />
               </Button>
             )}
           </div>
 
           {presets.length === 0 && (
-            <p className="text-xs text-muted-foreground mt-2">
-              Aucun preset. Configurez l&apos;export puis cliquez &quot;Sauvegarder&quot; pour créer un preset réutilisable.
+            <p className="mt-2 text-xs text-muted-foreground">
+              Aucun preset. Configurez l&apos;export puis cliquez
+              &quot;Sauvegarder&quot; pour créer un preset réutilisable.
             </p>
           )}
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* ── Stats ── */}
         <Card>
           <CardHeader>
@@ -487,13 +582,19 @@ function ExportTab() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-4 bg-muted rounded-lg">
+              <div className="rounded-lg bg-muted p-4 text-center">
                 <div className="text-2xl font-bold">{exportStats.count}</div>
-                <div className="text-sm text-muted-foreground">Photos à exporter</div>
+                <div className="text-sm text-muted-foreground">
+                  Photos à exporter
+                </div>
               </div>
-              <div className="text-center p-4 bg-muted rounded-lg">
-                <div className="text-2xl font-bold">{formatFileSize(exportStats.totalSize)}</div>
-                <div className="text-sm text-muted-foreground">Taille totale</div>
+              <div className="rounded-lg bg-muted p-4 text-center">
+                <div className="text-2xl font-bold">
+                  {formatFileSize(exportStats.totalSize)}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Taille totale
+                </div>
               </div>
             </div>
             <div className="space-y-2">
@@ -515,15 +616,20 @@ function ExportTab() {
             <CardTitle>Configuration d&apos;export</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={form.handleSubmit(handleExport)} className="space-y-4" id="export-form">
-
+            <form
+              onSubmit={form.handleSubmit(handleExport)}
+              className="space-y-4"
+              id="export-form"
+            >
               {/* Format */}
               <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="export-format">Format de sortie</label>
+                <label className="text-sm font-medium" htmlFor="export-format">
+                  Format de sortie
+                </label>
                 <select
                   id="export-format"
                   {...form.register('format')}
-                  className="w-full p-2 border rounded-md bg-background"
+                  className="w-full rounded-md border bg-background p-2"
                 >
                   <option value="original">Original</option>
                   <option value="jpeg">JPEG</option>
@@ -550,32 +656,45 @@ function ExportTab() {
               {/* Dimensions */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="export-max-width">Largeur max (px)</label>
+                  <label
+                    className="text-sm font-medium"
+                    htmlFor="export-max-width"
+                  >
+                    Largeur max (px)
+                  </label>
                   <input
                     id="export-max-width"
                     type="number"
                     min="100"
                     max="8000"
                     {...form.register('maxWidth', { valueAsNumber: true })}
-                    className="w-full p-2 border rounded-md bg-background"
+                    className="w-full rounded-md border bg-background p-2"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="export-max-height">Hauteur max (px)</label>
+                  <label
+                    className="text-sm font-medium"
+                    htmlFor="export-max-height"
+                  >
+                    Hauteur max (px)
+                  </label>
                   <input
                     id="export-max-height"
                     type="number"
                     min="100"
                     max="8000"
                     {...form.register('maxHeight', { valueAsNumber: true })}
-                    className="w-full p-2 border rounded-md bg-background"
+                    className="w-full rounded-md border bg-background p-2"
                   />
                 </div>
               </div>
 
               {/* Include toggles */}
               <div className="space-y-2">
-                <label className="flex items-center gap-2" htmlFor="export-include-rejected">
+                <label
+                  className="flex items-center gap-2"
+                  htmlFor="export-include-rejected"
+                >
                   <input
                     id="export-include-rejected"
                     type="checkbox"
@@ -584,7 +703,10 @@ function ExportTab() {
                   />
                   <span className="text-sm">Inclure les photos rejetées</span>
                 </label>
-                <label className="flex items-center gap-2" htmlFor="export-include-duplicates">
+                <label
+                  className="flex items-center gap-2"
+                  htmlFor="export-include-duplicates"
+                >
                   <input
                     id="export-include-duplicates"
                     type="checkbox"
@@ -594,7 +716,6 @@ function ExportTab() {
                   <span className="text-sm">Inclure les doublons</span>
                 </label>
               </div>
-
             </form>
           </CardContent>
         </Card>
@@ -613,13 +734,16 @@ function ExportTab() {
               count={exportStats.count}
               onModeChange={(mode, minRating) => {
                 form.setValue('filterMode', mode);
-                if (minRating !== undefined) form.setValue('minRating', minRating);
+                if (minRating !== undefined)
+                  form.setValue('minRating', minRating);
               }}
-              onIncludeRejectedChange={(val) => form.setValue('includeRejected', val)}
+              onIncludeRejectedChange={(val) =>
+                form.setValue('includeRejected', val)
+              }
             />
 
             {/* Radio buttons détaillés (toujours visibles) */}
-            <div className="border-t border-border/50 pt-3 space-y-2">
+            <div className="space-y-2 border-t border-border/50 pt-3">
               {(
                 [
                   { value: 'all', label: 'Toutes les photos analysées' },
@@ -628,7 +752,10 @@ function ExportTab() {
                   { value: 'min-rating', label: 'Note minimale ★' },
                 ] as const
               ).map(({ value, label }) => (
-                <label key={value} className="flex items-center gap-2 cursor-pointer">
+                <label
+                  key={value}
+                  className="flex cursor-pointer items-center gap-2"
+                >
                   <input
                     type="radio"
                     value={value}
@@ -641,10 +768,15 @@ function ExportTab() {
             </div>
 
             {filterMode === 'min-rating' && (
-              <div className="pl-5 flex items-center gap-3">
-                <span className="text-sm text-muted-foreground">Note min :</span>
+              <div className="flex items-center gap-3 pl-5">
+                <span className="text-sm text-muted-foreground">
+                  Note min :
+                </span>
                 {[1, 2, 3, 4, 5].map((r) => (
-                  <label key={r} className="flex items-center gap-1 cursor-pointer">
+                  <label
+                    key={r}
+                    className="flex cursor-pointer items-center gap-1"
+                  >
                     <input
                       type="radio"
                       value={r}
@@ -666,12 +798,13 @@ function ExportTab() {
           <CardContent>
             <RenamePanel
               pattern={form.watch('renamePattern')}
-              photos={activePhotos.filter((p) => p.analysis && !p.analysis.error).slice(0, 3)}
+              photos={activePhotos
+                .filter((p) => p.analysis && !p.analysis.error)
+                .slice(0, 3)}
               onPatternChange={(v) => form.setValue('renamePattern', v)}
             />
           </CardContent>
         </Card>
-
       </div>
 
       {/* ── Watermark ── */}
@@ -679,7 +812,7 @@ function ExportTab() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Filigrane (watermark)</CardTitle>
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className="flex cursor-pointer items-center gap-2">
               <input
                 type="checkbox"
                 {...form.register('watermarkEnabled')}
@@ -692,31 +825,36 @@ function ExportTab() {
         {watermarkEnabled && (
           <CardContent className="space-y-4">
             {format === 'original' && (
-              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded p-2">
-                ⚠️ Le filigrane encode l&apos;image — elle sera re-encodée en JPEG même si le format est &quot;Original&quot;.
+              <p className="rounded border border-amber-200 bg-amber-50 p-2 text-xs text-amber-600">
+                ⚠️ Le filigrane encode l&apos;image — elle sera re-encodée en
+                JPEG même si le format est &quot;Original&quot;.
               </p>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {/* Text */}
               <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="wm-text">Texte</label>
+                <label className="text-sm font-medium" htmlFor="wm-text">
+                  Texte
+                </label>
                 <input
                   id="wm-text"
                   type="text"
                   placeholder="© Mon Studio"
                   {...form.register('watermarkText')}
-                  className="w-full p-2 border rounded-md bg-background text-sm"
+                  className="w-full rounded-md border bg-background p-2 text-sm"
                 />
               </div>
 
               {/* Position */}
               <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="wm-position">Position</label>
+                <label className="text-sm font-medium" htmlFor="wm-position">
+                  Position
+                </label>
                 <select
                   id="wm-position"
                   {...form.register('watermarkPosition')}
-                  className="w-full p-2 border rounded-md bg-background text-sm"
+                  className="w-full rounded-md border bg-background p-2 text-sm"
                 >
                   <option value="bottom-left">Bas — gauche</option>
                   <option value="bottom-center">Bas — centre</option>
@@ -752,14 +890,18 @@ function ExportTab() {
                   type="range"
                   min="1"
                   max="100"
-                  {...form.register('watermarkOpacity', { valueAsNumber: true })}
+                  {...form.register('watermarkOpacity', {
+                    valueAsNumber: true,
+                  })}
                   className="w-full"
                 />
               </div>
 
               {/* Color */}
               <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="wm-color">Couleur</label>
+                <label className="text-sm font-medium" htmlFor="wm-color">
+                  Couleur
+                </label>
                 <div className="flex items-center gap-2">
                   <input
                     id="wm-color"
@@ -767,7 +909,7 @@ function ExportTab() {
                     {...form.register('watermarkColor')}
                     className="h-10 w-16 cursor-pointer rounded border bg-background p-1"
                   />
-                  <span className="text-xs text-muted-foreground font-mono">
+                  <span className="font-mono text-xs text-muted-foreground">
                     {form.watch('watermarkColor')}
                   </span>
                 </div>
@@ -780,8 +922,9 @@ function ExportTab() {
       {/* ── Submit ── */}
       <div className="flex justify-end gap-3">
         {!fsaAvailable && (
-          <p className="text-xs text-muted-foreground self-center">
-            Votre navigateur ne supporte pas le sélecteur de dossier — l&apos;export sera téléchargé en ZIP.
+          <p className="self-center text-xs text-muted-foreground">
+            Votre navigateur ne supporte pas le sélecteur de dossier —
+            l&apos;export sera téléchargé en ZIP.
           </p>
         )}
         <Button
@@ -790,10 +933,15 @@ function ExportTab() {
           disabled={isExporting || exportableChapterCount === 0}
           onClick={handleExportByChapters}
           className="min-w-[210px] gap-2"
-          title={exportableChapterCount === 0 ? 'Aucune photo exportable par chapitres avec les filtres actuels' : undefined}
+          title={
+            exportableChapterCount === 0
+              ? 'Aucune photo exportable par chapitres avec les filtres actuels'
+              : undefined
+          }
         >
-          <Download className="w-4 h-4" />
-          Exporter par chapitres{exportableChapterCount > 0 ? ` (${exportableChapterCount})` : ''}
+          <Download className="h-4 w-4" />
+          Exporter par chapitres
+          {exportableChapterCount > 0 ? ` (${exportableChapterCount})` : ''}
         </Button>
         <Button
           form="export-form"
@@ -818,9 +966,9 @@ function ExportTab() {
                 <span>Progression de l&apos;export</span>
                 <span>{exportProgress}%</span>
               </div>
-              <div className="w-full bg-secondary rounded-full h-2">
+              <div className="h-2 w-full rounded-full bg-secondary">
                 <motion.div
-                  className="bg-primary h-2 rounded-full"
+                  className="h-2 rounded-full bg-primary"
                   initial={{ width: 0 }}
                   animate={{ width: `${exportProgress}%` }}
                   transition={{ duration: 0.3 }}
@@ -833,8 +981,14 @@ function ExportTab() {
 
       <ConfirmationDialog
         open={overwriteTarget !== null}
-        onOpenChange={(o) => { if (!o) setOverwriteTarget(null); }}
-        onConfirm={() => { if (overwriteTarget) doUpdatePreset(overwriteTarget.id, overwriteTarget.name); setOverwriteTarget(null); }}
+        onOpenChange={(o) => {
+          if (!o) setOverwriteTarget(null);
+        }}
+        onConfirm={() => {
+          if (overwriteTarget)
+            doUpdatePreset(overwriteTarget.id, overwriteTarget.name);
+          setOverwriteTarget(null);
+        }}
         title="Écraser ce preset ?"
         description={`Un preset nommé « ${overwriteTarget?.name ?? ''} » existe déjà. Voulez-vous l'écraser avec les réglages actuels ?`}
         confirmText="Écraser"

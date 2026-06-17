@@ -1,6 +1,19 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Archive, CalendarDays, Check, FolderKanban, Pencil, Plus, RefreshCw, Sparkles, Trash2, UserRound, Users, X } from 'lucide-react';
+import {
+  Archive,
+  CalendarDays,
+  Check,
+  FolderKanban,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Sparkles,
+  Trash2,
+  UserRound,
+  Users,
+  X,
+} from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { ConfirmationDialog } from '../../components/ui/confirmation-dialog';
@@ -36,16 +49,24 @@ interface CloudProjectsDashboardProps {
   userId: string;
 }
 
-export function CloudProjectsDashboard({ userId }: CloudProjectsDashboardProps) {
+export function CloudProjectsDashboard({
+  userId,
+}: CloudProjectsDashboardProps) {
   const queryClient = useQueryClient();
   const [projectName, setProjectName] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState('');
   const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false);
-  const activeCloudProject = useCloudProjectStore((state) => state.activeProject);
-  const setActiveCloudProject = useCloudProjectStore((state) => state.setActiveProject);
-  const clearActiveProject = useCloudProjectStore((state) => state.clearActiveProject);
+  const activeCloudProject = useCloudProjectStore(
+    (state) => state.activeProject
+  );
+  const setActiveCloudProject = useCloudProjectStore(
+    (state) => state.setActiveProject
+  );
+  const clearActiveProject = useCloudProjectStore(
+    (state) => state.clearActiveProject
+  );
 
   const projectsQuery = useQuery({
     queryKey: ['cloud-projects', userId],
@@ -55,10 +76,13 @@ export function CloudProjectsDashboard({ userId }: CloudProjectsDashboardProps) 
   const createProjectMutation = useMutation({
     mutationFn: (name: string) => createCloudProject(userId, name),
     onSuccess: (project) => {
-      queryClient.setQueryData<CloudProjectSummary[]>(['cloud-projects', userId], (current = []) => [
-        project,
-        ...current.filter((item) => item.id !== project.id),
-      ]);
+      queryClient.setQueryData<CloudProjectSummary[]>(
+        ['cloud-projects', userId],
+        (current = []) => [
+          project,
+          ...current.filter((item) => item.id !== project.id),
+        ]
+      );
       setProjectName('');
       setActiveCloudProject({
         id: project.id,
@@ -68,7 +92,10 @@ export function CloudProjectsDashboard({ userId }: CloudProjectsDashboardProps) 
     },
   });
 
-  const projects = useMemo(() => projectsQuery.data ?? [], [projectsQuery.data]);
+  const projects = useMemo(
+    () => projectsQuery.data ?? [],
+    [projectsQuery.data]
+  );
 
   useEffect(() => {
     if (activeCloudProject || projects.length === 0) return;
@@ -81,7 +108,11 @@ export function CloudProjectsDashboard({ userId }: CloudProjectsDashboardProps) 
   }, [activeCloudProject, projects, setActiveCloudProject]);
 
   const activeProject = useMemo(() => {
-    return projects.find((project) => project.id === activeCloudProject?.id) ?? projects[0] ?? null;
+    return (
+      projects.find((project) => project.id === activeCloudProject?.id) ??
+      projects[0] ??
+      null
+    );
   }, [activeCloudProject?.id, projects]);
 
   const projectPhotosQuery = useQuery({
@@ -93,8 +124,10 @@ export function CloudProjectsDashboard({ userId }: CloudProjectsDashboardProps) 
   const renameMutation = useMutation({
     mutationFn: (name: string) => renameCloudProject(activeProject!.id, name),
     onSuccess: (row) => {
-      queryClient.setQueryData<CloudProjectSummary[]>(['cloud-projects', userId], (current = []) =>
-        current.map((p) => (p.id === row.id ? { ...p, name: row.name } : p)),
+      queryClient.setQueryData<CloudProjectSummary[]>(
+        ['cloud-projects', userId],
+        (current = []) =>
+          current.map((p) => (p.id === row.id ? { ...p, name: row.name } : p))
       );
       if (activeCloudProject?.id === row.id) {
         setActiveCloudProject({ ...activeCloudProject, name: row.name });
@@ -107,8 +140,9 @@ export function CloudProjectsDashboard({ userId }: CloudProjectsDashboardProps) 
     mutationFn: () => archiveCloudProject(activeProject!.id),
     onSuccess: () => {
       const archivedId = activeProject?.id;
-      queryClient.setQueryData<CloudProjectSummary[]>(['cloud-projects', userId], (current = []) =>
-        current.filter((p) => p.id !== archivedId),
+      queryClient.setQueryData<CloudProjectSummary[]>(
+        ['cloud-projects', userId],
+        (current = []) => current.filter((p) => p.id !== archivedId)
       );
       clearActiveProject();
       setArchiveConfirmOpen(false);
@@ -120,7 +154,11 @@ export function CloudProjectsDashboard({ userId }: CloudProjectsDashboardProps) 
     const trimmed = projectName.trim();
     if (!trimmed || createProjectMutation.isPending) return;
     // A-40 : refuser un nom déjà utilisé (insensible à la casse) avant l'appel réseau.
-    if (projects.some((p) => p.name.trim().toLowerCase() === trimmed.toLowerCase())) {
+    if (
+      projects.some(
+        (p) => p.name.trim().toLowerCase() === trimmed.toLowerCase()
+      )
+    ) {
       setCreateError('Un projet porte déjà ce nom.');
       return;
     }
@@ -148,15 +186,25 @@ export function CloudProjectsDashboard({ userId }: CloudProjectsDashboardProps) 
             placeholder="Nouveau reportage"
             className="h-10 min-w-0 flex-1 rounded-lg border border-border bg-background px-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
           />
-          <Button type="submit" size="sm" className="h-10 gap-2" disabled={!projectName.trim() || createProjectMutation.isPending}>
-            {createProjectMutation.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+          <Button
+            type="submit"
+            size="sm"
+            className="h-10 gap-2"
+            disabled={!projectName.trim() || createProjectMutation.isPending}
+          >
+            {createProjectMutation.isPending ? (
+              <RefreshCw className="h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
             Créer
           </Button>
         </form>
 
         {(createError || createProjectMutation.error) && (
           <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {createError ?? describeCloudProjectError(createProjectMutation.error)}
+            {createError ??
+              describeCloudProjectError(createProjectMutation.error)}
           </p>
         )}
 
@@ -173,11 +221,13 @@ export function CloudProjectsDashboard({ userId }: CloudProjectsDashboardProps) 
             </div>
           )}
 
-          {!projectsQuery.isLoading && projects.length === 0 && !projectsQuery.error && (
-            <div className="rounded-lg border border-dashed border-border bg-card/60 px-4 py-5 text-sm text-muted-foreground">
-              Aucun projet cloud pour ce compte.
-            </div>
-          )}
+          {!projectsQuery.isLoading &&
+            projects.length === 0 &&
+            !projectsQuery.error && (
+              <div className="rounded-lg border border-dashed border-border bg-card/60 px-4 py-5 text-sm text-muted-foreground">
+                Aucun projet cloud pour ce compte.
+              </div>
+            )}
 
           {projects.map((project) => {
             const selected = activeProject?.id === project.id;
@@ -185,11 +235,13 @@ export function CloudProjectsDashboard({ userId }: CloudProjectsDashboardProps) 
               <button
                 key={project.id}
                 type="button"
-                onClick={() => setActiveCloudProject({
-                  id: project.id,
-                  organizationId: project.organization_id,
-                  name: project.name,
-                })}
+                onClick={() =>
+                  setActiveCloudProject({
+                    id: project.id,
+                    organizationId: project.organization_id,
+                    name: project.name,
+                  })
+                }
                 className={`w-full rounded-lg border px-4 py-3 text-left transition-colors ${
                   selected
                     ? 'border-primary/50 bg-primary/10'
@@ -197,7 +249,9 @@ export function CloudProjectsDashboard({ userId }: CloudProjectsDashboardProps) 
                 }`}
               >
                 <div className="flex items-center justify-between gap-3">
-                  <span className="truncate text-sm font-semibold">{project.name}</span>
+                  <span className="truncate text-sm font-semibold">
+                    {project.name}
+                  </span>
                   <Badge variant="secondary" className="shrink-0 text-[10px]">
                     {project.project_type}
                   </Badge>
@@ -233,24 +287,50 @@ export function CloudProjectsDashboard({ userId }: CloudProjectsDashboardProps) 
                       }}
                       className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1 text-lg font-semibold outline-none focus:ring-2 focus:ring-ring"
                     />
-                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0" aria-label="Valider le renommage"
-                      onClick={submitRename} disabled={renameMutation.isPending || !renameValue.trim()}>
-                      {renameMutation.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 w-8 p-0"
+                      aria-label="Valider le renommage"
+                      onClick={submitRename}
+                      disabled={renameMutation.isPending || !renameValue.trim()}
+                    >
+                      {renameMutation.isPending ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Check className="h-4 w-4" />
+                      )}
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0" aria-label="Annuler" onClick={() => setRenaming(false)}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 w-8 p-0"
+                      aria-label="Annuler"
+                      onClick={() => setRenaming(false)}
+                    >
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
                 ) : (
                   <div className="mt-2 flex items-center gap-2">
-                    <h3 className="truncate text-xl font-semibold">{activeProject.name}</h3>
-                    <Button size="sm" variant="ghost" className="h-7 w-7 shrink-0 p-0" aria-label="Renommer le projet" onClick={startRename}>
+                    <h3 className="truncate text-xl font-semibold">
+                      {activeProject.name}
+                    </h3>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 shrink-0 p-0"
+                      aria-label="Renommer le projet"
+                      onClick={startRename}
+                    >
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 )}
                 {renameMutation.error && (
-                  <p className="mt-1 text-xs text-destructive">{describeCloudProjectError(renameMutation.error)}</p>
+                  <p className="mt-1 text-xs text-destructive">
+                    {describeCloudProjectError(renameMutation.error)}
+                  </p>
                 )}
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -269,15 +349,29 @@ export function CloudProjectsDashboard({ userId }: CloudProjectsDashboardProps) 
               </div>
             </div>
             {archiveMutation.error && (
-              <p className="text-xs text-destructive">{describeCloudProjectError(archiveMutation.error)}</p>
+              <p className="text-xs text-destructive">
+                {describeCloudProjectError(archiveMutation.error)}
+              </p>
             )}
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <ProjectStat label="Photos" value={activeProject.stats.totalPhotos} />
-              <ProjectStat label="Analysées" value={activeProject.stats.analyzed} />
-              <ProjectStat label="À revoir" value={activeProject.stats.review} />
+              <ProjectStat
+                label="Photos"
+                value={activeProject.stats.totalPhotos}
+              />
+              <ProjectStat
+                label="Analysées"
+                value={activeProject.stats.analyzed}
+              />
+              <ProjectStat
+                label="À revoir"
+                value={activeProject.stats.review}
+              />
               <ProjectStat label="Picks" value={activeProject.stats.picks} />
-              <ProjectStat label="Rejetées" value={activeProject.stats.rejected} />
+              <ProjectStat
+                label="Rejetées"
+                value={activeProject.stats.rejected}
+              />
             </div>
 
             <CloudProjectPhotoList
@@ -293,7 +387,9 @@ export function CloudProjectsDashboard({ userId }: CloudProjectsDashboardProps) 
             />
 
             <p className="text-sm text-muted-foreground">
-              Ce tableau de bord prépare l'entrée cloud. L'import et AutoFlow restent disponibles en mode local tant que le projet cloud n'est pas synchronisé.
+              Ce tableau de bord prépare l'entrée cloud. L'import et AutoFlow
+              restent disponibles en mode local tant que le projet cloud n'est
+              pas synchronisé.
             </p>
           </div>
         ) : (
@@ -327,12 +423,16 @@ function ProjectStat({ label, value }: { label: string; value: number }) {
 }
 
 const FALLBACK_MESSAGES: Record<string, string> = {
-  'no-embedding': "Embedding pas encore calculé pour cette photo (analyse en cours).",
+  'no-embedding':
+    'Embedding pas encore calculé pour cette photo (analyse en cours).',
   'no-results': 'Aucune photo similaire trouvée dans ce projet.',
-  'rpc-error': 'Recherche sémantique indisponible (vérifiez pgvector côté Supabase).',
-  'no-text-embedder': "Recherche par texte indisponible (Edge Function embed-text non configurée).",
+  'rpc-error':
+    'Recherche sémantique indisponible (vérifiez pgvector côté Supabase).',
+  'no-text-embedder':
+    'Recherche par texte indisponible (Edge Function embed-text non configurée).',
   'empty-query': 'Saisissez quelques mots pour lancer la recherche.',
-  'embed-error': "Impossible de calculer l'embedding texte (réessayez dans un instant).",
+  'embed-error':
+    "Impossible de calculer l'embedding texte (réessayez dans un instant).",
 };
 
 function CloudProjectPhotoList({
@@ -348,7 +448,9 @@ function CloudProjectPhotoList({
 }) {
   const [activePhotoId, setActivePhotoId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(8);
-  const [photoToDelete, setPhotoToDelete] = useState<CloudProjectPhoto | null>(null);
+  const [photoToDelete, setPhotoToDelete] = useState<CloudProjectPhoto | null>(
+    null
+  );
   const queryClient = useQueryClient();
 
   const filenamesById = useMemo(() => {
@@ -358,15 +460,22 @@ function CloudProjectPhotoList({
   }, [photos]);
 
   const similarMutation = useMutation<SemanticSearchResponse, Error, string>({
-    mutationFn: (photoId: string) => searchSimilarToPhoto({ projectId, photoId }),
+    mutationFn: (photoId: string) =>
+      searchSimilarToPhoto({ projectId, photoId }),
   });
 
   // P2-1 : recherche sémantique texte→image via l'Edge Function CLIP `embed-text`.
   const [textQuery, setTextQuery] = useState('');
-  const textSearchMutation = useMutation<SemanticSearchResponse, Error, string>({
-    mutationFn: (query: string) =>
-      searchPhotosByText({ projectId, query, embedText: createEdgeTextEmbedder() }),
-  });
+  const textSearchMutation = useMutation<SemanticSearchResponse, Error, string>(
+    {
+      mutationFn: (query: string) =>
+        searchPhotosByText({
+          projectId,
+          query,
+          embedText: createEdgeTextEmbedder(),
+        }),
+    }
+  );
 
   // Révèle et sélectionne une photo de résultat dans la liste.
   const revealPhoto = (photoId: string) => {
@@ -385,7 +494,9 @@ function CloudProjectPhotoList({
   const deleteMutation = useMutation({
     mutationFn: (photoId: string) => setCloudPhotoDeleted(photoId, true),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cloud-project-photos', projectId] });
+      queryClient.invalidateQueries({
+        queryKey: ['cloud-project-photos', projectId],
+      });
       queryClient.invalidateQueries({ queryKey: ['cloud-projects'] });
       setPhotoToDelete(null);
     },
@@ -444,7 +555,7 @@ function CloudProjectPhotoList({
                   <button
                     type="button"
                     onClick={() => revealPhoto(result.photoId)}
-                    className="flex w-full items-center justify-between gap-2 text-xs rounded px-1 py-0.5 hover:bg-muted/60 transition-colors"
+                    className="flex w-full items-center justify-between gap-2 rounded px-1 py-0.5 text-xs transition-colors hover:bg-muted/60"
                   >
                     <span className="truncate text-muted-foreground hover:text-foreground">
                       {filenamesById.get(result.photoId) ?? result.photoId}
@@ -458,14 +569,17 @@ function CloudProjectPhotoList({
             </ul>
           ) : (
             <p className="text-xs text-muted-foreground">
-              {FALLBACK_MESSAGES[textSearchMutation.data.reason ?? ''] ?? 'Recherche sémantique indisponible.'}
+              {FALLBACK_MESSAGES[textSearchMutation.data.reason ?? ''] ??
+                'Recherche sémantique indisponible.'}
             </p>
           )}
         </div>
       )}
 
       {textSearchMutation.error && (
-        <p className="text-xs text-destructive">{textSearchMutation.error.message}</p>
+        <p className="text-xs text-destructive">
+          {textSearchMutation.error.message}
+        </p>
       )}
 
       {isLoading && (
@@ -490,13 +604,19 @@ function CloudProjectPhotoList({
         <div
           key={photo.id}
           className={`rounded-lg border bg-background px-3 py-2 ${
-            activePhotoId === photo.id ? 'border-primary/50' : 'border-border/70'
+            activePhotoId === photo.id
+              ? 'border-primary/50'
+              : 'border-border/70'
           }`}
         >
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <div className="truncate text-sm font-medium">{photo.originalFilename}</div>
-              <div className="truncate text-xs text-muted-foreground">{photo.storagePath}</div>
+              <div className="truncate text-sm font-medium">
+                {photo.originalFilename}
+              </div>
+              <div className="truncate text-xs text-muted-foreground">
+                {photo.storagePath}
+              </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <Badge variant="secondary" className="text-[10px]">
@@ -508,7 +628,9 @@ function CloudProjectPhotoList({
                 variant="ghost"
                 className="h-7 gap-1 px-2 text-xs"
                 onClick={() => handleFindSimilar(photo.id)}
-                disabled={similarMutation.isPending && activePhotoId === photo.id}
+                disabled={
+                  similarMutation.isPending && activePhotoId === photo.id
+                }
               >
                 {similarMutation.isPending && activePhotoId === photo.id ? (
                   <RefreshCw className="h-3.5 w-3.5 animate-spin" />
@@ -524,11 +646,15 @@ function CloudProjectPhotoList({
                 className="h-7 w-7 p-0 text-destructive hover:text-destructive"
                 aria-label={`Supprimer ${photo.originalFilename}`}
                 onClick={() => setPhotoToDelete(photo)}
-                disabled={deleteMutation.isPending && photoToDelete?.id === photo.id}
+                disabled={
+                  deleteMutation.isPending && photoToDelete?.id === photo.id
+                }
               >
-                {deleteMutation.isPending && photoToDelete?.id === photo.id
-                  ? <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                  : <Trash2 className="h-3.5 w-3.5" />}
+                {deleteMutation.isPending && photoToDelete?.id === photo.id ? (
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" />
+                )}
               </Button>
             </div>
           </div>
@@ -543,16 +669,22 @@ function CloudProjectPhotoList({
                         type="button"
                         // A-43 : cliquer un résultat révèle et sélectionne la photo dans la liste.
                         onClick={() => {
-                          const idx = photos.findIndex((p) => p.id === result.photoId);
-                          if (idx >= 0) setVisibleCount((c) => Math.max(c, idx + 1));
+                          const idx = photos.findIndex(
+                            (p) => p.id === result.photoId
+                          );
+                          if (idx >= 0)
+                            setVisibleCount((c) => Math.max(c, idx + 1));
                           setActivePhotoId(result.photoId);
                         }}
-                        className="flex w-full items-center justify-between gap-2 text-xs rounded px-1 py-0.5 hover:bg-muted/60 transition-colors"
+                        className="flex w-full items-center justify-between gap-2 rounded px-1 py-0.5 text-xs transition-colors hover:bg-muted/60"
                       >
                         <span className="truncate text-muted-foreground hover:text-foreground">
                           {filenamesById.get(result.photoId) ?? result.photoId}
                         </span>
-                        <Badge variant="outline" className="shrink-0 text-[10px]">
+                        <Badge
+                          variant="outline"
+                          className="shrink-0 text-[10px]"
+                        >
                           {formatSimilarityScore(result.similarity)}
                         </Badge>
                       </button>
@@ -561,7 +693,8 @@ function CloudProjectPhotoList({
                 </ul>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  {FALLBACK_MESSAGES[response.reason ?? ''] ?? 'Recherche sémantique indisponible.'}
+                  {FALLBACK_MESSAGES[response.reason ?? ''] ??
+                    'Recherche sémantique indisponible.'}
                 </p>
               )}
             </div>
@@ -589,13 +722,19 @@ function CloudProjectPhotoList({
       )}
 
       {deleteMutation.error && (
-        <p className="text-xs text-destructive">{describeCloudProjectError(deleteMutation.error)}</p>
+        <p className="text-xs text-destructive">
+          {describeCloudProjectError(deleteMutation.error)}
+        </p>
       )}
 
       <ConfirmationDialog
         open={photoToDelete !== null}
-        onOpenChange={(o) => { if (!o) setPhotoToDelete(null); }}
-        onConfirm={() => { if (photoToDelete) deleteMutation.mutate(photoToDelete.id); }}
+        onOpenChange={(o) => {
+          if (!o) setPhotoToDelete(null);
+        }}
+        onConfirm={() => {
+          if (photoToDelete) deleteMutation.mutate(photoToDelete.id);
+        }}
         title="Supprimer cette photo du cloud ?"
         description={`« ${photoToDelete?.originalFilename ?? ''} » sera retirée du projet cloud (suppression logique). Vous pouvez la réimporter ensuite si besoin.`}
         confirmText="Supprimer"
@@ -619,7 +758,9 @@ function CloudProjectFacesPanel({
   const [names, setNames] = useState<Record<string, string>>({});
   const [loaded, setLoaded] = useState(false);
   // A-45 : conserver une trace des groupes nommés (sinon ils disparaissent sans feedback).
-  const [namedPersons, setNamedPersons] = useState<{ groupId: string; name: string; count: number }[]>([]);
+  const [namedPersons, setNamedPersons] = useState<
+    { groupId: string; name: string; count: number }[]
+  >([]);
 
   useEffect(() => {
     setEnabled(faceAnalysisEnabled);
@@ -629,7 +770,8 @@ function CloudProjectFacesPanel({
   }, [projectId, faceAnalysisEnabled]);
 
   const toggleMutation = useMutation<void, Error, boolean>({
-    mutationFn: (next: boolean) => setProjectFaceAnalysis({ projectId, enabled: next }),
+    mutationFn: (next: boolean) =>
+      setProjectFaceAnalysis({ projectId, enabled: next }),
     onSuccess: (_data, next) => setEnabled(next),
   });
 
@@ -644,14 +786,28 @@ function CloudProjectFacesPanel({
     },
   });
 
-  const nameMutation = useMutation<void, Error, { group: AnonymousFaceGroup; displayName: string }>({
+  const nameMutation = useMutation<
+    void,
+    Error,
+    { group: AnonymousFaceGroup; displayName: string }
+  >({
     mutationFn: async ({ group, displayName }) => {
-      await nameAnonymousGroup({ projectId, faceIds: group.faceIds, displayName });
+      await nameAnonymousGroup({
+        projectId,
+        faceIds: group.faceIds,
+        displayName,
+      });
     },
     onSuccess: (_data, { group, displayName }) => {
-      setGroups((current) => current.filter((item) => item.groupId !== group.groupId));
+      setGroups((current) =>
+        current.filter((item) => item.groupId !== group.groupId)
+      );
       setNamedPersons((prev) => [
-        { groupId: group.groupId, name: displayName, count: group.faceIds.length },
+        {
+          groupId: group.groupId,
+          name: displayName,
+          count: group.faceIds.length,
+        },
         ...prev.filter((p) => p.groupId !== group.groupId),
       ]);
     },
@@ -685,7 +841,8 @@ function CloudProjectFacesPanel({
       </div>
 
       <p className="text-xs text-muted-foreground">
-        L'analyse de visage est strictement opt-in. Les visages détectés restent anonymes : aucun nom n'est attribué automatiquement.
+        L'analyse de visage est strictement opt-in. Les visages détectés restent
+        anonymes : aucun nom n'est attribué automatiquement.
       </p>
 
       {enabled && (
@@ -698,7 +855,11 @@ function CloudProjectFacesPanel({
             onClick={() => loadMutation.mutate()}
             disabled={loadMutation.isPending}
           >
-            {loadMutation.isPending ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Users className="h-3.5 w-3.5" />}
+            {loadMutation.isPending ? (
+              <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Users className="h-3.5 w-3.5" />
+            )}
             Charger les groupes anonymes
           </Button>
           <Button
@@ -726,16 +887,28 @@ function CloudProjectFacesPanel({
         variant="destructive"
       />
 
-      {(toggleMutation.error || loadMutation.error || nameMutation.error || deleteAllMutation.error) && (
+      {(toggleMutation.error ||
+        loadMutation.error ||
+        nameMutation.error ||
+        deleteAllMutation.error) && (
         <p className="text-xs text-destructive">
-          {(toggleMutation.error || loadMutation.error || nameMutation.error || deleteAllMutation.error)?.message}
+          {
+            (
+              toggleMutation.error ||
+              loadMutation.error ||
+              nameMutation.error ||
+              deleteAllMutation.error
+            )?.message
+          }
         </p>
       )}
 
       {/* A-45 : personnes nommées — on garde une trace au lieu de les faire disparaître */}
       {enabled && namedPersons.length > 0 && (
         <div className="space-y-1">
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Personnes nommées</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Personnes nommées
+          </div>
           <ul className="flex flex-wrap gap-1.5">
             {namedPersons.map((p) => (
               <li key={p.groupId}>
@@ -751,23 +924,34 @@ function CloudProjectFacesPanel({
       )}
 
       {enabled && loaded && groups.length === 0 && !loadMutation.isPending && (
-        <p className="text-xs text-muted-foreground">Aucun groupe anonyme à valider.</p>
+        <p className="text-xs text-muted-foreground">
+          Aucun groupe anonyme à valider.
+        </p>
       )}
 
       {enabled && groups.length > 0 && (
         <ul className="space-y-2">
           {groups.map((group) => (
-            <li key={group.groupId} className="rounded-lg border border-border/70 bg-background px-3 py-2">
+            <li
+              key={group.groupId}
+              className="rounded-lg border border-border/70 bg-background px-3 py-2"
+            >
               <div className="flex items-center justify-between gap-2 text-xs">
                 <span className="flex items-center gap-1.5 text-muted-foreground">
                   <UserRound className="h-3.5 w-3.5" />
-                  Groupe anonyme · {group.size} visage{group.size > 1 ? 's' : ''}
+                  Groupe anonyme · {group.size} visage
+                  {group.size > 1 ? 's' : ''}
                 </span>
               </div>
               <div className="mt-2 flex gap-2">
                 <input
                   value={names[group.groupId] ?? ''}
-                  onChange={(event) => setNames((current) => ({ ...current, [group.groupId]: event.target.value }))}
+                  onChange={(event) =>
+                    setNames((current) => ({
+                      ...current,
+                      [group.groupId]: event.target.value,
+                    }))
+                  }
                   placeholder="Nommer cette personne"
                   className="h-8 min-w-0 flex-1 rounded-md border border-border bg-background px-2 text-xs outline-none focus:ring-2 focus:ring-ring"
                 />
@@ -775,8 +959,16 @@ function CloudProjectFacesPanel({
                   type="button"
                   size="sm"
                   className="h-8 px-3 text-xs"
-                  onClick={() => nameMutation.mutate({ group, displayName: names[group.groupId] ?? '' })}
-                  disabled={nameMutation.isPending || !(names[group.groupId] ?? '').trim()}
+                  onClick={() =>
+                    nameMutation.mutate({
+                      group,
+                      displayName: names[group.groupId] ?? '',
+                    })
+                  }
+                  disabled={
+                    nameMutation.isPending ||
+                    !(names[group.groupId] ?? '').trim()
+                  }
                 >
                   Valider
                 </Button>

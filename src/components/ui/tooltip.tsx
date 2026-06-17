@@ -8,7 +8,12 @@ interface TooltipProps {
   className?: string;
 }
 
-export function Tooltip({ children, content, side = 'top', className }: TooltipProps) {
+export function Tooltip({
+  children,
+  content,
+  side = 'top',
+  className,
+}: TooltipProps) {
   const [isVisible, setIsVisible] = React.useState(false);
 
   const sideClasses = {
@@ -32,7 +37,7 @@ export function Tooltip({ children, content, side = 'top', className }: TooltipP
       {isVisible && (
         <div
           className={cn(
-            'absolute z-50 px-3 py-1.5 text-sm text-white bg-gray-900 rounded-md shadow-lg whitespace-nowrap pointer-events-none',
+            'pointer-events-none absolute z-50 whitespace-nowrap rounded-md bg-gray-900 px-3 py-1.5 text-sm text-white shadow-lg',
             sideClasses[side],
             className
           )}
@@ -41,10 +46,10 @@ export function Tooltip({ children, content, side = 'top', className }: TooltipP
           {content}
           <div
             className={cn(
-              'absolute w-2 h-2 bg-gray-900 transform rotate-45',
+              'absolute h-2 w-2 rotate-45 transform bg-gray-900',
               side === 'top' && 'bottom-[-4px] left-1/2 -translate-x-1/2',
               side === 'right' && 'left-[-4px] top-1/2 -translate-y-1/2',
-              side === 'bottom' && 'top-[-4px] left-1/2 -translate-x-1/2',
+              side === 'bottom' && 'left-1/2 top-[-4px] -translate-x-1/2',
               side === 'left' && 'right-[-4px] top-1/2 -translate-y-1/2'
             )}
           />

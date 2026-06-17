@@ -28,9 +28,12 @@ export const useCloudProjectStore = create<CloudProjectState>((set, get) => ({
     set((state) => ({
       activeProject: project,
       cloudPhotoIdsByLocalId:
-        state.activeProject?.id === project.id ? state.cloudPhotoIdsByLocalId : {},
+        state.activeProject?.id === project.id
+          ? state.cloudPhotoIdsByLocalId
+          : {},
     })),
-  clearActiveProject: () => set({ activeProject: null, cloudPhotoIdsByLocalId: {} }),
+  clearActiveProject: () =>
+    set({ activeProject: null, cloudPhotoIdsByLocalId: {} }),
   linkCloudPhotos: (links) =>
     set((state) => ({
       cloudPhotoIdsByLocalId: links.reduce(

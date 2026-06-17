@@ -26,14 +26,20 @@ const makeJob = (overrides: Partial<WorkerJob> = {}): WorkerJob => ({
 describe('worker job runner', () => {
   it('claims the next job atomically via the claim_next_job RPC', async () => {
     const rpc = vi.fn().mockResolvedValue({
-      data: makeJob({ status: 'processing', attempts: 1, locked_by: 'worker-a' }),
+      data: makeJob({
+        status: 'processing',
+        attempts: 1,
+        locked_by: 'worker-a',
+      }),
       error: null,
     });
     const client = { from: vi.fn(), rpc };
 
     const job = await claimNextJob(client, 'worker-a');
 
-    expect(rpc).toHaveBeenCalledWith('claim_next_job', { p_worker_id: 'worker-a' });
+    expect(rpc).toHaveBeenCalledWith('claim_next_job', {
+      p_worker_id: 'worker-a',
+    });
     expect(job?.id).toBe('job-1');
     expect(job?.status).toBe('processing');
   });
@@ -48,7 +54,10 @@ describe('worker job runner', () => {
   });
 
   it('normalises an array response from the claim RPC', async () => {
-    const rpc = vi.fn().mockResolvedValue({ data: [makeJob({ status: 'processing' })], error: null });
+    const rpc = vi.fn().mockResolvedValue({
+      data: [makeJob({ status: 'processing' })],
+      error: null,
+    });
     const client = { from: vi.fn(), rpc };
 
     const job = await claimNextJob(client, 'worker-a');
@@ -59,7 +68,9 @@ describe('worker job runner', () => {
   it('completes a quality analysis job and writes photo analysis results', async () => {
     const jobsUpdate = vi.fn().mockReturnThis();
     const jobsEq = vi.fn().mockResolvedValue({ data: null, error: null });
-    const analysisUpsert = vi.fn().mockResolvedValue({ data: null, error: null });
+    const analysisUpsert = vi
+      .fn()
+      .mockResolvedValue({ data: null, error: null });
     const photosUpdate = vi.fn().mockReturnThis();
     const photosEq = vi.fn().mockResolvedValue({ data: null, error: null });
     const client = {
@@ -72,7 +83,12 @@ describe('worker job runner', () => {
 
     await processWorkerJob(client, makeJob(), {
       quality_analysis: async () => ({
-        result: { score: 82, sharpness_score: 76, composition_score: 88, is_blurry: false },
+        result: {
+          score: 82,
+          sharpness_score: 76,
+          composition_score: 88,
+          is_blurry: false,
+        },
         photoAnalysis: {
           score: 82,
           sharpness_score: 76,
@@ -94,18 +110,22 @@ describe('worker job runner', () => {
     });
     expect(photosUpdate).toHaveBeenCalledWith({ analysis_status: 'completed' });
     expect(photosEq).toHaveBeenCalledWith('id', 'photo-1');
-    expect(jobsUpdate).toHaveBeenCalledWith(expect.objectContaining({
-      status: 'completed',
-      result: expect.objectContaining({ score: 82 }),
-      error_message: null,
-    }));
+    expect(jobsUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'completed',
+        result: expect.objectContaining({ score: 82 }),
+        error_message: null,
+      })
+    );
     expect(jobsEq).toHaveBeenCalledWith('id', 'job-1');
   });
 
   it('runs semantic_embedding and upserts a vector into photo_embeddings', async () => {
     const jobsUpdate = vi.fn().mockReturnThis();
     const jobsEq = vi.fn().mockResolvedValue({ data: null, error: null });
-    const embeddingsUpsert = vi.fn().mockResolvedValue({ data: null, error: null });
+    const embeddingsUpsert = vi
+      .fn()
+      .mockResolvedValue({ data: null, error: null });
     const client = {
       from: vi.fn((table: string) => {
         if (table === 'photo_embeddings') return { upsert: embeddingsUpsert };
@@ -117,8 +137,10 @@ describe('worker job runner', () => {
       client,
       makeJob({
         job_type: 'semantic_embedding',
-        payload: { storage_path: 'organizations/o1/projects/p1/originals/photo-1.jpg' },
-      }),
+        payload: {
+          storage_path: 'organizations/o1/projects/p1/originals/photo-1.jpg',
+        },
+      })
     );
 
     expect(embeddingsUpsert).toHaveBeenCalledTimes(1);
@@ -126,7 +148,9 @@ describe('worker job runner', () => {
     expect(upserted.photo_id).toBe('photo-1');
     expect(upserted.model).toBe('deterministic-v1');
     expect(upserted.embedding).toHaveLength(512);
-    expect(jobsUpdate).toHaveBeenCalledWith(expect.objectContaining({ status: 'completed' }));
+    expect(jobsUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'completed' })
+    );
   });
 
   it('runs face_detection and inserts anonymous faces into photo_faces', async () => {
@@ -144,8 +168,10 @@ describe('worker job runner', () => {
       client,
       makeJob({
         job_type: 'face_detection',
-        payload: { storage_path: 'organizations/o1/projects/p1/originals/photo-1.jpg' },
-      }),
+        payload: {
+          storage_path: 'organizations/o1/projects/p1/originals/photo-1.jpg',
+        },
+      })
     );
 
     expect(facesInsert).toHaveBeenCalledTimes(1);
@@ -157,7 +183,9 @@ describe('worker job runner', () => {
       // Faces are anonymous on insert — never auto-assigned to a person.
       expect(row).not.toHaveProperty('person_id');
     });
-    expect(jobsUpdate).toHaveBeenCalledWith(expect.objectContaining({ status: 'completed' }));
+    expect(jobsUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'completed' })
+    );
   });
 
   it('marks a failed job with an error message', async () => {
@@ -172,13 +200,15 @@ describe('worker job runner', () => {
         quality_analysis: async () => {
           throw new Error('decode failed');
         },
-      }),
+      })
     ).resolves.toBeUndefined();
 
-    expect(update).toHaveBeenCalledWith(expect.objectContaining({
-      status: 'failed',
-      error_message: 'decode failed',
-    }));
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'failed',
+        error_message: 'decode failed',
+      })
+    );
     expect(eq).toHaveBeenCalledWith('id', 'job-1');
   });
 });

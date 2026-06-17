@@ -27,9 +27,13 @@ describe('Regression Tests', () => {
 
   it('should render all navigation tabs', async () => {
     await renderApp();
-    expect(screen.getByRole('button', { name: /ingestion/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /ingestion/i })
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /triage/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /exportation/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /exportation/i })
+    ).toBeInTheDocument();
   });
 
   it('should display logo', async () => {
@@ -55,7 +59,9 @@ describe('Regression Tests', () => {
   it('should display the ingestion tab content by default', async () => {
     await renderApp();
     // IngestionTab is lazy-loaded — wait for Suspense to resolve
-    await waitFor(() => expect(screen.getByText('Ingestion Tab')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('Ingestion Tab')).toBeInTheDocument()
+    );
   });
 
   it('should maintain header across tab changes', async () => {

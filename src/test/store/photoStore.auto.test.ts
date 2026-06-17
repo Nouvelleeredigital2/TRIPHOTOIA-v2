@@ -3,14 +3,22 @@ import { usePhotoStore } from '../../store/photoStore';
 import { useAiErrorStore } from '../../store/aiErrorStore';
 import { DEFAULT_RETOUCH_OPTIONS, RetouchOptions } from '../../types';
 
-const { applyRetouchMock, computeAutoRetouchPresetMock, GPURetouchProcessorMock } = vi.hoisted(() => {
+const {
+  applyRetouchMock,
+  computeAutoRetouchPresetMock,
+  GPURetouchProcessorMock,
+} = vi.hoisted(() => {
   const applyRetouchMock = vi.fn();
   const computeAutoRetouchPresetMock = vi.fn();
   const GPURetouchProcessorMock = vi.fn().mockImplementation(() => ({
     applyRetouch: applyRetouchMock,
     computeAutoRetouchPreset: computeAutoRetouchPresetMock,
   }));
-  return { applyRetouchMock, computeAutoRetouchPresetMock, GPURetouchProcessorMock };
+  return {
+    applyRetouchMock,
+    computeAutoRetouchPresetMock,
+    GPURetouchProcessorMock,
+  };
 });
 
 vi.mock('../../lib/computer-vision/gpu-retouch', () => ({
@@ -79,7 +87,8 @@ describe('PhotoStore auto retouch', () => {
     });
 
     const canvasMock = {
-      toBlob: (callback: BlobCallback) => callback(new Blob(['content'], { type: 'image/jpeg' })),
+      toBlob: (callback: BlobCallback) =>
+        callback(new Blob(['content'], { type: 'image/jpeg' })),
     } as unknown as HTMLCanvasElement;
 
     applyRetouchMock.mockResolvedValue(canvasMock);
@@ -103,17 +112,25 @@ describe('PhotoStore auto retouch', () => {
     expect(applyRetouchMock).toHaveBeenCalled();
     expect(state.isAutoRetouchComputing).toBe(false);
     expect(state.autoRetouchError).toBeNull();
-    expect(state.autoRetouchPreset?.options).toEqual({ exposure: 15, texture: 20 });
+    expect(state.autoRetouchPreset?.options).toEqual({
+      exposure: 15,
+      texture: 20,
+    });
     expect(state.autoRetouchPreset?.confidence).toBeCloseTo(0.82, 2);
 
     expect(photo.retouch?.currentOptions.exposure).toBe(15);
     expect(photo.retouch?.currentOptions.texture).toBe(20);
-    expect(photo.retouch?.lastAutoPreset).toEqual({ exposure: 15, texture: 20 });
+    expect(photo.retouch?.lastAutoPreset).toEqual({
+      exposure: 15,
+      texture: 20,
+    });
     expect(photo.retouch?.autoPresetConfidence).toBeCloseTo(0.82, 2);
   });
 
   it('handles auto preset errors gracefully', async () => {
-    computeAutoRetouchPresetMock.mockRejectedValueOnce(new Error('GPU indisponible'));
+    computeAutoRetouchPresetMock.mockRejectedValueOnce(
+      new Error('GPU indisponible')
+    );
 
     await usePhotoStore.getState().computeAutoRetouchPreset('photo-1');
 

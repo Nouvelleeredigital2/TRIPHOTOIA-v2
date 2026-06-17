@@ -112,12 +112,15 @@ bitmap couverts par revue de code (worker non instrumentable sous jsdom).
 - P1-D Upload cloud compensé ✅ — compensation Storage si l'enregistrement DB
   échoue (`cloudUpload.ts`) ; chemin déjà validé serveur par `register_cloud_photo`.
   Test de compensation ajouté.
-- P1-E Reprise des jobs cloud ⬜ — **non traité**. La table `jobs` a `attempts`,
-  `run_after`, `locked_at/by` et le claim atomique `FOR UPDATE SKIP LOCKED`
-  (`claim_next_job`), mais le worker ne fait ni retry/backoff, ni max-attempts,
-  ni DLQ, ni récupération de lock expiré. Nécessite migration (colonnes
-  `max_attempts`/statut terminal + RPC de requeue/lock-reclaim) + reprise du
-  worker (`worker/jobRunner.ts`, `worker/index.ts`).
+- P1-E Reprise des jobs cloud ✅ — migration
+  `20260617130000_treephoto_job_retry_dlq` **appliquée sur le live** :
+  `max_attempts` (défaut 5), statut `dead_letter`, RPC atomiques
+  `fail_or_retry_job` (backoff exponentiel borné à 1 h, puis DLQ) et
+  `reclaim_stuck_jobs` (lock expiré → requeue). Worker rebranché :
+  `markJobFailed` délègue à `fail_or_retry_job`, la boucle appelle
+  `reclaim_stuck_jobs` (lease 300 s) à intervalle borné. Le claim atomique
+  `FOR UPDATE SKIP LOCKED` existant est conservé. Tests :
+  `src/test/worker/jobRetry.test.ts`.
 - P1-F Validation runtime et mémoire durable 🟡 (cœur fait) — `undoStack`
   plafonné (`UNDO_STACK_LIMIT = 30`) avec libération des URL blob des
   `DELETE_PHOTO` évincés ; validation Zod des résultats worker (P0-B) ;
@@ -152,8 +155,7 @@ bitmap couverts par revue de code (worker non instrumentable sous jsdom).
   EXIF du dérivé + edge function de validation token → URL signée + purge cron.
   Sévérité résiduelle : moyenne (partage anonyme désactivé en attendant).
 - **P1-D** : ✅ traité (compensation upload).
-- **P1-E** : reprise des jobs (retry/backoff/DLQ/lock-recovery) **non traitée**.
-  Sévérité : moyenne-haute.
+- **P1-E** : ✅ traité (retry/backoff/DLQ + récupération de lock).
 - **P1-F** : ✅ cœur traité (undo borné + blob + sanitation IDB) ; reste la
   validation Zod systématique RPC/export.
 - **P2** : non traité.

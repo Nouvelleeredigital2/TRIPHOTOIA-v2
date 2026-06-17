@@ -154,9 +154,13 @@ bitmap couverts par revue de code (worker non instrumentable sous jsdom).
   les notes de version v2).
 - ✅ **Affirmations de précision** : aucun claim chiffré (`xx % de précision`)
   dans le code actif `src/` (rien à retirer).
-- ⬜ Reste : `strict: true` progressif (activation globale risquée — le code
-  n'est pas strict-clean ; à appliquer par lots), standardisation Radix Dialog
-  (focus trap/Échap/aria-modal) — chantiers dédiés.
+- 🟡 **`strict` progressif** : `strict: true` global = 22 erreurs (mesuré, donc
+  non activé en bloc pour ne pas affaiblir/rougir la CI). Activés sans erreur :
+  `noImplicitThis`, `strictBindCallApply`, `useUnknownInCatchVariables`,
+  `alwaysStrict`. Restent par lots : `strictNullChecks` (22), `noImplicitAny`
+  (49), `strictFunctionTypes` (1), `strictPropertyInitialization` (1).
+- ⬜ Standardisation Radix Dialog (focus trap/Échap/aria-modal/restauration
+  focus) sur les dialogues custom — chantier dédié.
 
 ## Vérifications exécutées (toolchain local réparé)
 

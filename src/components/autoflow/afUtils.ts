@@ -28,9 +28,9 @@ export interface AfPhoto {
   dims?: string;
   iso?: string;
   date?: string;
-  sharp: number;  // 0-100 sharpness sub-score for dup compare
-  expo: number;   // 0-100 exposure sub-score
-  comp: number;   // 0-100 composition sub-score
+  sharp: number; // 0-100 sharpness sub-score for dup compare
+  expo: number; // 0-100 exposure sub-score
+  comp: number; // 0-100 composition sub-score
   suggestion?: string;
 }
 
@@ -49,7 +49,8 @@ function photoGradient(id: string): [string, string] {
     ['#1a0533', '#2e0854'],
   ];
   let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) & 0xffffffff;
+  for (let i = 0; i < id.length; i++)
+    h = (h * 31 + id.charCodeAt(i)) & 0xffffffff;
   return palettes[Math.abs(h) % palettes.length];
 }
 
@@ -80,7 +81,11 @@ export function deriveScore(photo: Photo): number {
 }
 
 /** Classify a photo into keep / review / reject */
-export function classifyPhoto(photo: Photo, isDup: boolean, score: number): AfClass {
+export function classifyPhoto(
+  photo: Photo,
+  isDup: boolean,
+  score: number
+): AfClass {
   if (photo.analysis?.isRejected) return 'reject';
   if (photo.analysis?.isBlurry || score < 50) return 'reject';
   if (isDup) return 'reject';
@@ -89,7 +94,10 @@ export function classifyPhoto(photo: Photo, isDup: boolean, score: number): AfCl
 }
 
 /** Convert store Photo[] + DuplicateGroup[] to AfPhoto[] */
-export function toAfPhotos(photos: Photo[], duplicateGroups: DuplicateGroup[]): AfPhoto[] {
+export function toAfPhotos(
+  photos: Photo[],
+  duplicateGroups: DuplicateGroup[]
+): AfPhoto[] {
   const dupMap = new Map<string, string>(); // photoId -> groupId
   duplicateGroups.forEach((g) => {
     g.photos.forEach((p) => dupMap.set(p.id, g.id));
@@ -118,10 +126,13 @@ export function toAfPhotos(photos: Photo[], duplicateGroups: DuplicateGroup[]): 
     const brightnessDev = a?.suggestedRetouch
       ? Math.abs(a.suggestedRetouch.brightness - 1)
       : 0.1;
-    const expo = Math.round(Math.max(0, Math.min(100, (1 - brightnessDev * 2) * 100)));
+    const expo = Math.round(
+      Math.max(0, Math.min(100, (1 - brightnessDev * 2) * 100))
+    );
 
     let idx = 0;
-    for (let i = 0; i < p.id.length; i++) idx = (idx + p.id.charCodeAt(i)) % suggestions.length;
+    for (let i = 0; i < p.id.length; i++)
+      idx = (idx + p.id.charCodeAt(i)) % suggestions.length;
 
     return {
       id: p.id,

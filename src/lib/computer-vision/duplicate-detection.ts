@@ -35,7 +35,7 @@ export class DuplicateDetector {
       dhashSize: 64,
       enableCryptographic: true,
       enablePerceptual: true,
-      ...config
+      ...config,
     };
   }
 
@@ -94,16 +94,19 @@ export class DuplicateDetector {
   calculateSimilarity(hash1: string, hash2: string): number {
     const distance = this.calculateHammingDistance(hash1, hash2);
     const maxDistance = hash1.length;
-    return 1 - (distance / maxDistance);
+    return 1 - distance / maxDistance;
   }
 
   /**
    * Analyse une image et génère tous les types de hash
    */
-  async analyzeImage(photoId: string, imageData: Uint8Array): Promise<ImageHash> {
+  async analyzeImage(
+    photoId: string,
+    imageData: Uint8Array
+  ): Promise<ImageHash> {
     const hashes: ImageHash = {
       perceptual: '',
-      cryptographic: ''
+      cryptographic: '',
     };
 
     if (this.config.enableCryptographic) {
@@ -139,7 +142,7 @@ export class DuplicateDetector {
       const exactDuplicates = this.hashIndex.get(photoHash.cryptographic) || [];
       if (exactDuplicates.length > 1) {
         duplicates.set(photoHash.cryptographic, exactDuplicates);
-        exactDuplicates.forEach(id => processed.add(id));
+        exactDuplicates.forEach((id) => processed.add(id));
       }
     }
 
@@ -149,9 +152,15 @@ export class DuplicateDetector {
         if (hash === photoHash.cryptographic) continue; // Déjà traité
 
         const similarity = this.calculateSimilarity(photoHash.perceptual, hash);
-        if (similarity > (1 - this.config.hammingThreshold / this.config.phashSize)) {
+        if (
+          similarity >
+          1 - this.config.hammingThreshold / this.config.phashSize
+        ) {
           const groupId = `perceptual_${hash}`;
-          duplicates.set(groupId, photoIds.filter(id => !processed.has(id)));
+          duplicates.set(
+            groupId,
+            photoIds.filter((id) => !processed.has(id))
+          );
         }
       }
     }
@@ -168,7 +177,7 @@ export class DuplicateDetector {
           photos: photoIds,
           representative,
           similarity,
-          confidence: this.calculateConfidence(photoIds, similarity)
+          confidence: this.calculateConfidence(photoIds, similarity),
         });
       }
     }
@@ -221,7 +230,10 @@ export class DuplicateDetector {
         const hash2 = this.photoHashes.get(photoIds[j]);
 
         if (hash1?.perceptual && hash2?.perceptual) {
-          totalSimilarity += this.calculateSimilarity(hash1.perceptual, hash2.perceptual);
+          totalSimilarity += this.calculateSimilarity(
+            hash1.perceptual,
+            hash2.perceptual
+          );
           comparisons++;
         }
       }
@@ -255,7 +267,9 @@ export class DuplicateDetector {
         const hash2 = this.photoHashes.get(photoIds[j]);
 
         if (hash1?.perceptual && hash2?.perceptual) {
-          similarities.push(this.calculateSimilarity(hash1.perceptual, hash2.perceptual));
+          similarities.push(
+            this.calculateSimilarity(hash1.perceptual, hash2.perceptual)
+          );
         }
       }
     }
@@ -263,7 +277,9 @@ export class DuplicateDetector {
     if (similarities.length === 0) return 0;
 
     const mean = similarities.reduce((a, b) => a + b, 0) / similarities.length;
-    const variance = similarities.reduce((acc, sim) => acc + Math.pow(sim - mean, 2), 0) / similarities.length;
+    const variance =
+      similarities.reduce((acc, sim) => acc + Math.pow(sim - mean, 2), 0) /
+      similarities.length;
     const stdDev = Math.sqrt(variance);
 
     // Plus l'écart-type est faible, plus le groupe est cohérent
@@ -276,7 +292,10 @@ export class DuplicateDetector {
   private simplePerceptualHash(imageData: Uint8Array): string {
     // Simulation d'un pHash basique
     let hash = '';
-    const step = Math.max(1, Math.floor(imageData.length / this.config.phashSize));
+    const step = Math.max(
+      1,
+      Math.floor(imageData.length / this.config.phashSize)
+    );
 
     for (let i = 0; i < this.config.phashSize; i++) {
       const index = (i * step) % imageData.length;
@@ -292,7 +311,10 @@ export class DuplicateDetector {
   private simpleDifferenceHash(imageData: Uint8Array): string {
     // Simulation d'un dHash basique
     let hash = '';
-    const step = Math.max(1, Math.floor(imageData.length / this.config.dhashSize));
+    const step = Math.max(
+      1,
+      Math.floor(imageData.length / this.config.dhashSize)
+    );
 
     for (let i = 0; i < this.config.dhashSize - 1; i++) {
       const index1 = (i * step) % imageData.length;
@@ -313,13 +335,20 @@ export class DuplicateDetector {
   /**
    * Obtient les statistiques de détection
    */
-  getStats(): { totalPhotos: number; totalGroups: number; averageGroupSize: number } {
+  getStats(): {
+    totalPhotos: number;
+    totalGroups: number;
+    averageGroupSize: number;
+  } {
     const totalPhotos = this.photoHashes.size;
-    const groups = Array.from(this.hashIndex.values()).filter(ids => ids.length > 1);
+    const groups = Array.from(this.hashIndex.values()).filter(
+      (ids) => ids.length > 1
+    );
     const totalGroups = groups.length;
-    const averageGroupSize = totalGroups > 0
-      ? groups.reduce((sum, ids) => sum + ids.length, 0) / totalGroups
-      : 0;
+    const averageGroupSize =
+      totalGroups > 0
+        ? groups.reduce((sum, ids) => sum + ids.length, 0) / totalGroups
+        : 0;
 
     return { totalPhotos, totalGroups, averageGroupSize };
   }
@@ -333,7 +362,7 @@ export class DuplicateDetector {
       // Retirer des index
       if (hashes.cryptographic) {
         const ids = this.hashIndex.get(hashes.cryptographic) || [];
-        const filtered = ids.filter(id => id !== photoId);
+        const filtered = ids.filter((id) => id !== photoId);
         if (filtered.length > 0) {
           this.hashIndex.set(hashes.cryptographic, filtered);
         } else {
@@ -343,7 +372,7 @@ export class DuplicateDetector {
 
       if (hashes.perceptual) {
         const ids = this.hashIndex.get(hashes.perceptual) || [];
-        const filtered = ids.filter(id => id !== photoId);
+        const filtered = ids.filter((id) => id !== photoId);
         if (filtered.length > 0) {
           this.hashIndex.set(hashes.perceptual, filtered);
         } else {

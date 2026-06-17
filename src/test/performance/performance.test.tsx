@@ -64,7 +64,9 @@ describe('Performance Tests', () => {
 
     const promises: Promise<void>[] = [];
     for (let i = 0; i < 50; i++) {
-      promises.push(Promise.resolve().then(() => addPhotos(makePhotos(10, `batch-${i}`))));
+      promises.push(
+        Promise.resolve().then(() => addPhotos(makePhotos(10, `batch-${i}`)))
+      );
     }
     promises.push(Promise.resolve().then(() => setActiveTab('triage')));
     promises.push(Promise.resolve().then(() => setActiveTab('export')));
@@ -100,8 +102,14 @@ describe('Performance Tests', () => {
     await renderApp();
 
     for (let i = 0; i < 50; i++) {
-      Object.defineProperty(window, 'innerWidth', { value: 800 + i * 10, configurable: true });
-      Object.defineProperty(window, 'innerHeight', { value: 600 + i * 10, configurable: true });
+      Object.defineProperty(window, 'innerWidth', {
+        value: 800 + i * 10,
+        configurable: true,
+      });
+      Object.defineProperty(window, 'innerHeight', {
+        value: 600 + i * 10,
+        configurable: true,
+      });
       fireEvent.resize(window);
     }
 

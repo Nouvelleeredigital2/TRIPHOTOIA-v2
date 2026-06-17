@@ -31,12 +31,10 @@ describe('cloud upload helpers', () => {
     const upload = vi
       .fn()
       .mockResolvedValue({ data: { path: 'ok' }, error: null });
-    const rpc = vi
-      .fn()
-      .mockResolvedValue({
-        data: [{ photo_id: 'photo-generated-1' }],
-        error: null,
-      });
+    const rpc = vi.fn().mockResolvedValue({
+      data: [{ photo_id: 'photo-generated-1' }],
+      error: null,
+    });
 
     const client = {
       storage: { from: vi.fn(() => ({ upload })) },

@@ -8,7 +8,12 @@ import {
   type FaceRecord,
 } from '../../../features/cloud-projects/cloudFaces';
 
-const face = (id: string, photoId: string, embedding: number[], personId: string | null = null): FaceRecord => ({
+const face = (
+  id: string,
+  photoId: string,
+  embedding: number[],
+  personId: string | null = null
+): FaceRecord => ({
   id,
   photoId,
   personId,
@@ -47,7 +52,11 @@ describe('setProjectFaceAnalysis (opt-in)', () => {
     const update = vi.fn(() => ({ eq }));
     const client = { from: vi.fn(() => ({ update })) };
 
-    await setProjectFaceAnalysis({ projectId: 'project-1', enabled: true, client: client as never });
+    await setProjectFaceAnalysis({
+      projectId: 'project-1',
+      enabled: true,
+      client: client as never,
+    });
 
     expect(client.from).toHaveBeenCalledWith('projects');
     expect(update).toHaveBeenCalledWith({ face_analysis_enabled: true });
@@ -79,7 +88,12 @@ describe('nameAnonymousGroup (manual naming only)', () => {
     const rpc = vi.fn();
     const client = { rpc, from: vi.fn() };
     await expect(
-      nameAnonymousGroup({ projectId: 'p1', faceIds: ['f1'], displayName: '   ', client: client as never }),
+      nameAnonymousGroup({
+        projectId: 'p1',
+        faceIds: ['f1'],
+        displayName: '   ',
+        client: client as never,
+      })
     ).rejects.toThrow(/obligatoire/);
     expect(rpc).not.toHaveBeenCalled();
   });
@@ -132,13 +146,19 @@ describe('fetchPhotosForConfirmedPerson (filter by validated person)', () => {
 
   it('returns distinct photo ids for a confirmed person', async () => {
     const client = buildClient('confirmed', ['p1', 'p1', 'p2']);
-    const photos = await fetchPhotosForConfirmedPerson({ personId: 'person-9', client: client as never });
+    const photos = await fetchPhotosForConfirmedPerson({
+      personId: 'person-9',
+      client: client as never,
+    });
     expect(photos).toEqual(['p1', 'p2']);
   });
 
   it('returns nothing for an unconfirmed person', async () => {
     const client = buildClient('unconfirmed', ['p1']);
-    const photos = await fetchPhotosForConfirmedPerson({ personId: 'person-9', client: client as never });
+    const photos = await fetchPhotosForConfirmedPerson({
+      personId: 'person-9',
+      client: client as never,
+    });
     expect(photos).toEqual([]);
   });
 });

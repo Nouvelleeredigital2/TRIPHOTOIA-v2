@@ -19,8 +19,12 @@ describe('deterministic embedder', () => {
 
   it('is stable: same input yields an identical (cosine 1) vector', async () => {
     const embedder = createDeterministicEmbedder();
-    const a = await embedder.embedImage({ storagePath: 'projects/p1/photo.jpg' });
-    const b = await embedder.embedImage({ storagePath: 'projects/p1/photo.jpg' });
+    const a = await embedder.embedImage({
+      storagePath: 'projects/p1/photo.jpg',
+    });
+    const b = await embedder.embedImage({
+      storagePath: 'projects/p1/photo.jpg',
+    });
     expect(dot(a, b)).toBeCloseTo(1, 5);
   });
 
@@ -51,7 +55,9 @@ describe('createEmbedder', () => {
   });
 
   it('throws on an unknown provider', () => {
-    expect(() => createEmbedder({ EMBEDDING_PROVIDER: 'mystery' })).toThrow(/Unknown EMBEDDING_PROVIDER/);
+    expect(() => createEmbedder({ EMBEDDING_PROVIDER: 'mystery' })).toThrow(
+      /Unknown EMBEDDING_PROVIDER/
+    );
   });
 
   it('builds a clip embedder with the configured model when Supabase creds are present', () => {
@@ -65,6 +71,8 @@ describe('createEmbedder', () => {
   });
 
   it('refuses the clip provider without service-role credentials', () => {
-    expect(() => createEmbedder({ EMBEDDING_PROVIDER: 'clip' })).toThrow(/SUPABASE_URL/);
+    expect(() => createEmbedder({ EMBEDDING_PROVIDER: 'clip' })).toThrow(
+      /SUPABASE_URL/
+    );
   });
 });

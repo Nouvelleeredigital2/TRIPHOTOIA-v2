@@ -6,17 +6,17 @@ import { Photo } from '../types';
  */
 
 export interface RatingCriteria {
-  sharpnessWeight: number;      // Poids netteté (0-1)
-  compositionWeight: number;    // Poids composition (0-1)
-  eyesWeight: number;           // Poids yeux ouverts (0-1)
-  retouchWeight: number;        // Poids besoin retouche (0-1)
+  sharpnessWeight: number; // Poids netteté (0-1)
+  compositionWeight: number; // Poids composition (0-1)
+  eyesWeight: number; // Poids yeux ouverts (0-1)
+  retouchWeight: number; // Poids besoin retouche (0-1)
 }
 
 export const DEFAULT_CRITERIA: RatingCriteria = {
-  sharpnessWeight: 0.4,      // 40% - Le plus important
-  compositionWeight: 0.3,    // 30%
-  eyesWeight: 0.15,          // 15%
-  retouchWeight: 0.15        // 15%
+  sharpnessWeight: 0.4, // 40% - Le plus important
+  compositionWeight: 0.3, // 30%
+  eyesWeight: 0.15, // 15%
+  retouchWeight: 0.15, // 15%
 };
 
 /**
@@ -85,10 +85,11 @@ export function calculateAutoRating(
     const saturationDeviation = Math.abs(saturation - 1.0);
 
     // Moyenne des écarts (0 = parfait, 0.3+ = beaucoup de retouche)
-    const averageDeviation = (brightnessDeviation + contrastDeviation + saturationDeviation) / 3;
+    const averageDeviation =
+      (brightnessDeviation + contrastDeviation + saturationDeviation) / 3;
 
     // Inverser: moins de retouche = meilleur score
-    const retouchScore = Math.max(0, 1 - (averageDeviation * 3));
+    const retouchScore = Math.max(0, 1 - averageDeviation * 3);
 
     score += retouchScore * criteria.retouchWeight;
     totalWeight += criteria.retouchWeight;
@@ -122,7 +123,7 @@ export function calculateAutoRatings(
 ): Map<string, number> {
   const ratings = new Map<string, number>();
 
-  photos.forEach(photo => {
+  photos.forEach((photo) => {
     const rating = calculateAutoRating(photo, criteria);
     ratings.set(photo.id, rating);
   });
@@ -139,10 +140,15 @@ export function analyzeRatingDistribution(ratings: number[]): {
   distribution: Record<number, number>;
 } {
   const distribution: Record<number, number> = {
-    0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0
+    0: 0,
+    1: 0,
+    2: 0,
+    3: 0,
+    4: 0,
+    5: 0,
   };
 
-  ratings.forEach(rating => {
+  ratings.forEach((rating) => {
     distribution[rating] = (distribution[rating] || 0) + 1;
   });
 
@@ -180,26 +186,41 @@ export function adjustRatingDistribution(
   let index = 0;
 
   // Distribuer 5 étoiles
-  const fiveStarsCount = targetDistribution[5] || Math.ceil(photos.length * 0.1); // 10%
+  const fiveStarsCount =
+    targetDistribution[5] || Math.ceil(photos.length * 0.1); // 10%
   for (let i = 0; i < Math.min(fiveStarsCount, sortedPhotos.length); i++) {
     adjustedRatings.set(sortedPhotos[index++].id, 5);
   }
 
   // Distribuer 4 étoiles
-  const fourStarsCount = targetDistribution[4] || Math.ceil(photos.length * 0.2); // 20%
-  for (let i = 0; i < Math.min(fourStarsCount, sortedPhotos.length - index); i++) {
+  const fourStarsCount =
+    targetDistribution[4] || Math.ceil(photos.length * 0.2); // 20%
+  for (
+    let i = 0;
+    i < Math.min(fourStarsCount, sortedPhotos.length - index);
+    i++
+  ) {
     adjustedRatings.set(sortedPhotos[index++].id, 4);
   }
 
   // Distribuer 3 étoiles
-  const threeStarsCount = targetDistribution[3] || Math.ceil(photos.length * 0.3); // 30%
-  for (let i = 0; i < Math.min(threeStarsCount, sortedPhotos.length - index); i++) {
+  const threeStarsCount =
+    targetDistribution[3] || Math.ceil(photos.length * 0.3); // 30%
+  for (
+    let i = 0;
+    i < Math.min(threeStarsCount, sortedPhotos.length - index);
+    i++
+  ) {
     adjustedRatings.set(sortedPhotos[index++].id, 3);
   }
 
   // Distribuer 2 étoiles
   const twoStarsCount = targetDistribution[2] || Math.ceil(photos.length * 0.2); // 20%
-  for (let i = 0; i < Math.min(twoStarsCount, sortedPhotos.length - index); i++) {
+  for (
+    let i = 0;
+    i < Math.min(twoStarsCount, sortedPhotos.length - index);
+    i++
+  ) {
     adjustedRatings.set(sortedPhotos[index++].id, 2);
   }
 
@@ -236,11 +257,11 @@ function calculatePhotoScore(photo: Photo): number {
 
   if (analysis.suggestedRetouch) {
     const { brightness, contrast, saturation } = analysis.suggestedRetouch;
-    const deviation = (
-      Math.abs(brightness - 1) +
-      Math.abs(contrast - 1) +
-      Math.abs(saturation - 1)
-    ) / 3;
+    const deviation =
+      (Math.abs(brightness - 1) +
+        Math.abs(contrast - 1) +
+        Math.abs(saturation - 1)) /
+      3;
     score += Math.max(0, 1 - deviation * 2);
     count++;
   }
@@ -255,21 +276,21 @@ export const AUTO_RATING_PRESETS = {
   strict: {
     name: 'Strict',
     description: 'Seules les meilleures photos obtiennent 5 étoiles',
-    distribution: { 5: 0.05, 4: 0.15, 3: 0.30, 2: 0.30, 1: 0.20 }
+    distribution: { 5: 0.05, 4: 0.15, 3: 0.3, 2: 0.3, 1: 0.2 },
   },
   balanced: {
     name: 'Équilibré',
     description: 'Distribution équilibrée des notes',
-    distribution: { 5: 0.10, 4: 0.20, 3: 0.30, 2: 0.20, 1: 0.20 }
+    distribution: { 5: 0.1, 4: 0.2, 3: 0.3, 2: 0.2, 1: 0.2 },
   },
   generous: {
     name: 'Généreux',
     description: 'Plus de photos avec notes élevées',
-    distribution: { 5: 0.15, 4: 0.25, 3: 0.30, 2: 0.20, 1: 0.10 }
+    distribution: { 5: 0.15, 4: 0.25, 3: 0.3, 2: 0.2, 1: 0.1 },
   },
   quality: {
     name: 'Qualité pure',
     description: 'Basé uniquement sur la netteté',
-    distribution: null // Utilise algorithme brut
-  }
+    distribution: null, // Utilise algorithme brut
+  },
 };

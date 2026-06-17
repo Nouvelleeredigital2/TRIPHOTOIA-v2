@@ -58,7 +58,12 @@ self.onmessageerror = () => {
   postError(-1, 'Invalid message received by retouch worker');
 };
 
-function postSuccess(id: number, width: number, height: number, buffer: ArrayBuffer) {
+function postSuccess(
+  id: number,
+  width: number,
+  height: number,
+  buffer: ArrayBuffer
+) {
   const response: RetouchWorkerResponse = {
     id,
     type: 'SUCCESS',
@@ -78,7 +83,10 @@ function postError(id: number, error: string) {
   self.postMessage(response);
 }
 
-function postAutoSuccess(id: number, preset: ReturnType<typeof computeAutoRetouchOptions>) {
+function postAutoSuccess(
+  id: number,
+  preset: ReturnType<typeof computeAutoRetouchOptions>
+) {
   const response: RetouchWorkerResponse = {
     id,
     type: 'AUTO_SUCCESS',

@@ -17,14 +17,14 @@ export function StarRating({
   size = 'md',
   readonly = false,
   showCount = false,
-  className
+  className,
 }: StarRatingProps) {
   const [hoverRating, setHoverRating] = useState(0);
 
   const sizeClasses = {
     sm: 'w-3 h-3',
     md: 'w-4 h-4',
-    lg: 'w-5 h-5'
+    lg: 'w-5 h-5',
   };
 
   const handleClick = (value: number) => {
@@ -77,7 +77,9 @@ export function StarRating({
                 'transition-colors duration-150',
                 isFilled && !isHovered && 'fill-yellow-400 text-yellow-400',
                 isFilled && isHovered && 'fill-yellow-500 text-yellow-500',
-                !isFilled && !isHovered && 'fill-transparent text-muted-foreground',
+                !isFilled &&
+                  !isHovered &&
+                  'fill-transparent text-muted-foreground',
                 !isFilled && isHovered && 'fill-yellow-200 text-yellow-300'
               )}
             />
@@ -86,7 +88,7 @@ export function StarRating({
       })}
 
       {showCount && rating > 0 && (
-        <span className="ml-1 text-xs text-muted-foreground font-medium">
+        <span className="ml-1 text-xs font-medium text-muted-foreground">
           ({rating})
         </span>
       )}

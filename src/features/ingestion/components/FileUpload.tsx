@@ -10,21 +10,29 @@ import toast from 'react-hot-toast';
 // P1-4 : uniquement les formats réellement décodés par le pipeline navigateur
 // (HTMLImageElement/Canvas). HEIC/HEIF/TIFF/RAW étaient acceptés mais échouaient
 // au preview/analyse/export — on les retire tant qu'aucun décodeur dédié n'est intégré.
-const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.avif']);
+const IMAGE_EXTENSIONS = new Set([
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.gif',
+  '.bmp',
+  '.webp',
+  '.avif',
+]);
 
 /** Recursively collect image files from a FileSystemDirectoryHandle.
  *  `stats.skippedDeep` compte les sous-dossiers ignorés car trop profonds (A-16). */
 async function collectImagesFromDir(
   dirHandle: FileSystemDirectoryHandle,
   stats: { skippedDeep: number },
-  depth = 0,
+  depth = 0
 ): Promise<File[]> {
   if (depth > 5) {
     stats.skippedDeep += 1; // arbre trop profond — on signale plutôt que d'ignorer en silence
     return [];
   }
   const files: File[] = [];
-  for await (const entry of (dirHandle as unknown as AsyncIterable<FileSystemHandle>)) {
+  for await (const entry of dirHandle as unknown as AsyncIterable<FileSystemHandle>) {
     if (entry.kind === 'file') {
       const ext = '.' + entry.name.split('.').pop()?.toLowerCase();
       if (IMAGE_EXTENSIONS.has(ext)) {
@@ -32,7 +40,11 @@ async function collectImagesFromDir(
         files.push(file);
       }
     } else if (entry.kind === 'directory') {
-      const subFiles = await collectImagesFromDir(entry as FileSystemDirectoryHandle, stats, depth + 1);
+      const subFiles = await collectImagesFromDir(
+        entry as FileSystemDirectoryHandle,
+        stats,
+        depth + 1
+      );
       files.push(...subFiles);
     }
   }
@@ -40,7 +52,8 @@ async function collectImagesFromDir(
 }
 
 /** Check if the File System Access API directory picker is available */
-const canPickDirectory = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
+const canPickDirectory =
+  typeof window !== 'undefined' && 'showDirectoryPicker' in window;
 
 interface FileUploadProps {
   onFilesSelected: (files: File[]) => void;
@@ -61,7 +74,7 @@ export function FileUpload({ onFilesSelected, disabled }: FileUploadProps) {
   const onDropRejected = useCallback((rejections: { file: File }[]) => {
     if (rejections.length > 0) {
       toast.error(
-        `${rejections.length} fichier${rejections.length > 1 ? 's' : ''} ignoré${rejections.length > 1 ? 's' : ''} (format non supporté)`,
+        `${rejections.length} fichier${rejections.length > 1 ? 's' : ''} ignoré${rejections.length > 1 ? 's' : ''} (format non supporté)`
       );
     }
   }, []);
@@ -78,13 +91,25 @@ export function FileUpload({ onFilesSelected, disabled }: FileUploadProps) {
 
   const handleImportDirectory = useCallback(async () => {
     if (!canPickDirectory) {
-      toast.error('Votre navigateur ne supporte pas l\'import de dossier. Utilisez Chrome ou Edge.');
+      toast.error(
+        "Votre navigateur ne supporte pas l'import de dossier. Utilisez Chrome ou Edge."
+      );
       return;
     }
     try {
       setIsImportingDir(true);
-      // @ts-expect-error — showDirectoryPicker is not yet in all TS lib defs
-      const dirHandle: FileSystemDirectoryHandle = await window.showDirectoryPicker({ mode: 'read' });
+      // showDirectoryPicker n'est pas encore dans toutes les définitions TS :
+      // accès typé local plutôt qu'une directive @ts-expect-error fragile.
+      const showDirectoryPicker = (
+        window as unknown as {
+          showDirectoryPicker: (options: {
+            mode: 'read';
+          }) => Promise<FileSystemDirectoryHandle>;
+        }
+      ).showDirectoryPicker;
+      const dirHandle: FileSystemDirectoryHandle = await showDirectoryPicker({
+        mode: 'read',
+      });
       const toastId = toast.loading('Lecture du dossier…');
       const stats = { skippedDeep: 0 };
       const files = await collectImagesFromDir(dirHandle, stats);
@@ -92,11 +117,15 @@ export function FileUpload({ onFilesSelected, disabled }: FileUploadProps) {
       if (files.length === 0) {
         toast.error('Aucune image trouvée dans ce dossier.');
       } else {
-        toast.success(`${files.length} photo${files.length > 1 ? 's' : ''} trouvée${files.length > 1 ? 's' : ''}`);
+        toast.success(
+          `${files.length} photo${files.length > 1 ? 's' : ''} trouvée${files.length > 1 ? 's' : ''}`
+        );
         onFilesSelected(files);
         if (stats.skippedDeep > 0) {
           // A-16 : prévenir que des sous-dossiers très profonds ont été ignorés.
-          toast('Certains sous-dossiers très profonds n\'ont pas été lus.', { icon: '⚠️' });
+          toast("Certains sous-dossiers très profonds n'ont pas été lus.", {
+            icon: '⚠️',
+          });
         }
       }
     } catch (err) {
@@ -115,11 +144,11 @@ export function FileUpload({ onFilesSelected, disabled }: FileUploadProps) {
         <div
           {...getRootProps()}
           className={cn(
-            'border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors',
+            'cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors',
             isDragActive
               ? 'border-primary bg-primary/5'
               : 'border-muted-foreground/25 hover:border-primary/50',
-            disabled && 'opacity-50 cursor-not-allowed'
+            disabled && 'cursor-not-allowed opacity-50'
           )}
         >
           <input {...getInputProps()} />
@@ -129,9 +158,9 @@ export function FileUpload({ onFilesSelected, disabled }: FileUploadProps) {
             transition={{ duration: 0.2 }}
             className="space-y-4"
           >
-            <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
               <svg
-                className="w-6 h-6 text-primary"
+                className="h-6 w-6 text-primary"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -150,21 +179,21 @@ export function FileUpload({ onFilesSelected, disabled }: FileUploadProps) {
                   ? 'Déposez vos photos ici'
                   : 'Glissez-déposez vos photos'}
               </h3>
-              <p className="text-muted-foreground mt-2">
+              <p className="mt-2 text-muted-foreground">
                 ou cliquez pour sélectionner des fichiers
               </p>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="mt-1 text-sm text-muted-foreground">
                 JPEG · PNG · WebP · GIF · BMP · AVIF
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-4">
+            <div className="mt-4 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Button
                 type="button"
                 variant="outline"
                 disabled={disabled}
                 className="gap-2"
               >
-                <Upload className="w-4 h-4" />
+                <Upload className="h-4 w-4" />
                 Sélectionner des fichiers
               </Button>
 
@@ -180,7 +209,7 @@ export function FileUpload({ onFilesSelected, disabled }: FileUploadProps) {
                     handleImportDirectory();
                   }}
                 >
-                  <FolderOpen className="w-4 h-4" />
+                  <FolderOpen className="h-4 w-4" />
                   {isImportingDir ? 'Lecture…' : 'Importer un dossier'}
                 </Button>
               )}

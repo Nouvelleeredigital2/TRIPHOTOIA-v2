@@ -17,10 +17,12 @@ export const DuplicateGroupCard: React.FC<DuplicateGroupCardProps> = ({
   photos,
   onSelectBest,
   onViewGroup,
-  onDeleteGroup
+  onDeleteGroup,
 }) => {
-  const groupPhotos = photos.filter(photo => group.photos.includes(photo.id));
-  const representativePhoto = groupPhotos.find(photo => photo.id === group.representative);
+  const groupPhotos = photos.filter((photo) => group.photos.includes(photo.id));
+  const representativePhoto = groupPhotos.find(
+    (photo) => photo.id === group.representative
+  );
 
   const getSimilarityColor = (similarity: number) => {
     if (similarity >= 0.9) return 'text-red-600';
@@ -67,21 +69,25 @@ export const DuplicateGroupCard: React.FC<DuplicateGroupCardProps> = ({
         {representativePhoto && (
           <div className="space-y-2">
             <h4 className="text-sm font-medium">Photo représentative</h4>
-            <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-              <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+            <div className="flex items-center space-x-3 rounded-lg bg-gray-50 p-3">
+              <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-gray-200">
                 {representativePhoto.thumbnail ? (
                   <img
                     src={representativePhoto.thumbnail}
                     alt={representativePhoto.name}
-                    className="w-full h-full object-cover rounded-lg"
+                    className="h-full w-full rounded-lg object-cover"
                   />
                 ) : (
                   <span className="text-2xl">📷</span>
                 )}
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium">{representativePhoto.name}</p>
-                <p className="text-xs text-gray-500">Sélectionnée automatiquement</p>
+                <p className="text-sm font-medium">
+                  {representativePhoto.name}
+                </p>
+                <p className="text-xs text-gray-500">
+                  Sélectionnée automatiquement
+                </p>
               </div>
               <Button
                 size="sm"
@@ -101,13 +107,15 @@ export const DuplicateGroupCard: React.FC<DuplicateGroupCardProps> = ({
             <div className="space-y-1">
               <div className="flex justify-between text-sm">
                 <span>Similarité</span>
-                <span className={`font-mono ${getSimilarityColor(group.similarity)}`}>
+                <span
+                  className={`font-mono ${getSimilarityColor(group.similarity)}`}
+                >
                   {(group.similarity * 100).toFixed(1)}%
                 </span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="h-2 w-full rounded-full bg-gray-200">
                 <div
-                  className="bg-blue-600 h-2 rounded-full"
+                  className="h-2 rounded-full bg-blue-600"
                   style={{ width: `${group.similarity * 100}%` }}
                 />
               </div>
@@ -115,13 +123,15 @@ export const DuplicateGroupCard: React.FC<DuplicateGroupCardProps> = ({
             <div className="space-y-1">
               <div className="flex justify-between text-sm">
                 <span>Confiance</span>
-                <span className={`font-mono ${getSimilarityColor(group.confidence)}`}>
+                <span
+                  className={`font-mono ${getSimilarityColor(group.confidence)}`}
+                >
                   {(group.confidence * 100).toFixed(1)}%
                 </span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="h-2 w-full rounded-full bg-gray-200">
                 <div
-                  className="bg-green-600 h-2 rounded-full"
+                  className="h-2 rounded-full bg-green-600"
                   style={{ width: `${group.confidence * 100}%` }}
                 />
               </div>
@@ -132,31 +142,33 @@ export const DuplicateGroupCard: React.FC<DuplicateGroupCardProps> = ({
         {/* Liste des photos du groupe */}
         <div className="space-y-2">
           <h4 className="text-sm font-medium">Photos du groupe</h4>
-          <div className="space-y-2 max-h-32 overflow-y-auto">
+          <div className="max-h-32 space-y-2 overflow-y-auto">
             {groupPhotos.map((photo, index) => (
               <div
                 key={photo.id}
-                className={`flex items-center space-x-3 p-2 rounded-lg ${
+                className={`flex items-center space-x-3 rounded-lg p-2 ${
                   photo.id === group.representative
-                    ? 'bg-blue-50 border border-blue-200'
+                    ? 'border border-blue-200 bg-blue-50'
                     : 'bg-gray-50'
                 }`}
               >
-                <div className="w-8 h-8 bg-gray-200 rounded flex items-center justify-center">
+                <div className="flex h-8 w-8 items-center justify-center rounded bg-gray-200">
                   {photo.thumbnail ? (
                     <img
                       src={photo.thumbnail}
                       alt={photo.name}
-                      className="w-full h-full object-cover rounded"
+                      className="h-full w-full rounded object-cover"
                     />
                   ) : (
                     <span className="text-sm">📷</span>
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{photo.name}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{photo.name}</p>
                   <p className="text-xs text-gray-500">
-                    {photo.id === group.representative ? 'Représentante' : `Doublon ${index + 1}`}
+                    {photo.id === group.representative
+                      ? 'Représentante'
+                      : `Doublon ${index + 1}`}
                   </p>
                 </div>
                 {photo.id !== group.representative && (
@@ -197,7 +209,7 @@ export const DuplicateGroupCard: React.FC<DuplicateGroupCardProps> = ({
         </div>
 
         {/* Informations supplémentaires */}
-        <div className="text-xs text-gray-500 space-y-1">
+        <div className="space-y-1 text-xs text-gray-500">
           <p>ID du groupe: {group.id}</p>
           <p>Photos: {group.photos.join(', ')}</p>
         </div>

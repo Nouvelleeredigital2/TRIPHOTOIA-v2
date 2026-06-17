@@ -1,4 +1,10 @@
-import { Photo, DuplicateGroup, PhotoCollection, ColorLabel, COLOR_LABEL_KEYS } from '../types';
+import {
+  Photo,
+  DuplicateGroup,
+  PhotoCollection,
+  ColorLabel,
+  COLOR_LABEL_KEYS,
+} from '../types';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -61,10 +67,21 @@ export function buildReport(
 
   const ratings = analyzed.map((p) => p.analysis!.rating ?? 0);
   const averageRating =
-    ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
+    ratings.length > 0
+      ? ratings.reduce((a, b) => a + b, 0) / ratings.length
+      : 0;
 
-  const ratingDistribution: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-  ratings.forEach((r) => { ratingDistribution[r] = (ratingDistribution[r] ?? 0) + 1; });
+  const ratingDistribution: Record<number, number> = {
+    0: 0,
+    1: 0,
+    2: 0,
+    3: 0,
+    4: 0,
+    5: 0,
+  };
+  ratings.forEach((r) => {
+    ratingDistribution[r] = (ratingDistribution[r] ?? 0) + 1;
+  });
 
   // Flags
   const picks = analyzed.filter((p) => p.analysis!.isPick).length;
@@ -96,10 +113,14 @@ export function buildReport(
   });
 
   // File stats
-  const totalSizeBytes = photos.reduce((sum, p) => sum + (p.file?.size ?? 0), 0);
+  const totalSizeBytes = photos.reduce(
+    (sum, p) => sum + (p.file?.size ?? 0),
+    0
+  );
   const formats: Record<string, number> = {};
   photos.forEach((p) => {
-    const ext = (p.file?.name ?? '').split('.').pop()?.toUpperCase() ?? 'UNKNOWN';
+    const ext =
+      (p.file?.name ?? '').split('.').pop()?.toUpperCase() ?? 'UNKNOWN';
     formats[ext] = (formats[ext] ?? 0) + 1;
   });
 
@@ -113,7 +134,8 @@ export function buildReport(
     },
     quality: {
       blurry: analyzed.filter((p) => p.analysis!.isBlurry).length,
-      sharp: analyzed.filter((p) => (p.analysis!.sharpnessScore ?? 0) >= 0.7).length,
+      sharp: analyzed.filter((p) => (p.analysis!.sharpnessScore ?? 0) >= 0.7)
+        .length,
       averageSharpness: Math.round(averageSharpness * 100) / 100,
       averageRating: Math.round(averageRating * 10) / 10,
       ratingDistribution,
@@ -160,7 +182,8 @@ export function printReportHTML(report: AnalysisReport): void {
   const ratingRows = [5, 4, 3, 2, 1, 0]
     .map((r) => {
       const count = quality.ratingDistribution[r] ?? 0;
-      const pct = summary.analyzed > 0 ? Math.round((count / summary.analyzed) * 100) : 0;
+      const pct =
+        summary.analyzed > 0 ? Math.round((count / summary.analyzed) * 100) : 0;
       const label = r === 0 ? 'Sans note' : `${r}★`;
       return `<tr>
         <td>${label}</td>
@@ -176,7 +199,10 @@ export function printReportHTML(report: AnalysisReport): void {
     .join('');
 
   const tagRows = tags
-    .map(({ tag, count }) => `<span style="background:#e0e7ff;color:#3730a3;padding:2px 8px;border-radius:99px;font-size:12px;margin:2px">${tag} (${count})</span>`)
+    .map(
+      ({ tag, count }) =>
+        `<span style="background:#e0e7ff;color:#3730a3;padding:2px 8px;border-radius:99px;font-size:12px;margin:2px">${tag} (${count})</span>`
+    )
     .join(' ');
 
   const formatRows = Object.entries(fileStats.formats)
@@ -259,10 +285,14 @@ export function printReportHTML(report: AnalysisReport): void {
   </div>
 
   <!-- Tags -->
-  ${tags.length > 0 ? `<div class="card">
+  ${
+    tags.length > 0
+      ? `<div class="card">
     <h2>Tags les plus fréquents</h2>
     <div class="tags">${tagRows}</div>
-  </div>` : ''}
+  </div>`
+      : ''
+  }
 </body>
 </html>`;
 

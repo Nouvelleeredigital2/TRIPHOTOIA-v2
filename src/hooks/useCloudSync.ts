@@ -1,7 +1,12 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { usePhotoStore } from '../store/photoStore';
-import { syncPhotoMetadata, loadCloudMetadata, trackStats, syncCollections } from '../lib/sync-utils';
+import {
+  syncPhotoMetadata,
+  loadCloudMetadata,
+  trackStats,
+  syncCollections,
+} from '../lib/sync-utils';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { isAuthError, SESSION_EXPIRED_MESSAGE } from '../lib/auth-errors';
 import toast from 'react-hot-toast';
@@ -32,8 +37,13 @@ export function useCloudSync() {
         ids.map((id) => {
           const photo = photos.find((p) => p.id === id);
           if (!photo) return Promise.resolve();
-          return syncPhotoMetadata(user.id, photo, userTags[id], photoNotes[id]);
-        }),
+          return syncPhotoMetadata(
+            user.id,
+            photo,
+            userTags[id],
+            photoNotes[id]
+          );
+        })
       );
       setSyncStatus('synced');
     } catch (err) {
@@ -52,7 +62,7 @@ export function useCloudSync() {
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = window.setTimeout(flush, DEBOUNCE_MS);
     },
-    [flush],
+    [flush]
   );
 
   // Charger les métadonnées cloud lors du login
@@ -83,7 +93,9 @@ export function useCloudSync() {
             rating: cloud.rating,
             isPick: cloud.is_pick,
             isRejected: cloud.is_rejected,
-            colorLabel: (cloud.color_label as import('../types').ColorLabel | null) ?? undefined,
+            colorLabel:
+              (cloud.color_label as import('../types').ColorLabel | null) ??
+              undefined,
           });
         }
       });
@@ -100,11 +112,17 @@ export function useCloudSync() {
       const notesChanged = state.photoNotes !== prev.photoNotes;
 
       // A-06 : synchroniser les collections cloud (débounce) quand elles changent.
-      if (state.collections !== prev.collections || state.collectionOrder !== prev.collectionOrder) {
-        if (collectionsTimerRef.current) clearTimeout(collectionsTimerRef.current);
+      if (
+        state.collections !== prev.collections ||
+        state.collectionOrder !== prev.collectionOrder
+      ) {
+        if (collectionsTimerRef.current)
+          clearTimeout(collectionsTimerRef.current);
         collectionsTimerRef.current = window.setTimeout(() => {
           const st = usePhotoStore.getState();
-          syncCollections(user.id, st.collections, st.collectionOrder).catch(() => {});
+          syncCollections(user.id, st.collections, st.collectionOrder).catch(
+            () => {}
+          );
         }, DEBOUNCE_MS);
       }
 
@@ -135,7 +153,8 @@ export function useCloudSync() {
             changed.add(photo.id);
           }
           // Transitions comptabilisées une seule fois (montée de front).
-          if ((a?.rating ?? 0) > 0 && (a?.rating ?? 0) !== (pa?.rating ?? 0)) ratedDelta += 1;
+          if ((a?.rating ?? 0) > 0 && (a?.rating ?? 0) !== (pa?.rating ?? 0))
+            ratedDelta += 1;
           if (!!a?.isPick && !pa?.isPick) picksDelta += 1;
           if (!!a?.isRejected && !pa?.isRejected) rejectsDelta += 1;
         });
@@ -152,17 +171,25 @@ export function useCloudSync() {
       // A-27 : synchroniser aussi les tags et les notes (champs prévus dans
       // syncPhotoMetadata mais jamais détectés auparavant).
       if (tagsChanged) {
-        const ids = new Set([...Object.keys(state.userTags), ...Object.keys(prev.userTags)]);
+        const ids = new Set([
+          ...Object.keys(state.userTags),
+          ...Object.keys(prev.userTags),
+        ]);
         ids.forEach((id) => {
           const a = state.userTags[id];
           const b = prev.userTags[id];
-          if (JSON.stringify(a ?? []) !== JSON.stringify(b ?? [])) changed.add(id);
+          if (JSON.stringify(a ?? []) !== JSON.stringify(b ?? []))
+            changed.add(id);
         });
       }
       if (notesChanged) {
-        const ids = new Set([...Object.keys(state.photoNotes), ...Object.keys(prev.photoNotes)]);
+        const ids = new Set([
+          ...Object.keys(state.photoNotes),
+          ...Object.keys(prev.photoNotes),
+        ]);
         ids.forEach((id) => {
-          if ((state.photoNotes[id] ?? '') !== (prev.photoNotes[id] ?? '')) changed.add(id);
+          if ((state.photoNotes[id] ?? '') !== (prev.photoNotes[id] ?? ''))
+            changed.add(id);
         });
       }
 

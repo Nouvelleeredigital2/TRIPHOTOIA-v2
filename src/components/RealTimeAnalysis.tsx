@@ -19,8 +19,8 @@ export function RealTimeAnalysis() {
   const allPhotos = usePhotoStore((state) => state.photos);
 
   // Calculer les valeurs dérivées avec useMemo
-  const activeCollection = useMemo(() =>
-    collections[activeCollectionId],
+  const activeCollection = useMemo(
+    () => collections[activeCollectionId],
     [collections, activeCollectionId]
   );
 
@@ -35,7 +35,9 @@ export function RealTimeAnalysis() {
   }, [activeCollection, allPhotos]);
 
   useEffect(() => {
-    const photosWithAnalysis = activePhotos.filter((photo) => photo.analysis && !photo.analysis.error);
+    const photosWithAnalysis = activePhotos.filter(
+      (photo) => photo.analysis && !photo.analysis.error
+    );
     const details = photosWithAnalysis.map((photo) => ({
       name: photo.file.name,
       analysis: photo.analysis!,
@@ -56,43 +58,57 @@ export function RealTimeAnalysis() {
         <CardTitle className="text-lg">📡 Analyse en temps reel</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="text-sm text-gray-600 mb-4">Derniere mise a jour : {latestUpdate}</div>
+        <div className="mb-4 text-sm text-gray-600">
+          Derniere mise a jour : {latestUpdate}
+        </div>
 
         {analysisDetails.slice(0, 5).map((detail) => {
           const retouch = detail.analysis.suggestedRetouch;
 
           return (
-            <div key={`${detail.name}-${detail.timestamp}`} className="border rounded-lg p-3 space-y-2">
-              <div className="font-semibold text-sm">{detail.name}</div>
+            <div
+              key={`${detail.name}-${detail.timestamp}`}
+              className="space-y-2 rounded-lg border p-3"
+            >
+              <div className="text-sm font-semibold">{detail.name}</div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+              <div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-4">
                 <div>
                   <div className="text-gray-600">Nette</div>
                   <div className="font-mono">
                     {detail.analysis.sharpnessScore !== undefined
-                      ? (Math.round(detail.analysis.sharpnessScore * 1000) / 1000).toString()
+                      ? (
+                          Math.round(detail.analysis.sharpnessScore * 1000) /
+                          1000
+                        ).toString()
                       : 'N/A'}
                   </div>
                 </div>
 
                 <div>
                   <div className="text-gray-600">Flou</div>
-                  <div className={`font-mono ${detail.analysis.isBlurry ? 'text-red-600' : 'text-green-600'}`}>
+                  <div
+                    className={`font-mono ${detail.analysis.isBlurry ? 'text-red-600' : 'text-green-600'}`}
+                  >
                     {detail.analysis.isBlurry ? 'OUI' : 'NON'}
                   </div>
                 </div>
 
                 <div>
                   <div className="text-gray-600">Yeux</div>
-                  <div className={`font-mono ${detail.analysis.hasOpenEyes ? 'text-blue-600' : 'text-gray-600'}`}>
+                  <div
+                    className={`font-mono ${detail.analysis.hasOpenEyes ? 'text-blue-600' : 'text-gray-600'}`}
+                  >
                     {detail.analysis.hasOpenEyes ? 'DETECTES' : 'NON'}
                   </div>
                 </div>
 
                 <div>
                   <div className="text-gray-600">Hash</div>
-                  <div className="font-mono text-xs truncate">
-                    {detail.analysis.perceptualHash ? `${detail.analysis.perceptualHash.substring(0, 8)}...` : 'N/A'}
+                  <div className="truncate font-mono text-xs">
+                    {detail.analysis.perceptualHash
+                      ? `${detail.analysis.perceptualHash.substring(0, 8)}...`
+                      : 'N/A'}
                   </div>
                 </div>
               </div>
@@ -102,7 +118,9 @@ export function RealTimeAnalysis() {
                   <div className="text-gray-600">Luminosite</div>
                   <div className="font-mono">
                     {retouch?.brightness !== undefined
-                      ? (Math.round(retouch.brightness * 1000) / 1000).toString()
+                      ? (
+                          Math.round(retouch.brightness * 1000) / 1000
+                        ).toString()
                       : 'N/A'}
                   </div>
                 </div>
@@ -120,7 +138,9 @@ export function RealTimeAnalysis() {
                   <div className="text-gray-600">Saturation</div>
                   <div className="font-mono">
                     {retouch?.saturation !== undefined
-                      ? (Math.round(retouch.saturation * 1000) / 1000).toString()
+                      ? (
+                          Math.round(retouch.saturation * 1000) / 1000
+                        ).toString()
                       : 'N/A'}
                   </div>
                 </div>

@@ -5,7 +5,8 @@
  * claims invalides, RLS qui refuse faute de session. Permet d'afficher un message
  * actionnable « Session expirée » plutôt que l'erreur technique brute.
  */
-export const SESSION_EXPIRED_MESSAGE = 'Session expirée — reconnectez-vous pour synchroniser.';
+export const SESSION_EXPIRED_MESSAGE =
+  'Session expirée — reconnectez-vous pour synchroniser.';
 
 export function isAuthError(error: unknown): boolean {
   if (!error) return false;
@@ -18,6 +19,6 @@ export function isAuthError(error: unknown): boolean {
 
   const msg = (e.message ?? '').toLowerCase();
   return /jwt|token (is )?expired|expired token|not authenticated|unauthor|invalid claim|session.*(expir|invalid)/.test(
-    msg,
+    msg
   );
 }

@@ -1,7 +1,9 @@
 # Configuration pour résoudre les erreurs WebSocket
 
 ## Problème
+
 L'erreur "WebSocket connection to 'ws://localhost:3000/' failed" peut être causée par :
+
 1. Le navigateur qui essaie de se connecter au serveur pour Hot Module Replacement (HMR)
 2. Des extensions de navigateur qui interfèrent
 3. Des problèmes de réseau ou de pare-feu
@@ -9,6 +11,7 @@ L'erreur "WebSocket connection to 'ws://localhost:3000/' failed" peut être caus
 ## Solutions appliquées
 
 ### 1. Configuration Vite (vite.config.ts)
+
 - HMR désactivé (`hmr: false`)
 - Surveillance par polling activée (`usePolling: true`)
 - Configuration explicite du host et port
@@ -34,6 +37,7 @@ L'erreur "WebSocket connection to 'ws://localhost:3000/' failed" peut être caus
    - Testez avec Chrome, Firefox, Edge, etc.
 
 5. **Redémarrer le serveur** :
+
    ```bash
    # Arrêter le serveur
    Ctrl+C (dans le terminal)
@@ -43,11 +47,13 @@ L'erreur "WebSocket connection to 'ws://localhost:3000/' failed" peut être caus
    ```
 
 ### 3. Test de la connexion
+
 - Ouvrez http://localhost:3000/
 - Vérifiez qu'il n'y a plus d'erreurs WebSocket dans la console
 - L'application devrait fonctionner normalement sans HMR
 
 ### 4. Avantages de la configuration actuelle
+
 - Plus stable (pas de dépendance aux connexions WebSocket)
 - Compatible avec tous les environnements réseau
 - Moins de problèmes avec les extensions de navigateur

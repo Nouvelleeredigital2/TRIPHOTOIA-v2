@@ -21,29 +21,31 @@ export function usePerformance() {
       performanceRef.current.duration =
         performanceRef.current.endTime - performanceRef.current.startTime;
 
-      console.log(`Performance: ${performanceRef.current.duration.toFixed(2)}ms`);
+      console.log(
+        `Performance: ${performanceRef.current.duration.toFixed(2)}ms`
+      );
       return performanceRef.current.duration;
     }
     return 0;
   }, []);
 
-  const measureAsync = useCallback(async <T>(
-    asyncFn: () => Promise<T>,
-    label?: string
-  ): Promise<T> => {
-    startTiming();
-    try {
-      const result = await asyncFn();
-      const duration = endTiming();
-      if (label) {
-        console.log(`${label}: ${duration.toFixed(2)}ms`);
+  const measureAsync = useCallback(
+    async <T>(asyncFn: () => Promise<T>, label?: string): Promise<T> => {
+      startTiming();
+      try {
+        const result = await asyncFn();
+        const duration = endTiming();
+        if (label) {
+          console.log(`${label}: ${duration.toFixed(2)}ms`);
+        }
+        return result;
+      } catch (error) {
+        endTiming();
+        throw error;
       }
-      return result;
-    } catch (error) {
-      endTiming();
-      throw error;
-    }
-  }, [startTiming, endTiming]);
+    },
+    [startTiming, endTiming]
+  );
 
   return {
     startTiming,

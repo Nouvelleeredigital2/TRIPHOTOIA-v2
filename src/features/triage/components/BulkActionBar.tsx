@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Star, Flag, XCircle, RotateCcw, Trash2, FolderPlus, Circle } from 'lucide-react';
+import {
+  X,
+  Star,
+  Flag,
+  XCircle,
+  RotateCcw,
+  Trash2,
+  FolderPlus,
+  Circle,
+} from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { ColorLabel, COLOR_LABEL_META, COLOR_LABEL_KEYS } from '../../../types';
@@ -40,15 +49,18 @@ export function BulkActionBar({
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 80, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-          className="fixed bottom-16 left-1/2 -translate-x-1/2 z-50"
+          className="fixed bottom-16 left-1/2 z-50 -translate-x-1/2"
         >
-          <div className="flex items-center gap-2 bg-card border border-border shadow-2xl rounded-2xl px-4 py-3">
+          <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 shadow-2xl">
             {/* Compteur */}
-            <Badge variant="secondary" className="text-sm font-semibold shrink-0">
+            <Badge
+              variant="secondary"
+              className="shrink-0 text-sm font-semibold"
+            >
               {count} photo{count > 1 ? 's' : ''}
             </Badge>
 
-            <div className="w-px h-6 bg-border mx-1" />
+            <div className="mx-1 h-6 w-px bg-border" />
 
             {/* ⭐ Note en masse */}
             <div className="relative">
@@ -59,7 +71,7 @@ export function BulkActionBar({
                 onClick={() => setRatingOpen((v) => !v)}
                 title="Attribuer une note"
               >
-                <Star className="w-3.5 h-3.5" />
+                <Star className="h-3.5 w-3.5" />
                 Note
               </Button>
 
@@ -69,14 +81,21 @@ export function BulkActionBar({
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 6 }}
-                    className="absolute bottom-full mb-2 left-0 bg-card border border-border rounded-xl shadow-xl p-2 flex gap-1"
+                    className="absolute bottom-full left-0 mb-2 flex gap-1 rounded-xl border border-border bg-card p-2 shadow-xl"
                   >
                     {[0, 1, 2, 3, 4, 5].map((r) => (
                       <button
                         key={r}
-                        onClick={() => { onRate(r); setRatingOpen(false); }}
-                        className="w-8 h-8 rounded-lg hover:bg-muted flex items-center justify-center text-sm font-semibold transition-colors"
-                        title={r === 0 ? 'Retirer la note' : `${r} étoile${r > 1 ? 's' : ''}`}
+                        onClick={() => {
+                          onRate(r);
+                          setRatingOpen(false);
+                        }}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-semibold transition-colors hover:bg-muted"
+                        title={
+                          r === 0
+                            ? 'Retirer la note'
+                            : `${r} étoile${r > 1 ? 's' : ''}`
+                        }
                       >
                         {r === 0 ? '✕' : r}
                       </button>
@@ -94,7 +113,7 @@ export function BulkActionBar({
               onClick={onPick}
               title="Marquer comme Pick"
             >
-              <Flag className="w-3.5 h-3.5" />
+              <Flag className="h-3.5 w-3.5" />
               Pick
             </Button>
 
@@ -106,7 +125,7 @@ export function BulkActionBar({
               onClick={onReject}
               title="Rejeter"
             >
-              <XCircle className="w-3.5 h-3.5" />
+              <XCircle className="h-3.5 w-3.5" />
               Rejeter
             </Button>
 
@@ -118,7 +137,7 @@ export function BulkActionBar({
               onClick={onUnflag}
               title="Retirer tous les flags"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
+              <RotateCcw className="h-3.5 w-3.5" />
               Unflag
             </Button>
 
@@ -132,7 +151,7 @@ export function BulkActionBar({
                   onClick={() => setColorOpen((v) => !v)}
                   title="Appliquer un label couleur"
                 >
-                  <Circle className="w-3.5 h-3.5" />
+                  <Circle className="h-3.5 w-3.5" />
                   Couleur
                 </Button>
                 <AnimatePresence>
@@ -141,23 +160,29 @@ export function BulkActionBar({
                       initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 6 }}
-                      className="absolute bottom-full mb-2 left-0 bg-card border border-border rounded-xl shadow-xl p-2 flex gap-1.5"
+                      className="absolute bottom-full left-0 mb-2 flex gap-1.5 rounded-xl border border-border bg-card p-2 shadow-xl"
                     >
                       {COLOR_LABEL_KEYS.map((c) => (
                         <button
                           key={c}
-                          onClick={() => { onColorLabel(c); setColorOpen(false); }}
-                          className="w-6 h-6 rounded-full border-2 border-white/50 hover:scale-110 transition-transform"
+                          onClick={() => {
+                            onColorLabel(c);
+                            setColorOpen(false);
+                          }}
+                          className="h-6 w-6 rounded-full border-2 border-white/50 transition-transform hover:scale-110"
                           style={{ backgroundColor: COLOR_LABEL_META[c].dot }}
                           title={COLOR_LABEL_META[c].label}
                         />
                       ))}
                       <button
-                        onClick={() => { onColorLabel(null); setColorOpen(false); }}
-                        className="w-6 h-6 rounded-full border-2 border-border flex items-center justify-center text-muted-foreground hover:text-foreground text-xs transition-colors"
+                        onClick={() => {
+                          onColorLabel(null);
+                          setColorOpen(false);
+                        }}
+                        className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-border text-xs text-muted-foreground transition-colors hover:text-foreground"
                         title="Retirer le label"
                       >
-                        <X className="w-3 h-3" />
+                        <X className="h-3 w-3" />
                       </button>
                     </motion.div>
                   )}
@@ -174,12 +199,12 @@ export function BulkActionBar({
                 onClick={onAddToCollection}
                 title="Ajouter à la collection"
               >
-                <FolderPlus className="w-3.5 h-3.5" />
+                <FolderPlus className="h-3.5 w-3.5" />
                 Collection
               </Button>
             )}
 
-            <div className="w-px h-6 bg-border mx-1" />
+            <div className="mx-1 h-6 w-px bg-border" />
 
             {/* 🗑️ Supprimer */}
             <Button
@@ -189,21 +214,21 @@ export function BulkActionBar({
               onClick={onDelete}
               title="Supprimer les photos sélectionnées"
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              <Trash2 className="h-3.5 w-3.5" />
               Supprimer
             </Button>
 
-            <div className="w-px h-6 bg-border mx-1" />
+            <div className="mx-1 h-6 w-px bg-border" />
 
             {/* ✕ Effacer sélection */}
             <Button
               size="sm"
               variant="ghost"
-              className="h-8 w-8 p-0 rounded-full"
+              className="h-8 w-8 rounded-full p-0"
               onClick={onClearSelection}
               title="Effacer la sélection"
             >
-              <X className="w-4 h-4" />
+              <X className="h-4 w-4" />
             </Button>
           </div>
         </motion.div>

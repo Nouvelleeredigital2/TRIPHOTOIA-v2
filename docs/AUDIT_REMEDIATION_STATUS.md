@@ -130,6 +130,26 @@ bitmap couverts par revue de code (worker non instrumentable sous jsdom).
   Tests : `src/test/store/undoStackCap.test.ts`,
   `src/test/lib/catalogue-sanitize.test.ts`.
 
+## P2 — Industrialisation minimale 🟡 (partiel)
+
+- ✅ **CI GitHub Actions** (`.github/workflows/ci.yml`) : job `verify`
+  (`pnpm install --frozen-lockfile`, `format:check`, `lint`, `type-check`,
+  `vitest run`, `build`), job `secrets-scan` (gitleaks), job `audit`
+  (`pnpm audit --prod`, non bloquant).
+- ✅ **Format reproductible** : `prettier --write` sur l'ensemble du dépôt
+  (`format:check` désormais vert — pré-requis CI). Deux directives
+  (`@ts-expect-error`, `eslint-disable`) désalignées par le reflow ont été
+  remplacées par des formes robustes (cast typé local, bloc `disable/enable`).
+- ✅ **Nettoyage dépôt** : artefact `C:Tempvitest_output.txt` retiré du suivi
+  git (logs/zip déjà couverts par `.gitignore`).
+- ✅ **Fallback domaine** : `triphotoia.vercel.app` codé en dur retiré de
+  `ShareDialog` (repli vide hors navigateur). Le reste des occurrences
+  `triphotoia` est la table de migration de clés legacy (`storage-migration.ts`),
+  conservée volontairement.
+- ⬜ Reste : `strict: true` progressif, routing hash `#/share/<token>` testé,
+  standardisation Radix Dialog (focus trap/Échap/aria-modal), SemVer + alignement
+  documentaire, suppression des affirmations de précision non sourcées.
+
 ## Vérifications exécutées (toolchain local réparé)
 
 | Commande                                  | Résultat                |

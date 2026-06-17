@@ -12,7 +12,10 @@ export type CollectionsSnapshot = {
 };
 
 export const generateCollectionId = (): string => {
-  const globalCrypto = typeof globalThis !== 'undefined' ? (globalThis as { crypto?: Crypto }).crypto : undefined;
+  const globalCrypto =
+    typeof globalThis !== 'undefined'
+      ? (globalThis as { crypto?: Crypto }).crypto
+      : undefined;
   if (globalCrypto?.randomUUID) {
     return `collection-${globalCrypto.randomUUID()}`;
   }
@@ -56,12 +59,17 @@ export const loadCollectionsState = (): CollectionsSnapshot => {
     }
 
     const parsed = JSON.parse(persisted) as Partial<CollectionsSnapshot>;
-    if (!parsed.collections || !parsed.collectionOrder || !parsed.activeCollectionId) {
+    if (
+      !parsed.collections ||
+      !parsed.collectionOrder ||
+      !parsed.activeCollectionId
+    ) {
       return createDefaultCollectionsState();
     }
 
     if (!parsed.collections[parsed.activeCollectionId]) {
-      parsed.activeCollectionId = parsed.collectionOrder[0] ?? createDefaultCollection().id;
+      parsed.activeCollectionId =
+        parsed.collectionOrder[0] ?? createDefaultCollection().id;
     }
 
     return {
@@ -70,7 +78,10 @@ export const loadCollectionsState = (): CollectionsSnapshot => {
       activeCollectionId: parsed.activeCollectionId!,
     };
   } catch (error) {
-    console.warn("Impossible de charger l'état des collections, réinitialisation.", error);
+    console.warn(
+      "Impossible de charger l'état des collections, réinitialisation.",
+      error
+    );
     return createDefaultCollectionsState();
   }
 };
@@ -81,7 +92,10 @@ export const saveCollectionsState = (snapshot: CollectionsSnapshot) => {
   }
 
   try {
-    window.localStorage.setItem(COLLECTIONS_STORAGE_KEY, JSON.stringify(snapshot));
+    window.localStorage.setItem(
+      COLLECTIONS_STORAGE_KEY,
+      JSON.stringify(snapshot)
+    );
   } catch (error) {
     console.warn("Impossible de sauvegarder l'état des collections.", error);
   }

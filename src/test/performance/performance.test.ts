@@ -40,7 +40,8 @@ describe('Performance Tests', () => {
   });
 
   it('should handle rapid state updates efficiently', () => {
-    const { addToAnalysisQueue, removeFromAnalysisQueue } = usePhotoStore.getState();
+    const { addToAnalysisQueue, removeFromAnalysisQueue } =
+      usePhotoStore.getState();
 
     const startTime = performance.now();
 
@@ -75,12 +76,14 @@ describe('Performance Tests', () => {
     const startTime = performance.now();
 
     // Simulate duplicate detection
-    const duplicateGroups = [{
-      id: 'group-1',
-      hash: 'a'.repeat(64),
-      photos: photos.slice(0, 10),
-      bestPhotoId: photos[0].id,
-    }];
+    const duplicateGroups = [
+      {
+        id: 'group-1',
+        hash: 'a'.repeat(64),
+        photos: photos.slice(0, 10),
+        bestPhotoId: photos[0].id,
+      },
+    ];
 
     setDuplicateGroups(duplicateGroups);
 

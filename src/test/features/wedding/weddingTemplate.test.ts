@@ -7,7 +7,9 @@ import {
 
 describe('weddingTemplate', () => {
   it('defines the wedding chapter collections in delivery order', () => {
-    expect(WEDDING_COLLECTION_TEMPLATE.map((collection) => collection.name)).toEqual([
+    expect(
+      WEDDING_COLLECTION_TEMPLATE.map((collection) => collection.name)
+    ).toEqual([
       'Préparatifs',
       'Cérémonie',
       'Couple',
@@ -23,7 +25,11 @@ describe('weddingTemplate', () => {
   });
 
   it('builds stable ids and keeps existing chapters out of the creation payload', () => {
-    expect(buildWeddingCollectionDefinitions(new Set(['couple', 'album'])).map((collection) => collection.id)).toEqual([
+    expect(
+      buildWeddingCollectionDefinitions(new Set(['couple', 'album'])).map(
+        (collection) => collection.id
+      )
+    ).toEqual([
       'wedding-preparatifs',
       'wedding-ceremonie',
       'wedding-famille',

@@ -15,7 +15,7 @@ const mk = (id: string): Photo => ({
 describe('movePhotoToCollection (A-09)', () => {
   beforeEach(() => usePhotoStore.getState().clearAll());
 
-  it('retire la photo de la source et l\'ajoute à la destination', () => {
+  it("retire la photo de la source et l'ajoute à la destination", () => {
     const s = usePhotoStore.getState();
     s.addPhotos([mk('p1')]);
     const a = s.createCollection('A', ['p1']);

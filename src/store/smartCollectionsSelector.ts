@@ -2,7 +2,10 @@
 // ./smartCollections (sans dépendance au store) ; ce fichier ne fait que
 // brancher le store. Re-export pour compat des imports existants.
 import { usePhotoStore } from './photoStore';
-import { resolveSmartCollections, type ResolvedSmartCollection } from './smartCollections';
+import {
+  resolveSmartCollections,
+  type ResolvedSmartCollection,
+} from './smartCollections';
 
 export {
   SMART_COLLECTIONS,

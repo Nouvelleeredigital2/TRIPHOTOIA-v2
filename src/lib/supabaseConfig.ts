@@ -14,7 +14,9 @@ type SupabaseEnv = Record<string, string | undefined>;
 
 export function readSupabaseConfig(env: SupabaseEnv): SupabaseConfig {
   if (env.VITE_SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error('Supabase service role key must never be exposed in frontend environment variables.');
+    throw new Error(
+      'Supabase service role key must never be exposed in frontend environment variables.'
+    );
   }
 
   const url = env.VITE_SUPABASE_URL?.trim();

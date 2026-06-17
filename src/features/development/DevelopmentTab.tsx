@@ -1,8 +1,19 @@
-import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+  useRef,
+} from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { usePhotoStore } from '../../store/photoStore';
-import { Photo, RetouchOptionKey, RETOUCH_OPTION_KEYS, RetouchOptions } from '../../types';
+import {
+  Photo,
+  RetouchOptionKey,
+  RETOUCH_OPTION_KEYS,
+  RetouchOptions,
+} from '../../types';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Filmstrip } from './components/Filmstrip';
@@ -33,7 +44,9 @@ const createPhotoMap = (photos: Photo[]) => {
 function retouchOptionsToCssFilter(opts: RetouchOptions): string {
   const parts: string[] = [];
   if (opts.exposure !== 0)
-    parts.push(`brightness(${Math.max(0, 1 + opts.exposure / 100).toFixed(3)})`);
+    parts.push(
+      `brightness(${Math.max(0, 1 + opts.exposure / 100).toFixed(3)})`
+    );
   if (opts.contrast !== 0)
     parts.push(`contrast(${Math.max(0, 1 + opts.contrast / 100).toFixed(3)})`);
   const sat = opts.saturation + opts.vibrance * 0.5;
@@ -49,8 +62,15 @@ interface SyncSettingsDialogProps {
   disabled?: boolean;
 }
 
-const SyncSettingsDialog: React.FC<SyncSettingsDialogProps> = ({ open, onOpenChange, onApply, disabled = false }) => {
-  const [selectedOptions, setSelectedOptions] = useState<Set<RetouchOptionKey>>(new Set(RETOUCH_OPTION_KEYS));
+const SyncSettingsDialog: React.FC<SyncSettingsDialogProps> = ({
+  open,
+  onOpenChange,
+  onApply,
+  disabled = false,
+}) => {
+  const [selectedOptions, setSelectedOptions] = useState<Set<RetouchOptionKey>>(
+    new Set(RETOUCH_OPTION_KEYS)
+  );
 
   useEffect(() => {
     if (open) {
@@ -83,7 +103,8 @@ const SyncSettingsDialog: React.FC<SyncSettingsDialogProps> = ({ open, onOpenCha
         <DialogHeader>
           <DialogTitle>Synchroniser les réglages</DialogTitle>
           <DialogDescription>
-            Choisissez les paramètres de retouche à appliquer aux autres photos sélectionnées.
+            Choisissez les paramètres de retouche à appliquer aux autres photos
+            sélectionnées.
           </DialogDescription>
         </DialogHeader>
 
@@ -92,22 +113,33 @@ const SyncSettingsDialog: React.FC<SyncSettingsDialogProps> = ({ open, onOpenCha
             <button type="button" className="underline" onClick={selectAll}>
               Tout sélectionner
             </button>
-            <button type="button" className="underline" onClick={clearAllOptions}>
+            <button
+              type="button"
+              className="underline"
+              onClick={clearAllOptions}
+            >
               Effacer
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-1">
+          <div className="grid max-h-72 grid-cols-1 gap-3 overflow-y-auto pr-1 sm:grid-cols-2">
             {RETOUCH_OPTION_KEYS.map((option) => {
               const isChecked = selectedOptions.has(option);
               return (
-                <label key={option} className="flex items-center gap-3 rounded-md border border-border/40 bg-muted/10 p-2 text-sm">
+                <label
+                  key={option}
+                  className="flex items-center gap-3 rounded-md border border-border/40 bg-muted/10 p-2 text-sm"
+                >
                   <Checkbox
                     checked={isChecked}
-                    onCheckedChange={(value) => toggleOption(option, Boolean(value))}
+                    onCheckedChange={(value) =>
+                      toggleOption(option, Boolean(value))
+                    }
                     aria-label={`Synchroniser ${option}`}
                   />
-                  <span className="capitalize">{option.replace(/([A-Z])/g, ' $1')}</span>
+                  <span className="capitalize">
+                    {option.replace(/([A-Z])/g, ' $1')}
+                  </span>
                 </label>
               );
             })}
@@ -118,7 +150,10 @@ const SyncSettingsDialog: React.FC<SyncSettingsDialogProps> = ({ open, onOpenCha
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Annuler
           </Button>
-          <Button onClick={handleApply} disabled={selectedOptions.size === 0 || disabled}>
+          <Button
+            onClick={handleApply}
+            disabled={selectedOptions.size === 0 || disabled}
+          >
             Appliquer
           </Button>
         </DialogFooter>
@@ -128,26 +163,56 @@ const SyncSettingsDialog: React.FC<SyncSettingsDialogProps> = ({ open, onOpenCha
 };
 
 export function DevelopmentTab() {
-  const retouchSessionPhotoIds = usePhotoStore((state) => state.retouchSessionPhotoIds);
-  const retouchActivePhotoId = usePhotoStore((state) => state.retouchActivePhotoId);
-  const setActiveRetouchPhoto = usePhotoStore((state) => state.setActiveRetouchPhoto);
-  const updateRetouchOption = usePhotoStore((state) => state.updateRetouchOption);
-  const resetRetouchOptions = usePhotoStore((state) => state.resetRetouchOptions);
-  const syncRetouchSettings = usePhotoStore((state) => state.syncRetouchSettings);
+  const retouchSessionPhotoIds = usePhotoStore(
+    (state) => state.retouchSessionPhotoIds
+  );
+  const retouchActivePhotoId = usePhotoStore(
+    (state) => state.retouchActivePhotoId
+  );
+  const setActiveRetouchPhoto = usePhotoStore(
+    (state) => state.setActiveRetouchPhoto
+  );
+  const updateRetouchOption = usePhotoStore(
+    (state) => state.updateRetouchOption
+  );
+  const resetRetouchOptions = usePhotoStore(
+    (state) => state.resetRetouchOptions
+  );
+  const syncRetouchSettings = usePhotoStore(
+    (state) => state.syncRetouchSettings
+  );
   const getRetouchOptions = usePhotoStore((state) => state.getRetouchOptions);
-  const getRetouchedPreviewUrl = usePhotoStore((state) => state.getRetouchedPreviewUrl);
-  const refreshRetouchPreview = usePhotoStore((state) => state.refreshRetouchPreview);
+  const getRetouchedPreviewUrl = usePhotoStore(
+    (state) => state.getRetouchedPreviewUrl
+  );
+  const refreshRetouchPreview = usePhotoStore(
+    (state) => state.refreshRetouchPreview
+  );
   const endRetouchSession = usePhotoStore((state) => state.endRetouchSession);
   const setActiveTab = usePhotoStore((state) => state.setActiveTab);
   // Référence brute (déjà un Set dans le store) : `new Set(...)` créerait une
   // nouvelle référence à chaque rendu → cache getSnapshot cassé → boucle infinie (#185).
-  const developmentSelection = usePhotoStore((state) => state.developmentSelection);
-  const toggleDevelopmentSelection = usePhotoStore((state) => state.toggleDevelopmentSelection);
-  const setDevelopmentSelection = usePhotoStore((state) => state.setDevelopmentSelection);
-  const retouchProcessingIds = usePhotoStore((state) => state.retouchProcessingIds);
-  const computeAutoRetouchPreset = usePhotoStore((state) => state.computeAutoRetouchPreset);
-  const clearAutoRetouchState = usePhotoStore((state) => state.clearAutoRetouchState);
-  const isAutoRetouchComputing = usePhotoStore((state) => state.isAutoRetouchComputing);
+  const developmentSelection = usePhotoStore(
+    (state) => state.developmentSelection
+  );
+  const toggleDevelopmentSelection = usePhotoStore(
+    (state) => state.toggleDevelopmentSelection
+  );
+  const setDevelopmentSelection = usePhotoStore(
+    (state) => state.setDevelopmentSelection
+  );
+  const retouchProcessingIds = usePhotoStore(
+    (state) => state.retouchProcessingIds
+  );
+  const computeAutoRetouchPreset = usePhotoStore(
+    (state) => state.computeAutoRetouchPreset
+  );
+  const clearAutoRetouchState = usePhotoStore(
+    (state) => state.clearAutoRetouchState
+  );
+  const isAutoRetouchComputing = usePhotoStore(
+    (state) => state.isAutoRetouchComputing
+  );
   const autoRetouchError = usePhotoStore((state) => state.autoRetouchError);
   const photos = usePhotoStore((state) => state.photos);
 
@@ -155,7 +220,9 @@ export function DevelopmentTab() {
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
 
   // F-06: local pending state for instant CSS filter preview while canvas debounces
-  const [pendingOptions, setPendingOptions] = useState<RetouchOptions | null>(null);
+  const [pendingOptions, setPendingOptions] = useState<RetouchOptions | null>(
+    null
+  );
   const pendingRef = useRef<RetouchOptions | null>(null);
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -183,7 +250,11 @@ export function DevelopmentTab() {
     // lastUpdated est un déclencheur de recalcul volontaire (les options sont
     // lues via getRetouchOptions et changent quand la retouche est mise à jour).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [getRetouchOptions, retouchActivePhotoId, activePhoto?.retouch?.lastUpdated]);
+  }, [
+    getRetouchOptions,
+    retouchActivePhotoId,
+    activePhoto?.retouch?.lastUpdated,
+  ]);
 
   const activePreviewUrl = useMemo(() => {
     if (!retouchActivePhotoId) {
@@ -193,13 +264,21 @@ export function DevelopmentTab() {
     // lastUpdated : déclencheur de recalcul volontaire (la preview change quand
     // la retouche est mise à jour).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [getRetouchedPreviewUrl, retouchActivePhotoId, activePhoto?.retouch?.lastUpdated]);
+  }, [
+    getRetouchedPreviewUrl,
+    retouchActivePhotoId,
+    activePhoto?.retouch?.lastUpdated,
+  ]);
 
-  const originalPreviewUrl = activePhoto?.retouch?.originalPreviewUrl ?? activePhoto?.previewUrl ?? null;
-  const isProcessing = !!(retouchActivePhotoId && retouchProcessingIds.has(retouchActivePhotoId));
+  const originalPreviewUrl =
+    activePhoto?.retouch?.originalPreviewUrl ?? activePhoto?.previewUrl ?? null;
+  const isProcessing = !!(
+    retouchActivePhotoId && retouchProcessingIds.has(retouchActivePhotoId)
+  );
 
   const previewCssFilter = useMemo(
-    () => (pendingOptions ? retouchOptionsToCssFilter(pendingOptions) : undefined),
+    () =>
+      pendingOptions ? retouchOptionsToCssFilter(pendingOptions) : undefined,
     [pendingOptions]
   );
 
@@ -249,7 +328,11 @@ export function DevelopmentTab() {
         if (!toFlush || !retouchActivePhotoId) return;
         Object.entries(toFlush).forEach(([key, val]) => {
           if (activeOptions[key as RetouchOptionKey] !== val) {
-            updateRetouchOption(retouchActivePhotoId, key as RetouchOptionKey, val as number);
+            updateRetouchOption(
+              retouchActivePhotoId,
+              key as RetouchOptionKey,
+              val as number
+            );
           }
         });
         pendingRef.current = null;
@@ -276,7 +359,9 @@ export function DevelopmentTab() {
       if (!retouchActivePhotoId) {
         return;
       }
-      const targets = Array.from(developmentSelection).filter((id) => id !== retouchActivePhotoId);
+      const targets = Array.from(developmentSelection).filter(
+        (id) => id !== retouchActivePhotoId
+      );
       if (targets.length === 0) {
         toast.error('Aucune autre photo sélectionnée pour synchroniser.');
         return;
@@ -343,21 +428,21 @@ export function DevelopmentTab() {
   if (sessionPhotos.length === 0) {
     const steps = [
       {
-        num: "1",
-        icon: "🖼️",
-        title: "Importez vos photos",
+        num: '1',
+        icon: '🖼️',
+        title: 'Importez vos photos',
         desc: "Glissez-déposez vos fichiers dans l'onglet Ingestion, ou cliquez pour les sélectionner. L'IA les analyse automatiquement.",
       },
       {
-        num: "2",
-        icon: "🎯",
-        title: "Triez et sélectionnez",
+        num: '2',
+        icon: '🎯',
+        title: 'Triez et sélectionnez',
         desc: "Dans l'onglet Triage, cochez les photos à développer. Utilisez les filtres (Picks, étoiles, labels) pour cibler votre sélection.",
       },
       {
-        num: "3",
-        icon: "✨",
-        title: "Lancez le développement",
+        num: '3',
+        icon: '✨',
+        title: 'Lancez le développement',
         desc: "Cliquez sur « Développer les sélectionnées » dans la barre d'actions. Ici vous pouvez retoucher, synchroniser les réglages et exporter.",
       },
     ];
@@ -367,44 +452,54 @@ export function DevelopmentTab() {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
         transition={{ duration: 0.3 }}
-        className="h-full flex flex-col items-center justify-center gap-8 px-4"
+        className="flex h-full flex-col items-center justify-center gap-8 px-4"
       >
         <div className="text-center">
-          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
             <span className="text-3xl">🎨</span>
           </div>
-          <h2 className="text-2xl font-bold mb-2">Espace de développement</h2>
-          <p className="text-muted-foreground max-w-sm text-sm">
-            Retouchez vos photos avec précision grâce aux curseurs professionnels, aux presets et à l'assistance IA.
+          <h2 className="mb-2 text-2xl font-bold">Espace de développement</h2>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            Retouchez vos photos avec précision grâce aux curseurs
+            professionnels, aux presets et à l'assistance IA.
           </p>
         </div>
 
         {/* Workflow steps */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl w-full">
+        <div className="grid w-full max-w-2xl grid-cols-1 gap-4 sm:grid-cols-3">
           {steps.map((step) => (
             <div
               key={step.num}
-              className="bg-muted/30 border border-border/40 rounded-xl p-4 flex flex-col gap-2 text-center"
+              className="flex flex-col gap-2 rounded-xl border border-border/40 bg-muted/30 p-4 text-center"
             >
-              <div className="w-8 h-8 rounded-full bg-primary/15 text-primary font-bold text-sm flex items-center justify-center mx-auto">
+              <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-sm font-bold text-primary">
                 {step.num}
               </div>
               <span className="text-2xl">{step.icon}</span>
-              <h3 className="font-semibold text-sm">{step.title}</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">{step.desc}</p>
+              <h3 className="text-sm font-semibold">{step.title}</h3>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {step.desc}
+              </p>
             </div>
           ))}
         </div>
 
         {/* Tips */}
-        <div className="bg-amber-500/10 border border-amber-500/25 rounded-xl px-5 py-3 max-w-md w-full text-sm text-center">
-          <span className="font-semibold text-amber-700 dark:text-amber-400">💡 Astuce :</span>
-          <span className="text-muted-foreground ml-1">
-            Utilisez « Auto-retouche IA » pour obtenir des suggestions de réglages basées sur l'analyse de chaque photo.
+        <div className="w-full max-w-md rounded-xl border border-amber-500/25 bg-amber-500/10 px-5 py-3 text-center text-sm">
+          <span className="font-semibold text-amber-700 dark:text-amber-400">
+            💡 Astuce :
+          </span>
+          <span className="ml-1 text-muted-foreground">
+            Utilisez « Auto-retouche IA » pour obtenir des suggestions de
+            réglages basées sur l'analyse de chaque photo.
           </span>
         </div>
 
-        <Button onClick={() => setActiveTab('triage')} size="lg" className="gap-2">
+        <Button
+          onClick={() => setActiveTab('triage')}
+          size="lg"
+          className="gap-2"
+        >
           Aller au triage →
         </Button>
       </motion.div>
@@ -421,20 +516,30 @@ export function DevelopmentTab() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.3 }}
-      className="h-full flex flex-col gap-6"
+      className="flex h-full flex-col gap-6"
     >
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-1">
           <h2 className="text-3xl font-bold">Développement</h2>
           <p className="text-muted-foreground">
-            Ajustez vos photos sélectionnées, synchronisez les réglages et préparez-les pour l'export.
+            Ajustez vos photos sélectionnées, synchronisez les réglages et
+            préparez-les pour l'export.
           </p>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <span>
-              Lot : <Badge variant="outline">{retouchSessionPhotoIds.length} photo{retouchSessionPhotoIds.length > 1 ? 's' : ''}</Badge>
+              Lot :{' '}
+              <Badge variant="outline">
+                {retouchSessionPhotoIds.length} photo
+                {retouchSessionPhotoIds.length > 1 ? 's' : ''}
+              </Badge>
             </span>
             <span>
-              Sélection active : <Badge variant={developmentSelection.size > 0 ? 'default' : 'outline'}>{developmentSelection.size}</Badge>
+              Sélection active :{' '}
+              <Badge
+                variant={developmentSelection.size > 0 ? 'default' : 'outline'}
+              >
+                {developmentSelection.size}
+              </Badge>
             </span>
           </div>
         </div>
@@ -452,8 +557,8 @@ export function DevelopmentTab() {
         </div>
       </header>
 
-      <div className="flex-1 grid grid-cols-1 xl:grid-cols-[220px_1fr_320px] gap-6 min-h-0">
-        <aside className="bg-muted/20 border border-border/40 rounded-lg p-3 overflow-hidden">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 xl:grid-cols-[220px_1fr_320px]">
+        <aside className="overflow-hidden rounded-lg border border-border/40 bg-muted/20 p-3">
           <Filmstrip
             photos={sessionPhotos}
             activePhotoId={retouchActivePhotoId}
@@ -464,7 +569,7 @@ export function DevelopmentTab() {
           />
         </aside>
 
-        <section className="flex flex-col gap-4 min-h-0">
+        <section className="flex min-h-0 flex-col gap-4">
           <BeforeAfterPreview
             beforeUrl={originalPreviewUrl}
             afterUrl={activePreviewUrl}
@@ -473,21 +578,27 @@ export function DevelopmentTab() {
             onRefresh={handleRefreshPreview}
             afterCssFilter={previewCssFilter}
           />
-          <div className="bg-muted/20 border border-border/40 rounded-lg p-4">
-            <Histogram imageUrl={activePreviewUrl ?? originalPreviewUrl ?? undefined} />
+          <div className="rounded-lg border border-border/40 bg-muted/20 p-4">
+            <Histogram
+              imageUrl={activePreviewUrl ?? originalPreviewUrl ?? undefined}
+            />
           </div>
         </section>
 
-        <aside className="bg-muted/20 border border-border/40 rounded-lg p-4 overflow-y-auto flex flex-col gap-5">
+        <aside className="flex flex-col gap-5 overflow-y-auto rounded-lg border border-border/40 bg-muted/20 p-4">
           {/* A-35 : rappel que la retouche est non destructive */}
-          <p className="text-[11px] leading-snug text-muted-foreground bg-background/60 border border-border/40 rounded-md px-2.5 py-1.5">
-            Réglages <span className="font-medium text-foreground">non destructifs</span> : l'original
-            n'est pas modifié ; ils sont appliqués à l'export. « Réinitialiser » les annule.
+          <p className="rounded-md border border-border/40 bg-background/60 px-2.5 py-1.5 text-[11px] leading-snug text-muted-foreground">
+            Réglages{' '}
+            <span className="font-medium text-foreground">non destructifs</span>{' '}
+            : l'original n'est pas modifié ; ils sont appliqués à l'export. «
+            Réinitialiser » les annule.
           </p>
           <PresetsPanel
             currentOptions={activeOptions}
             onApplyPreset={handleApplyPreset}
-            onApplyPresetToAll={developmentSelection.size > 1 ? handleApplyPresetToAll : undefined}
+            onApplyPresetToAll={
+              developmentSelection.size > 1 ? handleApplyPresetToAll : undefined
+            }
             selectedCount={developmentSelection.size}
             disabled={isProcessing}
           />

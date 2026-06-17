@@ -8,7 +8,9 @@ describe('Security Tests', () => {
 
     const { addPhotos } = usePhotoStore.getState();
 
-    const maliciousFile = new File([''], '../../../etc/passwd', { type: 'image/jpeg' });
+    const maliciousFile = new File([''], '../../../etc/passwd', {
+      type: 'image/jpeg',
+    });
     const maliciousPhoto = {
       id: 'malicious-photo',
       file: maliciousFile,
@@ -30,7 +32,9 @@ describe('Security Tests', () => {
 
     const { addPhotos } = usePhotoStore.getState();
 
-    const maliciousFile = new File([''], 'malicious.exe', { type: 'application/x-executable' });
+    const maliciousFile = new File([''], 'malicious.exe', {
+      type: 'application/x-executable',
+    });
     const maliciousPhoto = {
       id: 'malicious-photo',
       file: maliciousFile,
@@ -91,7 +95,10 @@ describe('Security Tests', () => {
     updatePhotoAnalysis('test-photo', maliciousAnalysis);
 
     const state = usePhotoStore.getState();
-    expect(state.photos[0].analysis?.tags).toEqual(['<script>alert("xss")</script>', 'normal-tag']);
+    expect(state.photos[0].analysis?.tags).toEqual([
+      '<script>alert("xss")</script>',
+      'normal-tag',
+    ]);
     // The data should be stored as-is, sanitization would happen during rendering
   });
 
@@ -138,7 +145,9 @@ describe('Security Tests', () => {
     const promises = [];
 
     for (let i = 0; i < 100; i++) {
-      const maliciousFile = new File([''], `malicious-${i}.exe`, { type: 'application/x-executable' });
+      const maliciousFile = new File([''], `malicious-${i}.exe`, {
+        type: 'application/x-executable',
+      });
       const maliciousPhoto = {
         id: `malicious-photo-${i}`,
         file: maliciousFile,
@@ -207,7 +216,10 @@ describe('Security Tests', () => {
     updatePhotoAnalysis('test-photo', xssAnalysis);
 
     const state = usePhotoStore.getState();
-    expect(state.photos[0].analysis?.tags).toEqual(['<img src=x onerror=alert("xss")>', 'normal-tag']);
+    expect(state.photos[0].analysis?.tags).toEqual([
+      '<img src=x onerror=alert("xss")>',
+      'normal-tag',
+    ]);
     // The data should be stored as-is, sanitization would happen during rendering
   });
 
@@ -235,7 +247,10 @@ describe('Security Tests', () => {
     updatePhotoAnalysis('test-photo', sqlAnalysis);
 
     const state = usePhotoStore.getState();
-    expect(state.photos[0].analysis?.tags).toEqual(["'; DROP TABLE photos; --", 'normal-tag']);
+    expect(state.photos[0].analysis?.tags).toEqual([
+      "'; DROP TABLE photos; --",
+      'normal-tag',
+    ]);
     // The data should be stored as-is, SQL injection prevention would happen at the database level
   });
 
@@ -244,7 +259,9 @@ describe('Security Tests', () => {
 
     const { addPhotos } = usePhotoStore.getState();
 
-    const pathTraversalFile = new File([''], '../../../../etc/passwd', { type: 'image/jpeg' });
+    const pathTraversalFile = new File([''], '../../../../etc/passwd', {
+      type: 'image/jpeg',
+    });
     const pathTraversalPhoto = {
       id: 'path-traversal-photo',
       file: pathTraversalFile,
@@ -260,8 +277,3 @@ describe('Security Tests', () => {
     // The file name should be preserved as-is, path traversal prevention would happen during file processing
   });
 });
-
-
-
-
-

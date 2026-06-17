@@ -8,8 +8,9 @@ export interface WorkerConfig {
 type WorkerEnv = Record<string, string | undefined>;
 
 export function createWorkerConfig(env: WorkerEnv): WorkerConfig {
-  const missing = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY']
-    .filter((key) => !env[key]?.trim());
+  const missing = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'].filter(
+    (key) => !env[key]?.trim()
+  );
   if (missing.length > 0) {
     throw new Error(`${missing.join(', ')} required for the TreePhoto worker`);
   }
@@ -22,7 +23,10 @@ export function createWorkerConfig(env: WorkerEnv): WorkerConfig {
     supabaseUrl,
     serviceRoleKey,
     workerId: env.WORKER_ID?.trim() || `treephoto-worker-${process.pid}`,
-    pollIntervalMs: Number.isFinite(pollIntervalMs) && pollIntervalMs > 0 ? pollIntervalMs : 5000,
+    pollIntervalMs:
+      Number.isFinite(pollIntervalMs) && pollIntervalMs > 0
+        ? pollIntervalMs
+        : 5000,
   };
 }
 
@@ -39,24 +43,30 @@ export function createWorkerConfig(env: WorkerEnv): WorkerConfig {
  * (ALLOW_SIMULATED_PROVIDERS=true) réservé aux environnements de recette.
  */
 export function assertProvidersAllowed(env: WorkerEnv): void {
-  const environment = (env.WORKER_ENV ?? env.NODE_ENV ?? 'development').trim().toLowerCase();
+  const environment = (env.WORKER_ENV ?? env.NODE_ENV ?? 'development')
+    .trim()
+    .toLowerCase();
   if (environment !== 'production') return;
 
-  const allowSimulated = (env.ALLOW_SIMULATED_PROVIDERS ?? '').trim().toLowerCase() === 'true';
+  const allowSimulated =
+    (env.ALLOW_SIMULATED_PROVIDERS ?? '').trim().toLowerCase() === 'true';
   if (allowSimulated) return;
 
-  const embedding = (env.EMBEDDING_PROVIDER ?? 'deterministic').trim().toLowerCase();
+  const embedding = (env.EMBEDDING_PROVIDER ?? 'deterministic')
+    .trim()
+    .toLowerCase();
   const face = (env.FACE_PROVIDER ?? 'deterministic').trim().toLowerCase();
 
   const simulated: string[] = [];
-  if (embedding === 'deterministic') simulated.push('EMBEDDING_PROVIDER=deterministic');
+  if (embedding === 'deterministic')
+    simulated.push('EMBEDDING_PROVIDER=deterministic');
   if (face === 'deterministic') simulated.push('FACE_PROVIDER=deterministic');
 
   if (simulated.length > 0) {
     throw new Error(
       `Providers simulés interdits en production : ${simulated.join(', ')}. ` +
         'Configure des providers réels (EMBEDDING_PROVIDER=clip, FACE_PROVIDER=onnx) ' +
-        'ou, en recette uniquement, ALLOW_SIMULATED_PROVIDERS=true.',
+        'ou, en recette uniquement, ALLOW_SIMULATED_PROVIDERS=true.'
     );
   }
 }

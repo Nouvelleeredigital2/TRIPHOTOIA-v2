@@ -66,7 +66,11 @@ export const BeforeAfterPreview: React.FC<BeforeAfterPreviewProps> = ({
 
       <div className="relative h-[360px] overflow-hidden rounded-md bg-background/80">
         {beforeUrl ? (
-          <img src={beforeUrl} alt="Avant" className="absolute inset-0 h-full w-full object-contain" />
+          <img
+            src={beforeUrl}
+            alt="Avant"
+            className="absolute inset-0 h-full w-full object-contain"
+          />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
             Aucune image originale disponible

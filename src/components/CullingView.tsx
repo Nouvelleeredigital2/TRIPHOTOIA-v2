@@ -7,7 +7,7 @@ import { usePhotoStore } from '../store/photoStore';
 import toast from 'react-hot-toast';
 
 interface CullingViewProps {
-  photos: Photo[];          // photos filtrées visibles dans le triage
+  photos: Photo[]; // photos filtrées visibles dans le triage
   currentId: string | null;
   open: boolean;
   autoAdvance: boolean;
@@ -23,25 +23,33 @@ export function CullingView({
   onClose,
   onSelectPhoto,
 }: CullingViewProps) {
-  const setPhotoRating   = usePhotoStore((s) => s.setPhotoRating);
-  const togglePhotoPick  = usePhotoStore((s) => s.togglePhotoPick);
+  const setPhotoRating = usePhotoStore((s) => s.setPhotoRating);
+  const togglePhotoPick = usePhotoStore((s) => s.togglePhotoPick);
   const togglePhotoReject = usePhotoStore((s) => s.togglePhotoReject);
-  const unflagPhoto      = usePhotoStore((s) => s.unflagPhoto);
+  const unflagPhoto = usePhotoStore((s) => s.unflagPhoto);
 
   const filmstripRef = useRef<HTMLDivElement>(null);
   const autoAdvanceRef = useRef(autoAdvance);
-  const autoTimerRef   = useRef<number | null>(null);
-  useEffect(() => { autoAdvanceRef.current = autoAdvance; }, [autoAdvance]);
+  const autoTimerRef = useRef<number | null>(null);
+  useEffect(() => {
+    autoAdvanceRef.current = autoAdvance;
+  }, [autoAdvance]);
 
   const currentIndex = photos.findIndex((p) => p.id === currentId);
-  const photo = currentIndex >= 0 ? photos[currentIndex] : photos[0] ?? null;
+  const photo = currentIndex >= 0 ? photos[currentIndex] : (photos[0] ?? null);
 
   // Scroll filmstrip pour centrer la photo active
   useEffect(() => {
     if (!filmstripRef.current || !currentId) return;
-    const thumb = filmstripRef.current.querySelector(`[data-id="${currentId}"]`) as HTMLElement | null;
+    const thumb = filmstripRef.current.querySelector(
+      `[data-id="${currentId}"]`
+    ) as HTMLElement | null;
     if (thumb) {
-      thumb.scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' });
+      thumb.scrollIntoView({
+        inline: 'center',
+        behavior: 'smooth',
+        block: 'nearest',
+      });
     }
   }, [currentId]);
 
@@ -73,17 +81,31 @@ export function CullingView({
       if (!photo) return;
 
       // Navigation
-      if (e.key === 'ArrowRight' || e.key === 'j' || e.key === 'J') { e.preventDefault(); goNext(); return; }
-      if (e.key === 'ArrowLeft'  || e.key === 'k' || e.key === 'K') { e.preventDefault(); goPrev(); return; }
-      if (e.key === 'Escape' || e.key === 'l' || e.key === 'L')     { e.preventDefault(); onClose(); return; }
+      if (e.key === 'ArrowRight' || e.key === 'j' || e.key === 'J') {
+        e.preventDefault();
+        goNext();
+        return;
+      }
+      if (e.key === 'ArrowLeft' || e.key === 'k' || e.key === 'K') {
+        e.preventDefault();
+        goPrev();
+        return;
+      }
+      if (e.key === 'Escape' || e.key === 'l' || e.key === 'L') {
+        e.preventDefault();
+        onClose();
+        return;
+      }
 
       if (e.ctrlKey || e.metaKey || e.altKey) return;
 
       // Notation 0–5
-      if (['0','1','2','3','4','5'].includes(e.key)) {
+      if (['0', '1', '2', '3', '4', '5'].includes(e.key)) {
         const r = parseInt(e.key);
         setPhotoRating(photo.id, r);
-        toast.success(r === 0 ? 'Note retirée' : `${r} étoile${r > 1 ? 's' : ''}`);
+        toast.success(
+          r === 0 ? 'Note retirée' : `${r} étoile${r > 1 ? 's' : ''}`
+        );
         triggerAutoAdvance();
         return;
       }
@@ -99,7 +121,9 @@ export function CullingView({
         case 'x':
           e.preventDefault();
           togglePhotoReject(photo.id);
-          toast.success(photo.analysis?.isRejected ? 'Reject retiré' : '❌ Rejetée');
+          toast.success(
+            photo.analysis?.isRejected ? 'Reject retiré' : '❌ Rejetée'
+          );
           triggerAutoAdvance();
           break;
         case 'u':
@@ -113,7 +137,18 @@ export function CullingView({
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [open, photo, goNext, goPrev, onClose, setPhotoRating, togglePhotoPick, togglePhotoReject, unflagPhoto, triggerAutoAdvance]);
+  }, [
+    open,
+    photo,
+    goNext,
+    goPrev,
+    onClose,
+    setPhotoRating,
+    togglePhotoPick,
+    togglePhotoReject,
+    unflagPhoto,
+    triggerAutoAdvance,
+  ]);
 
   if (!open || !photo) return null;
 
@@ -128,36 +163,39 @@ export function CullingView({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
-          className="fixed inset-0 z-[250] bg-black flex flex-col"
+          className="fixed inset-0 z-[250] flex flex-col bg-black"
         >
           {/* ── Toolbar top ── */}
-          <div className="flex items-center justify-between px-4 py-2 bg-black/80 border-b border-white/10 shrink-0">
+          <div className="flex shrink-0 items-center justify-between border-b border-white/10 bg-black/80 px-4 py-2">
             <div className="flex items-center gap-3">
-              <span className="text-white/60 text-sm font-mono">
+              <span className="font-mono text-sm text-white/60">
                 {currentIndex + 1} / {photos.length}
               </span>
               {autoAdvance && (
-                <span className="flex items-center gap-1 text-primary text-xs font-medium">
-                  <SkipForward className="w-3 h-3" /> Auto
+                <span className="flex items-center gap-1 text-xs font-medium text-primary">
+                  <SkipForward className="h-3 w-3" /> Auto
                 </span>
               )}
             </div>
 
-            <p className="text-white/70 text-sm truncate max-w-xs" title={photo.file.name}>
+            <p
+              className="max-w-xs truncate text-sm text-white/70"
+              title={photo.file.name}
+            >
               {photo.file.name}
             </p>
 
             <button
               onClick={onClose}
-              className="text-white/50 hover:text-white transition-colors p-1"
+              className="p-1 text-white/50 transition-colors hover:text-white"
               title="Quitter le mode culling (L ou Échap)"
             >
-              <X className="w-5 h-5" />
+              <X className="h-5 w-5" />
             </button>
           </div>
 
           {/* ── Photo principale ── */}
-          <div className="flex-1 relative flex items-center justify-center overflow-hidden">
+          <div className="relative flex flex-1 items-center justify-center overflow-hidden">
             <AnimatePresence mode="wait">
               <motion.img
                 key={photo.id}
@@ -167,7 +205,7 @@ export function CullingView({
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 1.02 }}
                 transition={{ duration: 0.15 }}
-                className="max-h-full max-w-full object-contain select-none"
+                className="max-h-full max-w-full select-none object-contain"
                 draggable={false}
               />
             </AnimatePresence>
@@ -176,40 +214,42 @@ export function CullingView({
             <button
               onClick={goPrev}
               disabled={currentIndex === 0}
-              className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white hover:bg-black/80 disabled:opacity-20 transition-all"
+              className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white transition-all hover:bg-black/80 disabled:opacity-20"
             >
-              <ChevronLeft className="w-6 h-6" />
+              <ChevronLeft className="h-6 w-6" />
             </button>
             <button
               onClick={goNext}
               disabled={currentIndex === photos.length - 1}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white hover:bg-black/80 disabled:opacity-20 transition-all"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white transition-all hover:bg-black/80 disabled:opacity-20"
             >
-              <ChevronRight className="w-6 h-6" />
+              <ChevronRight className="h-6 w-6" />
             </button>
 
             {/* Overlay note + flags (bas de la photo) */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 pointer-events-none">
+            <div className="pointer-events-none absolute bottom-4 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2">
               <div className="flex items-center gap-3">
                 {analysis?.isPick && (
-                  <span className="bg-green-600/90 text-white text-xs font-medium px-2 py-0.5 rounded">
+                  <span className="rounded bg-green-600/90 px-2 py-0.5 text-xs font-medium text-white">
                     🎯 Pick
                   </span>
                 )}
                 {analysis?.isRejected && (
-                  <span className="bg-red-600/90 text-white text-xs font-medium px-2 py-0.5 rounded">
+                  <span className="rounded bg-red-600/90 px-2 py-0.5 text-xs font-medium text-white">
                     ❌ Rejeté
                   </span>
                 )}
                 {colorLabel && (
                   <span
-                    className="w-3 h-3 rounded-full border-2 border-white/80"
-                    style={{ backgroundColor: COLOR_LABEL_META[colorLabel].dot }}
+                    className="h-3 w-3 rounded-full border-2 border-white/80"
+                    style={{
+                      backgroundColor: COLOR_LABEL_META[colorLabel].dot,
+                    }}
                     title={COLOR_LABEL_META[colorLabel].label}
                   />
                 )}
               </div>
-              <div className="bg-black/60 backdrop-blur-sm rounded-lg px-3 py-1.5 pointer-events-auto">
+              <div className="pointer-events-auto rounded-lg bg-black/60 px-3 py-1.5 backdrop-blur-sm">
                 <StarRating
                   rating={analysis?.rating ?? 0}
                   onRatingChange={(r) => {
@@ -225,7 +265,7 @@ export function CullingView({
           {/* ── Filmstrip ── */}
           <div
             ref={filmstripRef}
-            className="h-20 shrink-0 flex items-center gap-1 px-2 overflow-x-auto bg-black/90 border-t border-white/10"
+            className="flex h-20 shrink-0 items-center gap-1 overflow-x-auto border-t border-white/10 bg-black/90 px-2"
             style={{ scrollbarWidth: 'none' }}
           >
             {photos.map((p, i) => {
@@ -236,32 +276,36 @@ export function CullingView({
                   key={p.id}
                   data-id={p.id}
                   onClick={() => onSelectPhoto(p.id)}
-                  className={`relative shrink-0 h-16 w-16 rounded overflow-hidden transition-all ${
+                  className={`relative h-16 w-16 shrink-0 overflow-hidden rounded transition-all ${
                     isActive
-                      ? 'ring-2 ring-primary scale-105'
-                      : 'opacity-50 hover:opacity-90 hover:scale-105'
+                      ? 'scale-105 ring-2 ring-primary'
+                      : 'opacity-50 hover:scale-105 hover:opacity-90'
                   }`}
                 >
                   <img
                     src={p.previewUrl}
                     alt={p.file.name}
-                    className="w-full h-full object-cover"
+                    className="h-full w-full object-cover"
                     draggable={false}
                   />
                   {/* Mini indicateurs */}
                   {pAnalysis?.isPick && (
-                    <div className="absolute top-0.5 left-0.5 text-[9px] leading-none">🎯</div>
+                    <div className="absolute left-0.5 top-0.5 text-[9px] leading-none">
+                      🎯
+                    </div>
                   )}
                   {pAnalysis?.isRejected && (
-                    <div className="absolute top-0.5 left-0.5 text-[9px] leading-none">❌</div>
+                    <div className="absolute left-0.5 top-0.5 text-[9px] leading-none">
+                      ❌
+                    </div>
                   )}
                   {(pAnalysis?.rating ?? 0) > 0 && (
-                    <div className="absolute bottom-0 left-0 right-0 text-center bg-black/60 text-yellow-400 text-[9px] leading-tight py-px">
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 py-px text-center text-[9px] leading-tight text-yellow-400">
                       {'★'.repeat(pAnalysis?.rating ?? 0)}
                     </div>
                   )}
                   {/* Numéro */}
-                  <div className="absolute top-0.5 right-0.5 text-white/60 text-[8px] font-mono leading-none">
+                  <div className="absolute right-0.5 top-0.5 font-mono text-[8px] leading-none text-white/60">
                     {i + 1}
                   </div>
                 </button>
@@ -270,7 +314,7 @@ export function CullingView({
           </div>
 
           {/* ── Aide raccourcis (pied) ── */}
-          <div className="shrink-0 flex items-center justify-center gap-4 py-1.5 bg-black/80 border-t border-white/5">
+          <div className="flex shrink-0 items-center justify-center gap-4 border-t border-white/5 bg-black/80 py-1.5">
             {[
               ['←→', 'Naviguer'],
               ['1–5', 'Étoiles'],
@@ -279,8 +323,8 @@ export function CullingView({
               ['U', 'Unflag'],
               ['L / Éch', 'Quitter'],
             ].map(([key, label]) => (
-              <span key={key} className="text-white/30 text-xs">
-                <kbd className="text-white/50 font-mono">{key}</kbd> {label}
+              <span key={key} className="text-xs text-white/30">
+                <kbd className="font-mono text-white/50">{key}</kbd> {label}
               </span>
             ))}
           </div>

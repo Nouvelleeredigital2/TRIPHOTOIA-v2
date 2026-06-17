@@ -13,7 +13,12 @@ export const mockStore = {
   stopProcessing: false,
   processedCount: 0,
   activeTab: 'ingestion' as 'ingestion' | 'triage' | 'export',
-  pendingExportFilterMode: null as 'all' | 'picks-only' | 'favorites-only' | 'min-rating' | null,
+  pendingExportFilterMode: null as
+    | 'all'
+    | 'picks-only'
+    | 'favorites-only'
+    | 'min-rating'
+    | null,
   selectedPhotoId: null,
   userTags: {},
   bestPhotoOverrides: {},
@@ -50,13 +55,17 @@ export const mockStore = {
   setActiveTab: vi.fn((tab: 'ingestion' | 'triage' | 'export') => {
     mockStore.activeTab = tab;
   }),
-  setPendingExportFilterMode: vi.fn((mode: 'all' | 'picks-only' | 'favorites-only' | 'min-rating' | null) => {
-    mockStore.pendingExportFilterMode = mode;
-  }),
+  setPendingExportFilterMode: vi.fn(
+    (mode: 'all' | 'picks-only' | 'favorites-only' | 'min-rating' | null) => {
+      mockStore.pendingExportFilterMode = mode;
+    }
+  ),
   setSelectedPhotoId: vi.fn(),
   updatePhotoAnalysis: vi.fn((id: string, analysis: unknown) => {
     const idx = mockStore.photos.findIndex((p: { id: string }) => p.id === id);
-    if (idx !== -1) { (mockStore.photos[idx] as { analysis?: unknown }).analysis = analysis; }
+    if (idx !== -1) {
+      (mockStore.photos[idx] as { analysis?: unknown }).analysis = analysis;
+    }
   }),
   updateUserTags: vi.fn(),
   setBestInGroup: vi.fn(),
@@ -114,7 +123,11 @@ beforeEach(() => {
   // Réinitialiser le hash : le routing App (#/<tab>) persiste sinon entre tests jsdom
   // et écraserait l'activeTab fixé programmatiquement par un test.
   if (typeof window !== 'undefined') {
-    window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    window.history.replaceState(
+      null,
+      '',
+      window.location.pathname + window.location.search
+    );
   }
 });
 
@@ -162,10 +175,16 @@ vi.mock('../features/ingestion/IngestionTab', () => ({
 }));
 
 vi.mock('../features/triage/TriageTab', () => ({
-  default: ({ onOpenAutoFlow }: { onOpenAutoFlow?: (photoIds?: string[]) => void }) => (
+  default: ({
+    onOpenAutoFlow,
+  }: {
+    onOpenAutoFlow?: (photoIds?: string[]) => void;
+  }) => (
     <div>
       Triage Tab
-      <button onClick={() => onOpenAutoFlow?.(['visible-1'])}>Open filtered AutoFlow</button>
+      <button onClick={() => onOpenAutoFlow?.(['visible-1'])}>
+        Open filtered AutoFlow
+      </button>
     </div>
   ),
 }));
@@ -189,13 +208,14 @@ interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
 
 export function renderWithProviders(
   ui: ReactElement,
-  { queryClient = createTestQueryClient(), ...renderOptions }: CustomRenderOptions = {}
+  {
+    queryClient = createTestQueryClient(),
+    ...renderOptions
+  }: CustomRenderOptions = {}
 ) {
   function Wrapper({ children }: { children: React.ReactNode }) {
     return (
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     );
   }
 

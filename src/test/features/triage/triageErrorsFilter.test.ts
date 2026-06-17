@@ -29,7 +29,7 @@ describe("filtre 'errors' (A-19)", () => {
     expect(res.map((p) => p.id).sort()).toEqual(['err1', 'err2']);
   });
 
-  it("exclut les photos en erreur des autres filtres", () => {
+  it('exclut les photos en erreur des autres filtres', () => {
     const res = filterTriagePhotos({ ...base, activeFilter: 'all' });
     expect(res.map((p) => p.id)).toEqual(['ok']);
   });

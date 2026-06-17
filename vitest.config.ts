@@ -12,7 +12,11 @@ export default defineConfig({
     // signalée par l'audit §6). On laisse une marge confortable.
     testTimeout: 20000,
     hookTimeout: 20000,
-    setupFiles: ['./src/test/setup.ts', './src/test/vitest-setup.ts', './src/test/setup-globals.ts'],
+    setupFiles: [
+      './src/test/setup.ts',
+      './src/test/vitest-setup.ts',
+      './src/test/setup-globals.ts',
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

@@ -15,25 +15,30 @@ export const RetouchPanel: React.FC<RetouchPanelProps> = ({
   retouchResult,
   onApplyRetouch,
   onReset,
-  onSave
+  onSave,
 }) => {
   const [isBeforeAfter, setIsBeforeAfter] = useState(false);
-  const [customOptions, setCustomOptions] = useState<RetouchOptions>(retouchResult.appliedOptions);
+  const [customOptions, setCustomOptions] = useState<RetouchOptions>(
+    retouchResult.appliedOptions
+  );
 
   const handleOptionChange = (key: keyof RetouchOptions, value: number) => {
-    setCustomOptions(prev => ({
+    setCustomOptions((prev) => ({
       ...prev,
-      [key]: value
+      [key]: value,
     }));
   };
 
-  const handleWhiteBalanceChange = (key: 'temperature' | 'tint', value: number) => {
-    setCustomOptions(prev => ({
+  const handleWhiteBalanceChange = (
+    key: 'temperature' | 'tint',
+    value: number
+  ) => {
+    setCustomOptions((prev) => ({
       ...prev,
       whiteBalance: {
         ...prev.whiteBalance,
-        [key]: value
-      }
+        [key]: value,
+      },
     }));
   };
 
@@ -55,7 +60,7 @@ export const RetouchPanel: React.FC<RetouchPanelProps> = ({
           <div className="flex space-x-2">
             <Button
               size="sm"
-              variant={isBeforeAfter ? "default" : "outline"}
+              variant={isBeforeAfter ? 'default' : 'outline'}
               onClick={() => setIsBeforeAfter(!isBeforeAfter)}
             >
               {isBeforeAfter ? 'Après' : 'Avant'}
@@ -70,20 +75,22 @@ export const RetouchPanel: React.FC<RetouchPanelProps> = ({
         {/* Aperçu avant/après */}
         <div className="space-y-2">
           <h4 className="text-sm font-medium">Aperçu</h4>
-          <div className="relative bg-gray-100 rounded-lg p-4 min-h-[200px] flex items-center justify-center">
+          <div className="relative flex min-h-[200px] items-center justify-center rounded-lg bg-gray-100 p-4">
             {isBeforeAfter ? (
               <div className="text-center">
-                <div className="text-4xl mb-2">📸</div>
+                <div className="mb-2 text-4xl">📸</div>
                 <p className="text-sm text-gray-600">Image retouchée</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {retouchResult.success ? 'Retouche appliquée avec succès' : 'Erreur lors de la retouche'}
+                <p className="mt-1 text-xs text-gray-500">
+                  {retouchResult.success
+                    ? 'Retouche appliquée avec succès'
+                    : 'Erreur lors de la retouche'}
                 </p>
               </div>
             ) : (
               <div className="text-center">
-                <div className="text-4xl mb-2">📷</div>
+                <div className="mb-2 text-4xl">📷</div>
                 <p className="text-sm text-gray-600">Image originale</p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="mt-1 text-xs text-gray-500">
                   Image avant retouche automatique
                 </p>
               </div>
@@ -99,19 +106,39 @@ export const RetouchPanel: React.FC<RetouchPanelProps> = ({
               <div className="flex justify-between text-sm">
                 <span>Luminosité</span>
                 <div className="flex space-x-2">
-                  <span className="text-gray-500">{retouchResult.beforeAfterMetrics.brightness.before.toFixed(1)}</span>
+                  <span className="text-gray-500">
+                    {retouchResult.beforeAfterMetrics.brightness.before.toFixed(
+                      1
+                    )}
+                  </span>
                   <span>→</span>
-                  <span className={getValueColor(retouchResult.beforeAfterMetrics.brightness.after - retouchResult.beforeAfterMetrics.brightness.before)}>
-                    {retouchResult.beforeAfterMetrics.brightness.after.toFixed(1)}
+                  <span
+                    className={getValueColor(
+                      retouchResult.beforeAfterMetrics.brightness.after -
+                        retouchResult.beforeAfterMetrics.brightness.before
+                    )}
+                  >
+                    {retouchResult.beforeAfterMetrics.brightness.after.toFixed(
+                      1
+                    )}
                   </span>
                 </div>
               </div>
               <div className="flex justify-between text-sm">
                 <span>Contraste</span>
                 <div className="flex space-x-2">
-                  <span className="text-gray-500">{retouchResult.beforeAfterMetrics.contrast.before.toFixed(1)}</span>
+                  <span className="text-gray-500">
+                    {retouchResult.beforeAfterMetrics.contrast.before.toFixed(
+                      1
+                    )}
+                  </span>
                   <span>→</span>
-                  <span className={getValueColor(retouchResult.beforeAfterMetrics.contrast.after - retouchResult.beforeAfterMetrics.contrast.before)}>
+                  <span
+                    className={getValueColor(
+                      retouchResult.beforeAfterMetrics.contrast.after -
+                        retouchResult.beforeAfterMetrics.contrast.before
+                    )}
+                  >
                     {retouchResult.beforeAfterMetrics.contrast.after.toFixed(1)}
                   </span>
                 </div>
@@ -121,20 +148,42 @@ export const RetouchPanel: React.FC<RetouchPanelProps> = ({
               <div className="flex justify-between text-sm">
                 <span>Saturation</span>
                 <div className="flex space-x-2">
-                  <span className="text-gray-500">{retouchResult.beforeAfterMetrics.saturation.before.toFixed(1)}</span>
+                  <span className="text-gray-500">
+                    {retouchResult.beforeAfterMetrics.saturation.before.toFixed(
+                      1
+                    )}
+                  </span>
                   <span>→</span>
-                  <span className={getValueColor(retouchResult.beforeAfterMetrics.saturation.after - retouchResult.beforeAfterMetrics.saturation.before)}>
-                    {retouchResult.beforeAfterMetrics.saturation.after.toFixed(1)}
+                  <span
+                    className={getValueColor(
+                      retouchResult.beforeAfterMetrics.saturation.after -
+                        retouchResult.beforeAfterMetrics.saturation.before
+                    )}
+                  >
+                    {retouchResult.beforeAfterMetrics.saturation.after.toFixed(
+                      1
+                    )}
                   </span>
                 </div>
               </div>
               <div className="flex justify-between text-sm">
                 <span>Netteté</span>
                 <div className="flex space-x-2">
-                  <span className="text-gray-500">{retouchResult.beforeAfterMetrics.sharpness.before.toFixed(1)}</span>
+                  <span className="text-gray-500">
+                    {retouchResult.beforeAfterMetrics.sharpness.before.toFixed(
+                      1
+                    )}
+                  </span>
                   <span>→</span>
-                  <span className={getValueColor(retouchResult.beforeAfterMetrics.sharpness.after - retouchResult.beforeAfterMetrics.sharpness.before)}>
-                    {retouchResult.beforeAfterMetrics.sharpness.after.toFixed(1)}
+                  <span
+                    className={getValueColor(
+                      retouchResult.beforeAfterMetrics.sharpness.after -
+                        retouchResult.beforeAfterMetrics.sharpness.before
+                    )}
+                  >
+                    {retouchResult.beforeAfterMetrics.sharpness.after.toFixed(
+                      1
+                    )}
                   </span>
                 </div>
               </div>
@@ -150,14 +199,18 @@ export const RetouchPanel: React.FC<RetouchPanelProps> = ({
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-sm">Luminosité</span>
-              <span className="text-sm font-mono">{formatValue(customOptions.brightness)}</span>
+              <span className="font-mono text-sm">
+                {formatValue(customOptions.brightness)}
+              </span>
             </div>
             <input
               type="range"
               min="-100"
               max="100"
               value={customOptions.brightness}
-              onChange={(e) => handleOptionChange('brightness', Number(e.target.value))}
+              onChange={(e) =>
+                handleOptionChange('brightness', Number(e.target.value))
+              }
               className="w-full"
             />
           </div>
@@ -166,14 +219,18 @@ export const RetouchPanel: React.FC<RetouchPanelProps> = ({
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-sm">Contraste</span>
-              <span className="text-sm font-mono">{formatValue(customOptions.contrast)}</span>
+              <span className="font-mono text-sm">
+                {formatValue(customOptions.contrast)}
+              </span>
             </div>
             <input
               type="range"
               min="-100"
               max="100"
               value={customOptions.contrast}
-              onChange={(e) => handleOptionChange('contrast', Number(e.target.value))}
+              onChange={(e) =>
+                handleOptionChange('contrast', Number(e.target.value))
+              }
               className="w-full"
             />
           </div>
@@ -182,14 +239,18 @@ export const RetouchPanel: React.FC<RetouchPanelProps> = ({
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-sm">Saturation</span>
-              <span className="text-sm font-mono">{formatValue(customOptions.saturation)}</span>
+              <span className="font-mono text-sm">
+                {formatValue(customOptions.saturation)}
+              </span>
             </div>
             <input
               type="range"
               min="-100"
               max="100"
               value={customOptions.saturation}
-              onChange={(e) => handleOptionChange('saturation', Number(e.target.value))}
+              onChange={(e) =>
+                handleOptionChange('saturation', Number(e.target.value))
+              }
               className="w-full"
             />
           </div>
@@ -198,14 +259,18 @@ export const RetouchPanel: React.FC<RetouchPanelProps> = ({
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-sm">Netteté</span>
-              <span className="text-sm font-mono">{customOptions.sharpness.toFixed(1)}</span>
+              <span className="font-mono text-sm">
+                {customOptions.sharpness.toFixed(1)}
+              </span>
             </div>
             <input
               type="range"
               min="0"
               max="100"
               value={customOptions.sharpness}
-              onChange={(e) => handleOptionChange('sharpness', Number(e.target.value))}
+              onChange={(e) =>
+                handleOptionChange('sharpness', Number(e.target.value))
+              }
               className="w-full"
             />
           </div>
@@ -216,28 +281,39 @@ export const RetouchPanel: React.FC<RetouchPanelProps> = ({
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm">Température</span>
-                <span className="text-sm font-mono">{formatValue(customOptions.whiteBalance.temperature)}</span>
+                <span className="font-mono text-sm">
+                  {formatValue(customOptions.whiteBalance.temperature)}
+                </span>
               </div>
               <input
                 type="range"
                 min="-100"
                 max="100"
                 value={customOptions.whiteBalance.temperature}
-                onChange={(e) => handleWhiteBalanceChange('temperature', Number(e.target.value))}
+                onChange={(e) =>
+                  handleWhiteBalanceChange(
+                    'temperature',
+                    Number(e.target.value)
+                  )
+                }
                 className="w-full"
               />
             </div>
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm">Teinte</span>
-                <span className="text-sm font-mono">{formatValue(customOptions.whiteBalance.tint)}</span>
+                <span className="font-mono text-sm">
+                  {formatValue(customOptions.whiteBalance.tint)}
+                </span>
               </div>
               <input
                 type="range"
                 min="-100"
                 max="100"
                 value={customOptions.whiteBalance.tint}
-                onChange={(e) => handleWhiteBalanceChange('tint', Number(e.target.value))}
+                onChange={(e) =>
+                  handleWhiteBalanceChange('tint', Number(e.target.value))
+                }
                 className="w-full"
               />
             </div>
@@ -255,18 +331,12 @@ export const RetouchPanel: React.FC<RetouchPanelProps> = ({
             </Button>
           )}
           {onReset && (
-            <Button
-              variant="outline"
-              onClick={onReset}
-            >
+            <Button variant="outline" onClick={onReset}>
               ↺ Reset
             </Button>
           )}
           {onSave && (
-            <Button
-              variant="outline"
-              onClick={onSave}
-            >
+            <Button variant="outline" onClick={onSave}>
               💾 Sauvegarder
             </Button>
           )}

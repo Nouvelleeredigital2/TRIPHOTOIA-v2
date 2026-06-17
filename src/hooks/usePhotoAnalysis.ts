@@ -9,7 +9,10 @@ import {
 } from '../lib/analysis-queue-persistence';
 import { useAiErrorStore } from '../store/aiErrorStore';
 
-const hardwareThreads = typeof navigator !== 'undefined' && navigator.hardwareConcurrency ? navigator.hardwareConcurrency : 4;
+const hardwareThreads =
+  typeof navigator !== 'undefined' && navigator.hardwareConcurrency
+    ? navigator.hardwareConcurrency
+    : 4;
 const BATCH_SIZE = Math.min(20, Math.max(5, hardwareThreads * 2));
 const ANALYSIS_THROTTLE_MS = 400;
 
@@ -34,7 +37,9 @@ export function usePhotoAnalysis() {
   } = usePhotoStore();
 
   const pushError = useAiErrorStore((state) => state.pushError);
-  const resolveErrorsForPhoto = useAiErrorStore((state) => state.resolveErrorsForPhoto);
+  const resolveErrorsForPhoto = useAiErrorStore(
+    (state) => state.resolveErrorsForPhoto
+  );
 
   const isRestoringRef = useRef(true);
   const persistenceTimeoutRef = useRef<number | null>(null);
@@ -55,7 +60,14 @@ export function usePhotoAnalysis() {
         setActiveTab('triage');
       }
     }
-  }, [analysisQueue.length, isProcessing, photos, setIsProcessing, setActiveTab, setStopProcessing]);
+  }, [
+    analysisQueue.length,
+    isProcessing,
+    photos,
+    setIsProcessing,
+    setActiveTab,
+    setStopProcessing,
+  ]);
 
   // Restore persisted queue and photos on mount
   useEffect(() => {
@@ -74,7 +86,9 @@ export function usePhotoAnalysis() {
         }
 
         if (persistedPhotos.length > 0) {
-          const existingIds = new Set(usePhotoStore.getState().photos.map((photo) => photo.id));
+          const existingIds = new Set(
+            usePhotoStore.getState().photos.map((photo) => photo.id)
+          );
           const newPhotos = persistedPhotos.filter((photo) => {
             const isDuplicate = existingIds.has(photo.id);
             if (isDuplicate && typeof URL !== 'undefined') {
@@ -95,7 +109,10 @@ export function usePhotoAnalysis() {
           }
         }
       } catch (error) {
-        console.warn('[usePhotoAnalysis] Failed to restore persisted analysis queue.', error);
+        console.warn(
+          '[usePhotoAnalysis] Failed to restore persisted analysis queue.',
+          error
+        );
       } finally {
         if (!cancelled) {
           isRestoringRef.current = false;
@@ -132,13 +149,19 @@ export function usePhotoAnalysis() {
       const currentPhotos = photosRef.current;
       const currentQueue = analysisQueueRef.current;
 
-      if (!currentPhotos || currentPhotos.length === 0 || currentQueue.length === 0) {
+      if (
+        !currentPhotos ||
+        currentPhotos.length === 0 ||
+        currentQueue.length === 0
+      ) {
         void clearAnalysisState();
         return;
       }
 
       const photoMap = new Map(currentPhotos.map((photo) => [photo.id, photo]));
-      const pendingQueueIds = currentQueue.filter((id, index, array) => array.indexOf(id) === index && photoMap.has(id));
+      const pendingQueueIds = currentQueue.filter(
+        (id, index, array) => array.indexOf(id) === index && photoMap.has(id)
+      );
       const pendingPhotos = pendingQueueIds
         .map((id) => photoMap.get(id)!)
         .filter((photo) => !photo.analysis);
@@ -196,19 +219,26 @@ export function usePhotoAnalysis() {
         addAnalyzingPhotoIds(batchIds);
 
         try {
-          const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+          const now =
+            typeof performance !== 'undefined' ? performance.now() : Date.now();
           const elapsed = now - lastBatchTimeRef.current;
           if (elapsed < ANALYSIS_THROTTLE_MS) {
-            await new Promise((resolve) => setTimeout(resolve, ANALYSIS_THROTTLE_MS - elapsed));
+            await new Promise((resolve) =>
+              setTimeout(resolve, ANALYSIS_THROTTLE_MS - elapsed)
+            );
           }
 
-          console.log(`🔄 Analyse de ${batchPhotos.length} photo(s):`, batchPhotos.map(p => p.file.name));
+          console.log(
+            `🔄 Analyse de ${batchPhotos.length} photo(s):`,
+            batchPhotos.map((p) => p.file.name)
+          );
 
           const analysisResults = await analyzePhotosBatch(
             batchPhotos.map((p) => p.file)
           );
 
-          lastBatchTimeRef.current = typeof performance !== 'undefined' ? performance.now() : Date.now();
+          lastBatchTimeRef.current =
+            typeof performance !== 'undefined' ? performance.now() : Date.now();
 
           console.log(`✅ Résultats d'analyse reçus:`, analysisResults.length);
 
@@ -227,7 +257,7 @@ export function usePhotoAnalysis() {
                   photoId: photo.id,
                   source: 'analysis',
                   severity: 'warning',
-                  hint: 'Relancer l\'analyse ou vérifier la connexion réseau.',
+                  hint: "Relancer l'analyse ou vérifier la connexion réseau.",
                 });
               }
             });
@@ -239,7 +269,7 @@ export function usePhotoAnalysis() {
             await new Promise((resolve) => setTimeout(resolve, 0));
           }
         } catch (error) {
-          console.error('❌ Erreur lors de l\'analyse des photos:', error);
+          console.error("❌ Erreur lors de l'analyse des photos:", error);
           if (active) {
             // Mark photos as having analysis errors
             batchPhotos.forEach((photo) => {
@@ -250,8 +280,11 @@ export function usePhotoAnalysis() {
                 photoId: photo.id,
                 source: 'analysis',
                 severity: 'error',
-                details: error instanceof Error ? { message: error.message, stack: error.stack } : error,
-                hint: 'Essayez de relancer l\'analyse ou vérifiez les paramètres AI.',
+                details:
+                  error instanceof Error
+                    ? { message: error.message, stack: error.stack }
+                    : error,
+                hint: "Essayez de relancer l'analyse ou vérifiez les paramètres AI.",
               });
             });
             removeFromAnalysisQueue(batchIds);
@@ -297,4 +330,3 @@ export function usePhotoAnalysis() {
     stopProcessingPhotos,
   };
 }
-

@@ -15,10 +15,16 @@ const mk = (id: string, analysis: Photo['analysis']): Photo => ({
 describe('requeueForAnalysis (A-17/A-19)', () => {
   beforeEach(() => usePhotoStore.getState().clearAll());
 
-  it('réinitialise l\'erreur, garde le fileHash, remet en file et relance', () => {
-    usePhotoStore.getState().addPhotos([mk('p1', { error: 'Analysis failed', fileHash: 'h1' })]);
+  it("réinitialise l'erreur, garde le fileHash, remet en file et relance", () => {
+    usePhotoStore
+      .getState()
+      .addPhotos([mk('p1', { error: 'Analysis failed', fileHash: 'h1' })]);
     // addPhotos a déjà mis p1 dans la file ; on vide pour simuler un état post-arrêt.
-    usePhotoStore.setState((s) => ({ ...s, analysisQueue: [], isProcessing: false }));
+    usePhotoStore.setState((s) => ({
+      ...s,
+      analysisQueue: [],
+      isProcessing: false,
+    }));
 
     usePhotoStore.getState().requeueForAnalysis(['p1']);
 

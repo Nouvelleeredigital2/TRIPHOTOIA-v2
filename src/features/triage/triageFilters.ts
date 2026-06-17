@@ -116,7 +116,11 @@ const parsePhotoDate = (photo: Photo): number | null => {
   return typeof photo.lastModified === 'number' ? photo.lastModified : null;
 };
 
-const isInsideDateRange = (photo: Photo, dateFrom?: string, dateTo?: string) => {
+const isInsideDateRange = (
+  photo: Photo,
+  dateFrom?: string,
+  dateTo?: string
+) => {
   if (!dateFrom && !dateTo) {
     return true;
   }
@@ -164,29 +168,38 @@ export function filterTriagePhotos({
   let result: Photo[];
   if (activeFilter === 'duplicates') {
     const duplicatePhotoIds = new Set(
-      duplicateGroups.flatMap((group) => group.photos.map((p) => p.id)),
+      duplicateGroups.flatMap((group) => group.photos.map((p) => p.id))
     );
     result = analyzedPhotos.filter((photo) => duplicatePhotoIds.has(photo.id));
   } else if (activeFilter === 'blurry') {
-    result = analyzedPhotos.filter((photo) => photo.analysis?.isBlurry === true);
+    result = analyzedPhotos.filter(
+      (photo) => photo.analysis?.isBlurry === true
+    );
   } else if (activeFilter === 'picks') {
     result = analyzedPhotos.filter((photo) => photo.analysis?.isPick === true);
   } else if (activeFilter === 'favorites') {
     result = analyzedPhotos.filter(isFavoritePhoto);
   } else if (activeFilter === 'review') {
-    result = analyzedPhotos.filter((photo) => isReviewPhoto(photo, rejectedPhotoIds));
+    result = analyzedPhotos.filter((photo) =>
+      isReviewPhoto(photo, rejectedPhotoIds)
+    );
   } else if (activeFilter === 'rejected') {
     result = analyzedPhotos.filter(
-      (photo) => photo.analysis?.isRejected === true || rejectedPhotoIds.has(photo.id),
+      (photo) =>
+        photo.analysis?.isRejected === true || rejectedPhotoIds.has(photo.id)
     );
   } else if (activeFilter === 'selected') {
     result = analyzedPhotos.filter((photo) => selectedPhotoId === photo.id);
   } else if (activeFilter.startsWith('color:')) {
     const label = activeFilter.slice(6) as ColorLabel;
-    result = analyzedPhotos.filter((photo) => photo.analysis?.colorLabel === label);
+    result = analyzedPhotos.filter(
+      (photo) => photo.analysis?.colorLabel === label
+    );
   } else if (activeFilter.startsWith('stars:')) {
     const minStars = parseInt(activeFilter.slice(6), 10);
-    result = analyzedPhotos.filter((photo) => (photo.analysis?.rating ?? 0) >= minStars);
+    result = analyzedPhotos.filter(
+      (photo) => (photo.analysis?.rating ?? 0) >= minStars
+    );
   } else {
     result = analyzedPhotos;
   }
@@ -195,8 +208,18 @@ export function filterTriagePhotos({
     const q = normalizeSearch(searchTerm);
     result = result.filter((photo) => {
       if (normalizeSearch(photo.file.name).includes(q)) return true;
-      if ((photo.analysis?.tags ?? []).some((tag) => normalizeSearch(tag).includes(q))) return true;
-      if ((userTags[photo.id] ?? []).some((tag) => normalizeSearch(tag).includes(q))) return true;
+      if (
+        (photo.analysis?.tags ?? []).some((tag) =>
+          normalizeSearch(tag).includes(q)
+        )
+      )
+        return true;
+      if (
+        (userTags[photo.id] ?? []).some((tag) =>
+          normalizeSearch(tag).includes(q)
+        )
+      )
+        return true;
 
       const exif = photo.metadata?.exif as Record<string, unknown> | undefined;
       if (!exif) return false;
@@ -206,7 +229,9 @@ export function filterTriagePhotos({
         exif.Model,
         exif.LensModel,
         exif.DateTimeOriginal,
-        exif.ISOSpeedRatings !== undefined ? `iso ${exif.ISOSpeedRatings}` : null,
+        exif.ISOSpeedRatings !== undefined
+          ? `iso ${exif.ISOSpeedRatings}`
+          : null,
         exif.FocalLength !== undefined ? `${exif.FocalLength}mm` : null,
       ]
         .filter(Boolean)
@@ -220,11 +245,15 @@ export function filterTriagePhotos({
   }
 
   if (searchCriteria?.collectionPhotoIds) {
-    result = result.filter((photo) => searchCriteria.collectionPhotoIds?.has(photo.id));
+    result = result.filter((photo) =>
+      searchCriteria.collectionPhotoIds?.has(photo.id)
+    );
   }
 
   if (searchCriteria?.dateFrom || searchCriteria?.dateTo) {
-    result = result.filter((photo) => isInsideDateRange(photo, searchCriteria.dateFrom, searchCriteria.dateTo));
+    result = result.filter((photo) =>
+      isInsideDateRange(photo, searchCriteria.dateFrom, searchCriteria.dateTo)
+    );
   }
 
   if (sortKey === 'default') {
@@ -238,7 +267,9 @@ export function filterTriagePhotos({
       case 'rating-asc':
         return (a.analysis?.rating ?? 0) - (b.analysis?.rating ?? 0);
       case 'sharpness-desc':
-        return (b.analysis?.sharpnessScore ?? 0) - (a.analysis?.sharpnessScore ?? 0);
+        return (
+          (b.analysis?.sharpnessScore ?? 0) - (a.analysis?.sharpnessScore ?? 0)
+        );
       case 'name-asc':
         return a.file.name.localeCompare(b.file.name);
       case 'name-desc':

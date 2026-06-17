@@ -37,7 +37,9 @@ export type RetouchWorkerAutoSuccess = {
   preset: AutoRetouchPreset;
 };
 
-export type RetouchWorkerRequestPayload = RetouchWorkerRequest | RetouchWorkerAutoRequest;
+export type RetouchWorkerRequestPayload =
+  | RetouchWorkerRequest
+  | RetouchWorkerAutoRequest;
 
 export type RetouchWorkerResponse =
   | RetouchWorkerSuccess

@@ -6,7 +6,7 @@ const migrationPath = join(
   process.cwd(),
   'supabase',
   'migrations',
-  '20260531020000_treephoto_shared_photos_bucket.sql',
+  '20260531020000_treephoto_shared_photos_bucket.sql'
 );
 
 describe('shared photos bucket migration (A-02)', () => {
@@ -20,7 +20,9 @@ describe('shared photos bucket migration (A-02)', () => {
 
   it('restricts writes to the owner prefix', () => {
     expect(sql).toContain('shared_photos_owner_insert');
-    expect(sql).toContain('(storage.foldername(name))[1] = (select auth.uid())::text');
+    expect(sql).toContain(
+      '(storage.foldername(name))[1] = (select auth.uid())::text'
+    );
   });
 
   it('covers insert/update/delete policies', () => {

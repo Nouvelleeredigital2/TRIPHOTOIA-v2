@@ -98,9 +98,22 @@ bitmap couverts par revue de code (worker non instrumentable sous jsdom).
   `.env.example` distingue clairement `VITE_*` client et vars serveur ;
   `readSupabaseConfig` lève si une clé service-role `VITE_*` est présente ;
   garde statique `src/test/architecture/no-server-env-in-src.test.ts`.
-- P1-C Partage client privé et révocable ⬜
-- P1-D Upload cloud compensé ⬜
-- P1-E Reprise des jobs cloud ⬜
+- P1-C Partage client privé et révocable ⬜ — **non traité**. Le bucket
+  `shared-photos` reste public (migration `20260531020000` appliquée sur le
+  projet live). Correction sûre recommandée (§10.8 du prompt, faute d'edge
+  function de transformation/signature) : migration passant le bucket en privé +
+  désactivation de l'émission d'URL publique frontend (`getSharedPhotoUrl`) +
+  note de migration des objets existants. **Action produit destructive
+  (désactive le partage anonyme) → à confirmer avant application.**
+- P1-D Upload cloud compensé ✅ — compensation Storage si l'enregistrement DB
+  échoue (`cloudUpload.ts`) ; chemin déjà validé serveur par `register_cloud_photo`.
+  Test de compensation ajouté.
+- P1-E Reprise des jobs cloud ⬜ — **non traité**. La table `jobs` a `attempts`,
+  `run_after`, `locked_at/by` et le claim atomique `FOR UPDATE SKIP LOCKED`
+  (`claim_next_job`), mais le worker ne fait ni retry/backoff, ni max-attempts,
+  ni DLQ, ni récupération de lock expiré. Nécessite migration (colonnes
+  `max_attempts`/statut terminal + RPC de requeue/lock-reclaim) + reprise du
+  worker (`worker/jobRunner.ts`, `worker/index.ts`).
 - P1-F Validation runtime et mémoire durable 🟡 (cœur fait) — `undoStack`
   plafonné (`UNDO_STACK_LIMIT = 30`) avec libération des URL blob des
   `DELETE_PHOTO` évincés ; validation Zod des résultats worker (P0-B) ;
@@ -131,11 +144,13 @@ bitmap couverts par revue de code (worker non instrumentable sous jsdom).
 - **P1-B** : CSP minimale `vercel.json`, `.env.example` audité, garde « variable
   serveur dans `src/` » non traités (le retrait des appels HF/secrets navigateur
   est fait en P0-A).
-- **P1-C** : partage privé/révocable + strip EXIF + migration bucket non traités.
-  Sévérité : haute (bucket public durable encore présent).
-- **P1-D** : upload cloud compensé non traité. **P1-E** : reprise des jobs non
-  traitée. **P1-F** : validation Zod aux frontières + bornes undo/blob non
-  traitées.
+- **P1-C** : partage privé/révocable + strip EXIF + migration bucket **non
+  traités**. Sévérité : haute (bucket public durable encore présent).
+- **P1-D** : ✅ traité (compensation upload).
+- **P1-E** : reprise des jobs (retry/backoff/DLQ/lock-recovery) **non traitée**.
+  Sévérité : moyenne-haute.
+- **P1-F** : ✅ cœur traité (undo borné + blob + sanitation IDB) ; reste la
+  validation Zod systématique RPC/export.
 - **P2** : non traité.
 
 Voir le rapport de session pour la décision de release.

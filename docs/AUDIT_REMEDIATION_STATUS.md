@@ -93,8 +93,11 @@ bitmap couverts par revue de code (worker non instrumentable sous jsdom).
   AutoFlow) ; `calculateFileHash` ne retourne plus jamais `''` (lève → fichier
   rejeté) ; URL blob créée seulement pour une photo unique (pas de fuite sur
   refus/doublon). Tests : `src/test/lib/import-policy.test.ts`.
-- P1-B Retrait API IA / secrets navigateur 🟡 (HF retiré du frontend en P0-A ;
-  reste : CSP minimale, `.env.example` audité, garde variable serveur dans `src/`)
+- P1-B Retrait API IA / secrets navigateur ✅ — HF/3rd-party retiré (P0-A) ;
+  CSP `vercel.json` déjà minimale (pas de `*`, scope `self` + `*.supabase.co`) ;
+  `.env.example` distingue clairement `VITE_*` client et vars serveur ;
+  `readSupabaseConfig` lève si une clé service-role `VITE_*` est présente ;
+  garde statique `src/test/architecture/no-server-env-in-src.test.ts`.
 - P1-C Partage client privé et révocable ⬜
 - P1-D Upload cloud compensé ⬜
 - P1-E Reprise des jobs cloud ⬜

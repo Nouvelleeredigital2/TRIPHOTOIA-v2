@@ -17,12 +17,18 @@ interface CloudUploadClient {
         file: File,
         options: { cacheControl: string; upsert: boolean }
       ) => Promise<{ error: Error | null } | { error: unknown }>;
+      // P1-D : compensation — suppression de l'objet orphelin si l'enregistrement
+      // DB échoue après un upload Storage réussi.
+      remove: (paths: string[]) => Promise<{ error: unknown }>;
     };
   };
   // Direct table inserts are kept for backward compat but not used by uploadPhotosToCloud
   // (which uses RPCs to work around ES256/JWKS role-switching issues in new Supabase projects).
   from?: (table: string) => { insert: (payload: unknown) => unknown };
-  rpc: (name: string, params?: Record<string, unknown>) => PromiseLike<{ error: unknown }>;
+  rpc: (
+    name: string,
+    params?: Record<string, unknown>
+  ) => PromiseLike<{ error: unknown }>;
 }
 
 interface BuildProjectPhotoStoragePathParams {
@@ -115,7 +121,17 @@ export async function uploadPhotosToCloud({
       p_semantic_delay_ms: SEMANTIC_EMBEDDING_DELAY_MS,
     }) as Promise<{ error: unknown }>);
 
-    if (photoError) throw photoError;
+    if (photoError) {
+      // P1-D : compensation. L'upload Storage a réussi mais l'enregistrement DB
+      // a échoué → on supprime l'objet uploadé pour ne pas laisser d'orphelin,
+      // avant de propager l'erreur d'origine (suppression best-effort).
+      try {
+        await client.storage.from(PROJECT_PHOTOS_BUCKET).remove([storagePath]);
+      } catch {
+        // on ne masque pas l'erreur initiale si le nettoyage échoue
+      }
+      throw photoError;
+    }
 
     // Opt-in face detection : enfilé séparément si activé, car la RPC principale
     // n'inclut pas ce job (opt-in par projet).

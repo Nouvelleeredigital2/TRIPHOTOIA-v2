@@ -98,13 +98,17 @@ bitmap couverts par revue de code (worker non instrumentable sous jsdom).
   `.env.example` distingue clairement `VITE_*` client et vars serveur ;
   `readSupabaseConfig` lève si une clé service-role `VITE_*` est présente ;
   garde statique `src/test/architecture/no-server-env-in-src.test.ts`.
-- P1-C Partage client privé et révocable ⬜ — **non traité**. Le bucket
-  `shared-photos` reste public (migration `20260531020000` appliquée sur le
-  projet live). Correction sûre recommandée (§10.8 du prompt, faute d'edge
-  function de transformation/signature) : migration passant le bucket en privé +
-  désactivation de l'émission d'URL publique frontend (`getSharedPhotoUrl`) +
-  note de migration des objets existants. **Action produit destructive
-  (désactive le partage anonyme) → à confirmer avant application.**
+- P1-C Partage client privé et révocable ✅ (comportement sûr §10.8) — migration
+  `20260617120000_treephoto_private_shared_bucket` **appliquée sur le projet
+  live** : bucket `shared-photos` passé en privé (`public=false`, vérifié) +
+  policy `shared_photos_owner_select` (lecture propriétaire authentifié pour
+  URLs signées). Frontend : `getSharedPhotoUrl` n'émet plus d'URL publique
+  durable (retourne `null` → la galerie affiche un placeholder) ;
+  `getSignedSharedPhotoUrl` ajoutée (URL signée courte, propriétaire).
+  **Conséquence : le partage anonyme par image est désactivé** tant qu'une edge
+  function ne valide pas le token serveur pour émettre des URLs signées. Reste :
+  dérivé JPEG/WebP avec strip EXIF + purge planifiée des objets expirés/orphelins
+  (nécessitent une edge function/cron).
 - P1-D Upload cloud compensé ✅ — compensation Storage si l'enregistrement DB
   échoue (`cloudUpload.ts`) ; chemin déjà validé serveur par `register_cloud_photo`.
   Test de compensation ajouté.
@@ -144,8 +148,9 @@ bitmap couverts par revue de code (worker non instrumentable sous jsdom).
 - **P1-B** : CSP minimale `vercel.json`, `.env.example` audité, garde « variable
   serveur dans `src/` » non traités (le retrait des appels HF/secrets navigateur
   est fait en P0-A).
-- **P1-C** : partage privé/révocable + strip EXIF + migration bucket **non
-  traités**. Sévérité : haute (bucket public durable encore présent).
+- **P1-C** : bucket rendu privé ✅ (exposition durable supprimée). Reste : strip
+  EXIF du dérivé + edge function de validation token → URL signée + purge cron.
+  Sévérité résiduelle : moyenne (partage anonyme désactivé en attendant).
 - **P1-D** : ✅ traité (compensation upload).
 - **P1-E** : reprise des jobs (retry/backoff/DLQ/lock-recovery) **non traitée**.
   Sévérité : moyenne-haute.

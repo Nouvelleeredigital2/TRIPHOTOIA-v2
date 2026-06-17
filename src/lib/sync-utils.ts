@@ -72,7 +72,7 @@ export async function syncPhotoMetadata(
   userId: string,
   photo: Photo,
   userTags?: string[],
-  notes?: string,
+  notes?: string
 ): Promise<void> {
   if (!supabase || !photo.fileHash) return;
 
@@ -87,7 +87,9 @@ export async function syncPhotoMetadata(
     color_label: photo.analysis?.colorLabel ?? null,
     user_tags: userTags ?? [],
     notes: notes ?? null,
-    analysis: photo.analysis ? (photo.analysis as unknown as Record<string, unknown>) : null,
+    analysis: photo.analysis
+      ? (photo.analysis as unknown as Record<string, unknown>)
+      : null,
   };
 
   await supabase
@@ -106,9 +108,14 @@ export async function syncPhotosForShare(
   userId: string,
   photos: Photo[],
   userTags: Record<string, string[]>,
-  photoNotes: Record<string, string>,
+  photoNotes: Record<string, string>
 ): Promise<{ synced: number; skipped: number; error: string | null }> {
-  if (!supabase) return { synced: 0, skipped: photos.length, error: 'Supabase non configuré' };
+  if (!supabase)
+    return {
+      synced: 0,
+      skipped: photos.length,
+      error: 'Supabase non configuré',
+    };
 
   const rows: DbPhotoMetadata[] = [];
   let skipped = 0;
@@ -128,7 +135,9 @@ export async function syncPhotosForShare(
       color_label: photo.analysis?.colorLabel ?? null,
       user_tags: userTags[photo.id] ?? [],
       notes: photoNotes[photo.id] ?? null,
-      analysis: photo.analysis ? (photo.analysis as unknown as Record<string, unknown>) : null,
+      analysis: photo.analysis
+        ? (photo.analysis as unknown as Record<string, unknown>)
+        : null,
     });
   }
 
@@ -150,7 +159,7 @@ export async function syncPhotosForShare(
  * Charge toutes les métadonnées cloud pour un utilisateur.
  */
 export async function loadCloudMetadata(
-  userId: string,
+  userId: string
 ): Promise<DbPhotoMetadata[]> {
   if (!supabase) return [];
 
@@ -177,14 +186,39 @@ function sharedPhotoPath(userId: string, fileHash: string): string {
 }
 
 /**
- * URL publique d'une image partagée (bucket public). Construite côté client à partir
- * de user_id + file_hash — utilisable par un destinataire anonyme. Renvoie null si
- * Supabase n'est pas configuré.
+ * P1-C : le bucket `shared-photos` est désormais PRIVÉ (migration
+ * `20260617120000_treephoto_private_shared_bucket`). On n'émet plus d'URL
+ * publique durable (devinable, non révocable, sans expiration) côté client.
+ *
+ * Le partage anonyme par image est donc désactivé tant qu'une edge function
+ * n'expose pas, après validation serveur du token de partage, une URL signée
+ * courte. La galerie affiche un placeholder (cf. `SharedThumb`) plutôt qu'une
+ * URL publique morte. `_userId`/`_fileHash` sont conservés pour compat d'appel.
  */
-export function getSharedPhotoUrl(userId: string, fileHash: string): string | null {
+export function getSharedPhotoUrl(
+  _userId: string,
+  _fileHash: string
+): string | null {
+  return null;
+}
+
+/**
+ * Génère une URL signée courte pour un objet partagé. Ne fonctionne que pour le
+ * PROPRIÉTAIRE authentifié (policy `shared_photos_owner_select`) — utile pour sa
+ * propre prévisualisation. Retourne null pour un visiteur anonyme ou en cas
+ * d'erreur. (Le partage anonyme nécessitera une edge function dédiée.)
+ */
+export async function getSignedSharedPhotoUrl(
+  userId: string,
+  fileHash: string,
+  expiresInSeconds = 300
+): Promise<string | null> {
   if (!supabase) return null;
-  const { data } = supabase.storage.from(SHARED_BUCKET).getPublicUrl(sharedPhotoPath(userId, fileHash));
-  return data.publicUrl ?? null;
+  const { data, error } = await supabase.storage
+    .from(SHARED_BUCKET)
+    .createSignedUrl(sharedPhotoPath(userId, fileHash), expiresInSeconds);
+  if (error) return null;
+  return data?.signedUrl ?? null;
 }
 
 /**
@@ -194,7 +228,7 @@ export function getSharedPhotoUrl(userId: string, fileHash: string): string | nu
  */
 export async function uploadSharedPhotos(
   userId: string,
-  photos: Photo[],
+  photos: Photo[]
 ): Promise<{ uploaded: number; failed: number; failedNames: string[] }> {
   if (!supabase) return { uploaded: 0, failed: 0, failedNames: [] };
 
@@ -234,7 +268,7 @@ export async function uploadSharedPhotos(
 export async function createShareLink(
   userId: string,
   name: string,
-  photoFileHashes: string[],
+  photoFileHashes: string[]
 ): Promise<DbShareLink | null> {
   if (!supabase) return null;
 
@@ -254,7 +288,9 @@ export async function createShareLink(
 /**
  * Récupère tous les liens de partage d'un utilisateur.
  */
-export async function getUserShareLinks(userId: string): Promise<DbShareLink[]> {
+export async function getUserShareLinks(
+  userId: string
+): Promise<DbShareLink[]> {
   if (!supabase) return [];
 
   const { data, error } = await supabase
@@ -270,12 +306,16 @@ export async function getUserShareLinks(userId: string): Promise<DbShareLink[]> 
 /**
  * Charge un lien de partage par token (public, sans auth).
  */
-export async function getShareLinkByToken(token: string): Promise<DbShareLink | null> {
+export async function getShareLinkByToken(
+  token: string
+): Promise<DbShareLink | null> {
   if (!supabase) return null;
 
   // Token-scoped RPC: the share_links table is no longer publicly readable, so a
   // recipient resolves exactly one (non-expired) link via this security-definer function.
-  const { data, error } = await supabase.rpc('get_shared_link', { target_token: token });
+  const { data, error } = await supabase.rpc('get_shared_link', {
+    target_token: token,
+  });
 
   if (error) return null;
   const link = Array.isArray(data) ? data[0] : data;
@@ -294,7 +334,7 @@ export async function getShareLinkByToken(token: string): Promise<DbShareLink | 
  * partage en étant connecté.
  */
 export async function getSharedPhotos(
-  shareLink: DbShareLink,
+  shareLink: DbShareLink
 ): Promise<DbPhotoMetadata[]> {
   if (!supabase || !shareLink.photo_file_hashes.length) return [];
 
@@ -303,11 +343,13 @@ export async function getSharedPhotos(
   });
 
   if (!error && Array.isArray(data)) {
-    return (data as Array<Omit<DbPhotoMetadata, 'user_id' | 'notes'>>).map((row) => ({
-      ...row,
-      user_id: shareLink.user_id,
-      notes: null,
-    }));
+    return (data as Array<Omit<DbPhotoMetadata, 'user_id' | 'notes'>>).map(
+      (row) => ({
+        ...row,
+        user_id: shareLink.user_id,
+        notes: null,
+      })
+    );
   }
 
   // Repli (RPC absente) : select direct — ne fonctionne que pour le propriétaire connecté.
@@ -318,7 +360,10 @@ export async function getSharedPhotos(
     .in('file_hash', shareLink.photo_file_hashes);
 
   if (fallback.error) {
-    console.warn('[sync] getSharedPhotos error:', error?.message ?? fallback.error.message);
+    console.warn(
+      '[sync] getSharedPhotos error:',
+      error?.message ?? fallback.error.message
+    );
     return [];
   }
   return (fallback.data as DbPhotoMetadata[]) ?? [];
@@ -332,7 +377,7 @@ export async function setShareApproval(
   token: string,
   fileHash: string,
   status: ShareApprovalStatus,
-  clientNote?: string | null,
+  clientNote?: string | null
 ): Promise<boolean> {
   if (!supabase) return false;
   const { error } = await supabase.rpc('set_share_approval', {
@@ -351,9 +396,13 @@ export async function setShareApproval(
 /**
  * Charge les validations déjà enregistrées pour un lien (public, côté client).
  */
-export async function getShareApprovals(token: string): Promise<DbShareApproval[]> {
+export async function getShareApprovals(
+  token: string
+): Promise<DbShareApproval[]> {
   if (!supabase) return [];
-  const { data, error } = await supabase.rpc('get_share_approvals', { target_token: token });
+  const { data, error } = await supabase.rpc('get_share_approvals', {
+    target_token: token,
+  });
   if (error || !Array.isArray(data)) return [];
   return data as DbShareApproval[];
 }
@@ -361,7 +410,9 @@ export async function getShareApprovals(token: string): Promise<DbShareApproval[
 /**
  * Charge les validations d'un lien côté propriétaire (photographe, authentifié).
  */
-export async function getShareApprovalsForOwner(linkId: string): Promise<DbShareApproval[]> {
+export async function getShareApprovalsForOwner(
+  linkId: string
+): Promise<DbShareApproval[]> {
   if (!supabase) return [];
   const { data, error } = await supabase.rpc('get_share_approvals_for_owner', {
     target_link_id: linkId,
@@ -396,7 +447,8 @@ export async function deleteShareLink(linkId: string): Promise<void> {
   await supabase.from('share_links').delete().eq('id', linkId);
 
   const userId = (link as { user_id?: string } | null)?.user_id;
-  const hashes = ((link as { photo_file_hashes?: string[] } | null)?.photo_file_hashes) ?? [];
+  const hashes =
+    (link as { photo_file_hashes?: string[] } | null)?.photo_file_hashes ?? [];
   if (!userId || hashes.length === 0) return;
 
   // Hashes encore référencés par un autre lien non expiré du même utilisateur.
@@ -407,9 +459,14 @@ export async function deleteShareLink(linkId: string): Promise<void> {
 
   const now = Date.now();
   const stillReferenced = new Set<string>();
-  for (const row of (remaining as Array<{ photo_file_hashes?: string[]; expires_at?: string | null }>) ?? []) {
-    const notExpired = !row.expires_at || new Date(row.expires_at).getTime() > now;
-    if (notExpired) (row.photo_file_hashes ?? []).forEach((h) => stillReferenced.add(h));
+  for (const row of (remaining as Array<{
+    photo_file_hashes?: string[];
+    expires_at?: string | null;
+  }>) ?? []) {
+    const notExpired =
+      !row.expires_at || new Date(row.expires_at).getTime() > now;
+    if (notExpired)
+      (row.photo_file_hashes ?? []).forEach((h) => stillReferenced.add(h));
   }
 
   const toPurge = hashes.filter((h) => !stillReferenced.has(h));
@@ -427,7 +484,7 @@ export async function deleteShareLink(linkId: string): Promise<void> {
  */
 export async function trackStats(
   userId: string,
-  delta: Partial<Omit<DbSessionStats, 'session_date'>>,
+  delta: Partial<Omit<DbSessionStats, 'session_date'>>
 ): Promise<void> {
   if (!supabase) return;
 
@@ -446,7 +503,8 @@ export async function trackStats(
   const updated = {
     user_id: userId,
     session_date: today,
-    photos_imported: (current?.photos_imported ?? 0) + (delta.photos_imported ?? 0),
+    photos_imported:
+      (current?.photos_imported ?? 0) + (delta.photos_imported ?? 0),
     photos_rated: (current?.photos_rated ?? 0) + (delta.photos_rated ?? 0),
     picks_count: (current?.picks_count ?? 0) + (delta.picks_count ?? 0),
     rejects_count: (current?.rejects_count ?? 0) + (delta.rejects_count ?? 0),
@@ -463,7 +521,7 @@ export async function trackStats(
  */
 export async function loadSessionStats(
   userId: string,
-  days = 30,
+  days = 30
 ): Promise<DbSessionStats[]> {
   if (!supabase) return [];
 
@@ -487,21 +545,23 @@ export async function loadSessionStats(
 export async function syncCollections(
   userId: string,
   collections: Record<string, PhotoCollection>,
-  collectionOrder: string[],
+  collectionOrder: string[]
 ): Promise<void> {
   if (!supabase) return;
 
-  const rows = collectionOrder.map((id, index) => {
-    const col = collections[id];
-    if (!col) return null;
-    return {
-      user_id: userId,
-      name: col.name,
-      description: col.description ?? null,
-      photo_file_hashes: [] as string[], // Les hashes sont résolus via photo_metadata
-      display_order: index,
-    };
-  }).filter(Boolean);
+  const rows = collectionOrder
+    .map((id, index) => {
+      const col = collections[id];
+      if (!col) return null;
+      return {
+        user_id: userId,
+        name: col.name,
+        description: col.description ?? null,
+        photo_file_hashes: [] as string[], // Les hashes sont résolus via photo_metadata
+        display_order: index,
+      };
+    })
+    .filter(Boolean);
 
   if (rows.length === 0) return;
 

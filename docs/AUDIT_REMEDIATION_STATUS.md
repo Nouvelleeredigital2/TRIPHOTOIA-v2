@@ -159,8 +159,12 @@ bitmap couverts par revue de code (worker non instrumentable sous jsdom).
   `noImplicitThis`, `strictBindCallApply`, `useUnknownInCatchVariables`,
   `alwaysStrict`. Restent par lots : `strictNullChecks` (22), `noImplicitAny`
   (49), `strictFunctionTypes` (1), `strictPropertyInitialization` (1).
-- ⬜ Standardisation Radix Dialog (focus trap/Échap/aria-modal/restauration
-  focus) sur les dialogues custom — chantier dédié.
+- ✅ **Standardisation Radix Dialog** : le wrapper `src/components/ui/dialog.tsx`
+  (Radix : focus trap, Échap, `aria-modal`, restauration du focus,
+  `aria-describedby`) est le standard. `ShareDialog` — seul dialogue modal
+  construit à la main (backdrop `motion.div`, sans focus trap ni Échap) — a été
+  migré dessus (`Dialog`/`DialogContent`/`DialogHeader`/`DialogTitle`). Les
+  confirmations (`confirmation-dialog`) et `DevelopmentTab` l'utilisaient déjà.
 
 ## Vérifications exécutées (toolchain local réparé)
 

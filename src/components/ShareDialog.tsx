@@ -1,7 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
-  X,
   Link,
   Copy,
   Trash2,
@@ -9,6 +7,7 @@ import {
   Loader2,
   ExternalLink,
 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { useAuthStore } from '../store/authStore';
 import { usePhotoStore } from '../store/photoStore';
 import {
@@ -152,166 +151,147 @@ export function ShareDialog({ open, onClose }: ShareDialogProps) {
 
   return (
     <>
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
-            onClick={onClose}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ duration: 0.18 }}
-              className="w-full max-w-lg rounded-2xl border border-border bg-card shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between border-b border-border/50 px-5 py-4">
-                <div className="flex items-center gap-2">
-                  <Share2 className="h-4 w-4 text-primary" />
-                  <h2 className="text-sm font-bold">Partager avec un client</h2>
-                </div>
-                <button
-                  onClick={onClose}
-                  className="text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
+      {/* P2 : dialogue standardisé sur Radix (focus trap, Échap, aria-modal,
+          restauration du focus) via le wrapper ui/dialog. */}
+      <Dialog
+        open={open}
+        onOpenChange={(o) => {
+          if (!o) onClose();
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-sm font-bold">
+              <Share2 className="h-4 w-4 text-primary" />
+              Partager avec un client
+            </DialogTitle>
+          </DialogHeader>
 
-              <div className="space-y-5 p-5">
-                {!user ? (
-                  <div className="py-6 text-center text-sm text-muted-foreground">
-                    <Share2 className="mx-auto mb-3 h-10 w-10 opacity-30" />
-                    Connectez-vous pour créer des liens de partage.
+          <div className="space-y-5">
+            {!user ? (
+              <div className="py-6 text-center text-sm text-muted-foreground">
+                <Share2 className="mx-auto mb-3 h-10 w-10 opacity-30" />
+                Connectez-vous pour créer des liens de partage.
+              </div>
+            ) : (
+              <>
+                {/* Créer un lien */}
+                <div className="space-y-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Nouveau lien — {picks.length} pick
+                    {picks.length !== 1 ? 's' : ''}
                   </div>
-                ) : (
-                  <>
-                    {/* Créer un lien */}
-                    <div className="space-y-3">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        Nouveau lien — {picks.length} pick
-                        {picks.length !== 1 ? 's' : ''}
-                      </div>
 
-                      {picks.length === 0 ? (
-                        <p className="rounded-lg bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-                          Marquez des photos comme <strong>Pick</strong> (touche{' '}
-                          <kbd className="font-mono">P</kbd>) pour les partager.
-                        </p>
-                      ) : (
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            placeholder="Nom du lien (optionnel)"
-                            value={linkName}
-                            onChange={(e) => setLinkName(e.target.value)}
-                            onKeyDown={(e) =>
-                              e.key === 'Enter' && handleCreate()
-                            }
-                            className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                          />
-                          <button
-                            onClick={handleCreate}
-                            disabled={creating || picks.length === 0}
-                            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+                  {picks.length === 0 ? (
+                    <p className="rounded-lg bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                      Marquez des photos comme <strong>Pick</strong> (touche{' '}
+                      <kbd className="font-mono">P</kbd>) pour les partager.
+                    </p>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Nom du lien (optionnel)"
+                        value={linkName}
+                        onChange={(e) => setLinkName(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+                        className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      />
+                      <button
+                        onClick={handleCreate}
+                        disabled={creating || picks.length === 0}
+                        className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+                      >
+                        {creating ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Link className="h-4 w-4" />
+                        )}
+                        Créer
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Liste des liens existants */}
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Liens existants
+                  </div>
+
+                  {loading ? (
+                    <p className="py-4 text-center text-xs text-muted-foreground">
+                      Chargement…
+                    </p>
+                  ) : links.length === 0 ? (
+                    <p className="py-4 text-center text-xs text-muted-foreground">
+                      Aucun lien créé
+                    </p>
+                  ) : (
+                    <div className="max-h-48 space-y-2 overflow-y-auto">
+                      {links.map((link) => {
+                        const url = `${BASE_URL}#/share/${link.token}`;
+                        const isExpired =
+                          link.expires_at &&
+                          new Date(link.expires_at) < new Date();
+                        return (
+                          <div
+                            key={link.id}
+                            className={`flex items-center gap-2 rounded-lg border p-3 ${isExpired ? 'border-border/30 bg-muted/20 opacity-60' : 'border-border/60 bg-muted/30'}`}
                           >
-                            {creating ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Link className="h-4 w-4" />
-                            )}
-                            Créer
-                          </button>
-                        </div>
-                      )}
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-xs font-medium">
+                                {link.name || 'Sans titre'}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {link.photo_file_hashes.length} photo
+                                {link.photo_file_hashes.length !== 1
+                                  ? 's'
+                                  : ''}{' '}
+                                •{' '}
+                                {new Date(link.created_at).toLocaleDateString(
+                                  'fr-FR'
+                                )}
+                                {isExpired && ' • Expiré'}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => window.open(url, '_blank')}
+                              className="p-1 text-muted-foreground transition-colors hover:text-foreground"
+                              title="Ouvrir"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleCopy(link.token)}
+                              className="p-1 text-muted-foreground transition-colors hover:text-foreground"
+                              title="Copier le lien"
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setDeleteTarget(link)}
+                              disabled={deletingId === link.id}
+                              className="p-1 text-muted-foreground transition-colors hover:text-destructive disabled:opacity-50"
+                              title="Supprimer"
+                            >
+                              {deletingId === link.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-3.5 w-3.5" />
+                              )}
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
-
-                    {/* Liste des liens existants */}
-                    <div className="space-y-2">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        Liens existants
-                      </div>
-
-                      {loading ? (
-                        <p className="py-4 text-center text-xs text-muted-foreground">
-                          Chargement…
-                        </p>
-                      ) : links.length === 0 ? (
-                        <p className="py-4 text-center text-xs text-muted-foreground">
-                          Aucun lien créé
-                        </p>
-                      ) : (
-                        <div className="max-h-48 space-y-2 overflow-y-auto">
-                          {links.map((link) => {
-                            const url = `${BASE_URL}#/share/${link.token}`;
-                            const isExpired =
-                              link.expires_at &&
-                              new Date(link.expires_at) < new Date();
-                            return (
-                              <div
-                                key={link.id}
-                                className={`flex items-center gap-2 rounded-lg border p-3 ${isExpired ? 'border-border/30 bg-muted/20 opacity-60' : 'border-border/60 bg-muted/30'}`}
-                              >
-                                <div className="min-w-0 flex-1">
-                                  <p className="truncate text-xs font-medium">
-                                    {link.name || 'Sans titre'}
-                                  </p>
-                                  <p className="text-[10px] text-muted-foreground">
-                                    {link.photo_file_hashes.length} photo
-                                    {link.photo_file_hashes.length !== 1
-                                      ? 's'
-                                      : ''}{' '}
-                                    •{' '}
-                                    {new Date(
-                                      link.created_at
-                                    ).toLocaleDateString('fr-FR')}
-                                    {isExpired && ' • Expiré'}
-                                  </p>
-                                </div>
-                                <button
-                                  onClick={() => window.open(url, '_blank')}
-                                  className="p-1 text-muted-foreground transition-colors hover:text-foreground"
-                                  title="Ouvrir"
-                                >
-                                  <ExternalLink className="h-3.5 w-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => handleCopy(link.token)}
-                                  className="p-1 text-muted-foreground transition-colors hover:text-foreground"
-                                  title="Copier le lien"
-                                >
-                                  <Copy className="h-3.5 w-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => setDeleteTarget(link)}
-                                  disabled={deletingId === link.id}
-                                  className="p-1 text-muted-foreground transition-colors hover:text-destructive disabled:opacity-50"
-                                  title="Supprimer"
-                                >
-                                  {deletingId === link.id ? (
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                  ) : (
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  )}
-                                </button>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <ConfirmationDialog
         open={deleteTarget !== null}

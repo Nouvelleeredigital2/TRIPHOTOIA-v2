@@ -146,9 +146,17 @@ bitmap couverts par revue de code (worker non instrumentable sous jsdom).
   `ShareDialog` (repli vide hors navigateur). Le reste des occurrences
   `triphotoia` est la table de migration de clés legacy (`storage-migration.ts`),
   conservée volontairement.
-- ⬜ Reste : `strict: true` progressif, routing hash `#/share/<token>` testé,
-  standardisation Radix Dialog (focus trap/Échap/aria-modal), SemVer + alignement
-  documentaire, suppression des affirmations de précision non sourcées.
+- ✅ **Routing hash `#/share/<token>`** : déjà pris en compte sans rechargement
+  (listener `hashchange`, `App.tsx`). Parsing isolé en fonction pure testable
+  `parseShareToken` (`src/lib/share-routing.ts`) + test
+  `src/test/lib/share-routing.test.ts`.
+- ✅ **Version SemVer** : `package.json` passé de `0.0.0` à `2.1.0` (aligné sur
+  les notes de version v2).
+- ✅ **Affirmations de précision** : aucun claim chiffré (`xx % de précision`)
+  dans le code actif `src/` (rien à retirer).
+- ⬜ Reste : `strict: true` progressif (activation globale risquée — le code
+  n'est pas strict-clean ; à appliquer par lots), standardisation Radix Dialog
+  (focus trap/Échap/aria-modal) — chantiers dédiés.
 
 ## Vérifications exécutées (toolchain local réparé)
 

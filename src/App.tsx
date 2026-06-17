@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { UserMenu } from './components/auth/UserMenu';
 import { ShareView } from './components/ShareView';
+import { parseShareToken } from './lib/share-routing';
 import { ShareDialog } from './components/ShareDialog';
 import { useAuthStore } from './store/authStore';
 import { useCloudSync } from './hooks/useCloudSync';
@@ -69,8 +70,7 @@ const queryClient = new QueryClient({
 /** Détecte si l'URL est une page de partage (#/share/TOKEN) */
 function getShareToken(): string | null {
   const hash = typeof window !== 'undefined' ? window.location.hash : '';
-  const match = hash.match(/^#\/share\/([a-f0-9]+)$/);
-  return match ? match[1] : null;
+  return parseShareToken(hash);
 }
 
 function App() {

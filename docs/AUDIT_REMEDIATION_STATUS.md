@@ -87,7 +87,12 @@ bitmap couverts par revue de code (worker non instrumentable sous jsdom).
 
 ## P1 — Critiques
 
-- P1-A Politique d'import unique ⬜
+- P1-A Politique d'import unique ✅ — `src/lib/import-policy.ts` (extension +
+  taille + signature magic bytes + refus RAW + cap lot, motifs de refus
+  détaillés), branchée sur le puits commun `handleFilesSelected` (Studio Grid +
+  AutoFlow) ; `calculateFileHash` ne retourne plus jamais `''` (lève → fichier
+  rejeté) ; URL blob créée seulement pour une photo unique (pas de fuite sur
+  refus/doublon). Tests : `src/test/lib/import-policy.test.ts`.
 - P1-B Retrait API IA / secrets navigateur 🟡 (HF retiré du frontend en P0-A ;
   reste : CSP minimale, `.env.example` audité, garde variable serveur dans `src/`)
 - P1-C Partage client privé et révocable ⬜

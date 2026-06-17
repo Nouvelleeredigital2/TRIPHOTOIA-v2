@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { calculateFileHash, mapWithConcurrency } from '../../lib/utils';
+import { validateImportFiles } from '../../lib/import-policy';
 import { Photo, PhotoAnalysis } from '../../types';
 import { usePhotoStore } from '../../store/photoStore';
 import { usePhotoAnalysis } from '../../hooks/usePhotoAnalysis';
@@ -26,17 +27,23 @@ function IngestionTab() {
   const queryClient = useQueryClient();
   const analyzingPhotoIds = usePhotoStore((state) => state.analyzingPhotoIds);
   const addPhotos = usePhotoStore((state) => state.addPhotos);
-  const addPhotosToCollection = usePhotoStore((state) => state.addPhotosToCollection);
-  const removePhotosFromCollection = usePhotoStore((state) => state.removePhotosFromCollection);
+  const addPhotosToCollection = usePhotoStore(
+    (state) => state.addPhotosToCollection
+  );
+  const removePhotosFromCollection = usePhotoStore(
+    (state) => state.removePhotosFromCollection
+  );
   const activeCollectionId = usePhotoStore((state) => state.activeCollectionId);
   const collections = usePhotoStore((state) => state.collections);
   const allPhotos = usePhotoStore((state) => state.photos);
   const requeueForAnalysis = usePhotoStore((state) => state.requeueForAnalysis);
-  const activeCloudProject = useCloudProjectStore((state) => state.activeProject);
+  const activeCloudProject = useCloudProjectStore(
+    (state) => state.activeProject
+  );
 
   // Calculer les valeurs dérivées avec useMemo pour éviter les boucles infinies
-  const activeCollection = useMemo(() =>
-    collections[activeCollectionId],
+  const activeCollection = useMemo(
+    () => collections[activeCollectionId],
     [collections, activeCollectionId]
   );
 
@@ -51,9 +58,14 @@ function IngestionTab() {
   }, [activeCollection, allPhotos]);
   const { isProcessing, stopProcessingPhotos } = usePhotoAnalysis();
 
-  const collectionPhotoIds = useMemo(() => new Set<string>(activeCollection?.photoIds ?? []), [activeCollection?.photoIds]);
+  const collectionPhotoIds = useMemo(
+    () => new Set<string>(activeCollection?.photoIds ?? []),
+    [activeCollection?.photoIds]
+  );
   const processedInActive = useMemo(
-    () => activePhotos.filter((photo) => photo.analysis && !photo.analysis.error).length,
+    () =>
+      activePhotos.filter((photo) => photo.analysis && !photo.analysis.error)
+        .length,
     [activePhotos]
   );
 
@@ -65,50 +77,116 @@ function IngestionTab() {
           const a = p.analysis;
           if (!a) return true;
           if (a.error) return false; // les erreurs se relancent via le filtre « Erreurs »
-          return a.sharpnessScore === undefined && !(a.tags && a.tags.length > 0);
+          return (
+            a.sharpnessScore === undefined && !(a.tags && a.tags.length > 0)
+          );
         })
         .map((p) => p.id),
     [activePhotos]
   );
 
   const handleFilesSelected = async (files: File[]) => {
-    // Hash SHA-256 intégral des fichiers, à concurrence bornée : on garde du
-    // parallélisme sans charger des centaines de fichiers en mémoire d'un coup
-    // (cf. P0-2). L'ordre des résultats est préservé.
-    const photosWithHashes = await mapWithConcurrency(files, 4, async (file) => {
+    // P1-A : politique d'import unique (extension + taille + signature réelle,
+    // refus RAW), commune à Studio Grid et AutoFlow (même puits).
+    const { accepted, rejected } = await validateImportFiles(files);
+    const rejections = [...rejected];
+
+    // Hash SHA-256 intégral des fichiers acceptés, à concurrence bornée. Un échec
+    // de hash rejette le fichier (jamais d'ID vide). Aucune URL blob n'est créée
+    // avant le hash → pas de fuite pour les fichiers rejetés.
+    const hashed = await mapWithConcurrency(accepted, 4, async (file) => {
+      try {
         const fileHash = await calculateFileHash(file);
-        return {
-          // A-14 : ID = SHA-256 du contenu. Deux fichiers différents (même nom/taille/date)
-          // ne collisionnent plus ; un même fichier réimporté est dédupliqué par addPhotos.
-          id: fileHash,
+        return { file, fileHash };
+      } catch (error) {
+        rejections.push({
           file,
-          fileHash,  // niveau Photo — clé cross-device pour le cloud
-          previewUrl: URL.createObjectURL(file),
-          analysis: {
-            fileHash, // Add the cryptographic hash immediately
-          } as Partial<PhotoAnalysis>,
-        };
-      });
+          reason:
+            error instanceof Error
+              ? error.message
+              : "Échec du calcul d'empreinte",
+        });
+        return null;
+      }
+    });
+
+    // Déduplication par empreinte (intra-lot + contre le catalogue existant) :
+    // l'URL blob de prévisualisation n'est créée qu'une seule fois par photo
+    // réellement nouvelle, donc jamais pour un doublon (pas de fuite).
+    const existingIds = new Set(
+      usePhotoStore.getState().photos.map((p) => p.id)
+    );
+    const seen = new Set<string>();
+    let duplicates = 0;
+    const photosWithHashes = hashed
+      .filter((h): h is { file: File; fileHash: string } => h !== null)
+      .filter(({ fileHash }) => {
+        if (existingIds.has(fileHash) || seen.has(fileHash)) {
+          duplicates += 1;
+          return false;
+        }
+        seen.add(fileHash);
+        return true;
+      })
+      .map(({ file, fileHash }) => ({
+        // A-14 : ID = SHA-256 du contenu.
+        id: fileHash,
+        file,
+        fileHash, // niveau Photo — clé cross-device pour le cloud
+        previewUrl: URL.createObjectURL(file),
+        analysis: {
+          fileHash,
+        } as Partial<PhotoAnalysis>,
+      }));
+
+    if (rejections.length > 0) {
+      const sample = rejections
+        .slice(0, 3)
+        .map((r) => `${r.file.name} : ${r.reason}`);
+      toast.error(
+        `${rejections.length} fichier${rejections.length > 1 ? 's' : ''} refusé${rejections.length > 1 ? 's' : ''}\n${sample.join('\n')}${rejections.length > 3 ? '\n…' : ''}`
+      );
+    }
+    if (duplicates > 0) {
+      toast(
+        `${duplicates} doublon${duplicates > 1 ? 's' : ''} ignoré${duplicates > 1 ? 's' : ''}`,
+        { icon: 'ℹ️' }
+      );
+    }
+    if (photosWithHashes.length === 0) {
+      return;
+    }
 
     addPhotos(photosWithHashes);
 
     if (activeCloudProject) {
-      const toastId = toast.loading(`Upload cloud 0 % · ${activeCloudProject.name}`);
+      const toastId = toast.loading(
+        `Upload cloud 0 % · ${activeCloudProject.name}`
+      );
       uploadPhotosToCloud({
         activeProject: activeCloudProject,
-        files,
+        files: photosWithHashes.map((photo) => photo.file),
         localPhotoIds: photosWithHashes.map((photo) => photo.id),
         onProgress: (progress) => {
-          toast.loading(`Upload cloud ${progress} % · ${activeCloudProject.name}`, { id: toastId });
+          toast.loading(
+            `Upload cloud ${progress} % · ${activeCloudProject.name}`,
+            { id: toastId }
+          );
         },
       })
         .then((result) => {
           useCloudProjectStore.getState().linkCloudPhotos(result.mappings);
-          void queryClient.invalidateQueries({ queryKey: ['cloud-project-photos', activeCloudProject.id] });
-          toast.success(`${result.uploaded} photo${result.uploaded > 1 ? 's' : ''} uploadée${result.uploaded > 1 ? 's' : ''} dans le projet cloud`, { id: toastId });
+          void queryClient.invalidateQueries({
+            queryKey: ['cloud-project-photos', activeCloudProject.id],
+          });
+          toast.success(
+            `${result.uploaded} photo${result.uploaded > 1 ? 's' : ''} uploadée${result.uploaded > 1 ? 's' : ''} dans le projet cloud`,
+            { id: toastId }
+          );
         })
         .catch((error) => {
-          const message = error instanceof Error ? error.message : 'Upload cloud impossible';
+          const message =
+            error instanceof Error ? error.message : 'Upload cloud impossible';
           toast.error(message, { id: toastId });
         });
     }
@@ -129,7 +207,13 @@ function IngestionTab() {
   /* ── Empty state: show AutoFlow v2 import screen ── */
   if (activePhotos.length === 0) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 160px)' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 'calc(100vh - 160px)',
+        }}
+      >
         {/* API selector stays accessible */}
         <div style={{ padding: '0 0 8px' }}>
           <ApiSelector />
@@ -150,10 +234,11 @@ function IngestionTab() {
       transition={{ duration: 0.3 }}
       className="space-y-6"
     >
-      <div className="text-center space-y-2">
+      <div className="space-y-2 text-center">
         <h2 className="text-3xl font-bold">Ingestion & Analyse</h2>
         <p className="text-muted-foreground">
-          Chargez vos photos pour commencer l&apos;analyse automatique avec l&apos;IA
+          Chargez vos photos pour commencer l&apos;analyse automatique avec
+          l&apos;IA
         </p>
       </div>
 
@@ -176,9 +261,10 @@ function IngestionTab() {
 
       {/* A-17 : relancer l'analyse des photos jamais analysées (après un arrêt) */}
       {!isProcessing && unanalyzedIds.length > 0 && (
-        <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-sm">
+        <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm">
           <span className="font-medium text-amber-700 dark:text-amber-400">
-            {unanalyzedIds.length} photo{unanalyzedIds.length > 1 ? 's' : ''} non analysée{unanalyzedIds.length > 1 ? 's' : ''}
+            {unanalyzedIds.length} photo{unanalyzedIds.length > 1 ? 's' : ''}{' '}
+            non analysée{unanalyzedIds.length > 1 ? 's' : ''}
           </span>
           <Button
             size="sm"
@@ -186,10 +272,10 @@ function IngestionTab() {
             className="ml-auto gap-1"
             onClick={() => {
               requeueForAnalysis(unanalyzedIds);
-              toast.success("Analyse relancée");
+              toast.success('Analyse relancée');
             }}
           >
-            <RefreshCw className="w-3.5 h-3.5" />
+            <RefreshCw className="h-3.5 w-3.5" />
             Relancer l&apos;analyse
           </Button>
         </div>
@@ -218,6 +304,3 @@ function IngestionTab() {
 }
 
 export default IngestionTab;
-
-
-

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { usePhotoStore } from '../store/photoStore';
-import { Photo } from '../../types';
+import { Photo } from '../types';
 
 export function DuplicateTest() {
   const [testResults, setTestResults] = useState<string[]>([]);

@@ -8,8 +8,8 @@ import { usePhotoStore } from '../../store/photoStore';
 import { useAiErrorStore } from '../../store/aiErrorStore';
 import { Photo } from '../../types';
 
-// usePhotoAnalysis.ts imports from '../../../services/geminiService' (root-level services/)
-vi.mock('../../../services/geminiService', () => ({
+// usePhotoAnalysis.ts imports the façade from '@/services/geminiService' (src/services/).
+vi.mock('@/services/geminiService', () => ({
   analyzePhotosBatch: vi.fn(),
 }));
 
@@ -19,7 +19,7 @@ vi.mock('../../lib/analysis-queue-persistence', () => ({
   clearAnalysisState: vi.fn().mockResolvedValue(undefined),
 }));
 
-const { analyzePhotosBatch } = await import('../../../services/geminiService');
+const { analyzePhotosBatch } = await import('@/services/geminiService');
 const persistence = await import('../../lib/analysis-queue-persistence');
 
 const createMockPhoto = (overrides?: Partial<Photo>): Photo => {

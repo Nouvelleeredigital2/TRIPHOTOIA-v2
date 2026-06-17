@@ -22,12 +22,9 @@
     "src",
     "worker",
     "index.tsx",
-    "services/**/*.ts",
-    "types.ts",
     "vitest.config.ts",
     "vite.config.ts",
-    "eslint.config.js",
-    "test-cv.js"
+    "eslint.config.js"
   ],
   "exclude": [
     "node_modules",

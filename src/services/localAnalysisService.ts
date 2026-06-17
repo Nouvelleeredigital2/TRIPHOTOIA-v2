@@ -4,7 +4,7 @@
  */
 
 import { ImageProcessor } from '../lib/image-analysis/imageProcessor';
-import { PhotoAnalysis } from '../../types';
+import { PhotoAnalysis } from '../types';
 
 export class LocalAnalysisService {
   private imageProcessor: ImageProcessor;

@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { usePhotoStore } from '../store/photoStore';
-import { analyzePhotosBatch } from '../../services/geminiService';
+import { analyzePhotosBatch } from '@/services/geminiService';
 import { Photo } from '../types';
 import {
   loadAnalysisState,

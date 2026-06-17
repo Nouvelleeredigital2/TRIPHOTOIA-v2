@@ -3,7 +3,7 @@
  * Analyse r??elle des images pour d??tecter flou et doublons
  */
 
-import { PhotoAnalysis } from '../../types';
+import { PhotoAnalysis } from '../types';
 
 export const simpleAnalysisService = {
   analyzePhotosBatch: async (files: File[]): Promise<PhotoAnalysis[]> => {

@@ -49,22 +49,21 @@ Fichiers modifiés : `src/services/geminiService.ts`, `src/services/localAnalysi
 Vérifs : `pnpm type-check` exit 0 ; greps d'acceptation (services racine, stubs
 Replicate/Clarifai/hf_demo, `api-inference.huggingface.co`) → 0 occurrence.
 
-### P0-B — Supprimer les simulations et tracer la provenance 🟡 (partiel)
+### P0-B — Supprimer les simulations et tracer la provenance ✅
 
-| Élément                                                                                | Statut          |
-| -------------------------------------------------------------------------------------- | --------------- |
-| Suppression du worker simulé `src/workers/simpleImageWorker.ts`                        | ✅ supprimé     |
-| Suppression du fallback silencieux vers scores fabriqués (worker simple)               | ✅              |
-| `Math.random()` retiré des chemins d'analyse (`src/services`, `src/workers`, `worker`) | ✅ (grep = 0)   |
-| Résultat par fichier (`Promise.allSettled`, fallback local réel par photo)             | ✅              |
-| Modèle de provenance (`AnalysisMode` / `AnalysisProvenance`)                           | ⬜ **non fait** |
-| Validation Zod des résultats aux frontières                                            | ⬜ **non fait** |
-| Interdiction du mode `demo` en production (test)                                       | ⬜ **non fait** |
+| Élément                                                                                | Statut        |
+| -------------------------------------------------------------------------------------- | ------------- |
+| Suppression du worker simulé `src/workers/simpleImageWorker.ts`                        | ✅ supprimé   |
+| Suppression du fallback silencieux vers scores fabriqués (worker simple)               | ✅            |
+| `Math.random()` retiré des chemins d'analyse (`src/services`, `src/workers`, `worker`) | ✅ (grep = 0) |
+| Résultat par fichier (`Promise.allSettled`, fallback local réel par photo)             | ✅            |
+| Modèle de provenance (`AnalysisMode` / `AnalysisProvenance` dans `src/types`)          | ✅            |
+| Provenance attachée par le moteur local réel (`local-pixel`, `confidence: null`)       | ✅            |
+| Validation Zod à la frontière (`validateAnalysisResult` dans la façade)                | ✅            |
+| Rejet NaN/Infinity/hors plage + sans provenance → erreur structurée                    | ✅ (tests)    |
+| Mode `demo` interdit en production / providers distants non sélectionnables            | ✅ (tests)    |
 
-Note : la partie la plus dangereuse (scores fabriqués atteignant la production via
-le worker simulé et son fallback silencieux) est éliminée. Le **modèle de
-provenance obligatoire et la validation Zod restent à implémenter** — c'est le
-cœur restant de P0-B.
+Tests : `src/test/services/analysisProvenance.test.ts` (6 cas).
 
 ### P0-C — Réduire mémoire et CPU du pipeline image 🟡 (largement fait)
 
@@ -98,20 +97,19 @@ bitmap couverts par revue de code (worker non instrumentable sous jsdom).
 
 ## Vérifications exécutées (toolchain local réparé)
 
-| Commande | Résultat |
-|---|---|
-| `pnpm type-check` (`tsc --noEmit`) | ✅ exit 0 |
-| `pnpm lint` (`eslint . --max-warnings 0`) | ✅ exit 0 |
-| `pnpm exec vitest run` (suite complète) | ✅ 281/281, 53 fichiers |
-| `pnpm build` (`vite build`) | ✅ built in ~17 s |
-| `prettier --check` (fichiers modifiés) | ✅ clean |
-| Greps d'acceptation P0-A/P0-B | ✅ 0 occurrence |
-| Scan bundle `dist/assets` (stubs/secrets) | ✅ 0 occurrence |
+| Commande                                  | Résultat                |
+| ----------------------------------------- | ----------------------- |
+| `pnpm type-check` (`tsc --noEmit`)        | ✅ exit 0               |
+| `pnpm lint` (`eslint . --max-warnings 0`) | ✅ exit 0               |
+| `pnpm exec vitest run` (suite complète)   | ✅ 288/288, 54 fichiers |
+| `pnpm build` (`vite build`)               | ✅ built in ~17 s       |
+| `prettier --check` (fichiers modifiés)    | ✅ clean                |
+| Greps d'acceptation P0-A/P0-B             | ✅ 0 occurrence         |
+| Scan bundle `dist/assets` (stubs/secrets) | ✅ 0 occurrence         |
 
 ## Risques ouverts (P0/P1 restants)
 
-- **P0-B** : modèle de provenance obligatoire + validation Zod des résultats
-  d'analyse non implémentés. Sévérité : haute.
+- **P0-B** : ✅ traité (provenance + validation Zod à la frontière d'analyse).
 - **P0-C** : annulation `AbortSignal` non implémentée. Sévérité : moyenne.
 - **P1-A** : politique d'import unifiée (magic bytes, rejet RAW, hash non vide)
   non traitée. Sévérité : haute.

@@ -9,6 +9,7 @@
 
 import { LocalAnalysisService } from './localAnalysisService';
 import { PhotoAnalysis } from '../types';
+import { validateAnalysisResult } from '../lib/validators';
 
 /**
  * Providers d'analyse réellement supportés en production.
@@ -46,5 +47,8 @@ export async function analyzePhotosBatch(
   files: File[]
 ): Promise<Partial<PhotoAnalysis>[]> {
   if (files.length === 0) return [];
-  return _localService.analyzePhotosBatch(files);
+  const results = await _localService.analyzePhotosBatch(files);
+  // P0-B : validation Zod à la frontière. Un résultat invalide (NaN, hors plage,
+  // sans provenance, mode `demo`…) devient une erreur structurée, jamais un score.
+  return results.map((result) => validateAnalysisResult(result));
 }

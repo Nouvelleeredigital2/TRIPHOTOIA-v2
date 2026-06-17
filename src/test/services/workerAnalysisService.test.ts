@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 // P0-C : invariants de ressources du pool de Web Workers.
 // On remplace `Worker` par un faux contrôlable pour vérifier que le pool reste

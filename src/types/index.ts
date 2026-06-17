@@ -1,15 +1,68 @@
 /** Labels couleur style Lightroom : rouge, jaune, vert, bleu, violet */
 export type ColorLabel = 'red' | 'yellow' | 'green' | 'blue' | 'purple';
 
-export const COLOR_LABEL_META: Record<ColorLabel, { label: string; bg: string; ring: string; dot: string }> = {
-  red:    { label: 'Rouge',  bg: 'bg-red-500',    ring: 'ring-red-500',    dot: '#ef4444' },
-  yellow: { label: 'Jaune',  bg: 'bg-yellow-400', ring: 'ring-yellow-400', dot: '#facc15' },
-  green:  { label: 'Vert',   bg: 'bg-green-500',  ring: 'ring-green-500',  dot: '#22c55e' },
-  blue:   { label: 'Bleu',   bg: 'bg-blue-500',   ring: 'ring-blue-500',   dot: '#3b82f6' },
-  purple: { label: 'Violet', bg: 'bg-purple-500', ring: 'ring-purple-500', dot: '#a855f7' },
+export const COLOR_LABEL_META: Record<
+  ColorLabel,
+  { label: string; bg: string; ring: string; dot: string }
+> = {
+  red: {
+    label: 'Rouge',
+    bg: 'bg-red-500',
+    ring: 'ring-red-500',
+    dot: '#ef4444',
+  },
+  yellow: {
+    label: 'Jaune',
+    bg: 'bg-yellow-400',
+    ring: 'ring-yellow-400',
+    dot: '#facc15',
+  },
+  green: {
+    label: 'Vert',
+    bg: 'bg-green-500',
+    ring: 'ring-green-500',
+    dot: '#22c55e',
+  },
+  blue: {
+    label: 'Bleu',
+    bg: 'bg-blue-500',
+    ring: 'ring-blue-500',
+    dot: '#3b82f6',
+  },
+  purple: {
+    label: 'Violet',
+    bg: 'bg-purple-500',
+    ring: 'ring-purple-500',
+    dot: '#a855f7',
+  },
 };
 
 export const COLOR_LABEL_KEYS = Object.keys(COLOR_LABEL_META) as ColorLabel[];
+
+/**
+ * P0-B : mode d'analyse réellement utilisé pour produire un résultat.
+ * - `local-pixel` : analyse réelle des pixels (Canvas / Web Worker).
+ * - `cloud-model` : modèle distant authentifié (non disponible actuellement).
+ * - `heuristic`  : heuristique pixel non calibrée (ex. tags dérivés de mesures).
+ * - `demo`       : démonstration — INTERDIT en build production.
+ */
+export type AnalysisMode = 'local-pixel' | 'cloud-model' | 'heuristic' | 'demo';
+
+/**
+ * P0-B : provenance obligatoire d'un résultat d'analyse. Permet de distinguer
+ * un résultat réel d'un repli, et interdit qu'une valeur fabriquée passe pour
+ * une analyse. `confidence` vaut `null` quand aucune confiance calibrée n'est
+ * disponible (jamais inventée).
+ */
+export interface AnalysisProvenance {
+  engine: string;
+  model: string;
+  modelVersion: string;
+  analysisMode: AnalysisMode;
+  confidence: number | null;
+  isFallback: boolean;
+  computedAt: string; // ISO 8601
+}
 
 export interface PhotoAnalysis {
   isBlurry?: boolean;
@@ -24,6 +77,7 @@ export interface PhotoAnalysis {
     contrast: number;
     saturation: number;
   };
+  provenance?: AnalysisProvenance; // P0-B : traçabilité du résultat
   rating?: number; // 0-5 stars (0 = no rating)
   isPick?: boolean; // Lightroom-style "Pick" flag
   isRejected?: boolean; // Lightroom-style "Reject" flag (X)
@@ -102,7 +156,9 @@ export const DEFAULT_RETOUCH_OPTIONS: RetouchOptions = {
   sharpness: 0,
 };
 
-export const createDefaultRetouchOptions = (): RetouchOptions => ({ ...DEFAULT_RETOUCH_OPTIONS });
+export const createDefaultRetouchOptions = (): RetouchOptions => ({
+  ...DEFAULT_RETOUCH_OPTIONS,
+});
 
 // ── Presets utilisateur ──────────────────────────────────────────────────────
 
@@ -165,12 +221,20 @@ type SetRatingAction = {
 
 type SetPickAction = {
   type: 'SET_PICK';
-  payload: { photoId: string; previousPick: boolean; previousRejected: boolean };
+  payload: {
+    photoId: string;
+    previousPick: boolean;
+    previousRejected: boolean;
+  };
 };
 
 type SetRejectAction = {
   type: 'SET_REJECT';
-  payload: { photoId: string; previousPick: boolean; previousRejected: boolean };
+  payload: {
+    photoId: string;
+    previousPick: boolean;
+    previousRejected: boolean;
+  };
 };
 
 type SetColorLabelAction = {

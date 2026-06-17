@@ -4,7 +4,22 @@
  */
 
 import { ImageProcessor } from '../lib/image-analysis/imageProcessor';
-import { PhotoAnalysis } from '../types';
+import { PhotoAnalysis, AnalysisProvenance } from '../types';
+
+// P0-B : provenance du moteur local réel (analyse pixel sur le thread principal
+// via Canvas). `confidence` reste `null` : aucune confiance calibrée n'est
+// produite, on ne l'invente pas.
+function localPixelProvenance(): AnalysisProvenance {
+  return {
+    engine: 'treephoto-local-canvas',
+    model: 'pixel-heuristics',
+    modelVersion: '1.0.0',
+    analysisMode: 'local-pixel',
+    confidence: null,
+    isFallback: false,
+    computedAt: new Date().toISOString(),
+  };
+}
 
 export class LocalAnalysisService {
   private imageProcessor: ImageProcessor;
@@ -26,15 +41,15 @@ export class LocalAnalysisService {
 
     try {
       const analyses = await Promise.all(
-        files.map(file => this.analyzeSinglePhoto(file))
+        files.map((file) => this.analyzeSinglePhoto(file))
       );
 
       console.log(`✅ Analyse terminée pour ${analyses.length} photo(s)`);
       return analyses;
     } catch (error) {
-      console.error('Erreur lors de l\'analyse locale:', error);
+      console.error("Erreur lors de l'analyse locale:", error);
       return files.map(() => ({
-        error: 'Erreur d\'analyse locale'
+        error: "Erreur d'analyse locale",
       }));
     }
   }
@@ -53,7 +68,7 @@ export class LocalAnalysisService {
     try {
       const analysis = await this.imageProcessor.analyzeImage(file);
 
-      // Convertir le résultat en format PhotoAnalysis
+      // Convertir le résultat en format PhotoAnalysis (+ provenance P0-B)
       const photoAnalysis: PhotoAnalysis = {
         isBlurry: analysis.isBlurry,
         sharpnessScore: analysis.sharpnessScore,
@@ -62,6 +77,7 @@ export class LocalAnalysisService {
         perceptualHash: analysis.perceptualHash,
         compositionScore: analysis.compositionScore?.overallCompositionScore,
         suggestedRetouch: analysis.suggestedRetouch,
+        provenance: localPixelProvenance(),
       };
 
       // Mettre en cache
@@ -71,7 +87,7 @@ export class LocalAnalysisService {
     } catch (error) {
       console.error(`Erreur lors de l'analyse de ${file.name}:`, error);
       return {
-        error: `Erreur d'analyse: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
+        error: `Erreur d'analyse: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
       };
     }
   }
@@ -91,7 +107,11 @@ export class LocalAnalysisService {
     const processed = new Set<number>();
 
     for (let i = 0; i < analyses.length; i++) {
-      if (processed.has(i) || analyses[i].error || !analyses[i].perceptualHash) {
+      if (
+        processed.has(i) ||
+        analyses[i].error ||
+        !analyses[i].perceptualHash
+      ) {
         continue;
       }
 
@@ -99,7 +119,11 @@ export class LocalAnalysisService {
       processed.add(i);
 
       for (let j = i + 1; j < analyses.length; j++) {
-        if (processed.has(j) || analyses[j].error || !analyses[j].perceptualHash) {
+        if (
+          processed.has(j) ||
+          analyses[j].error ||
+          !analyses[j].perceptualHash
+        ) {
           continue;
         }
 
@@ -108,7 +132,8 @@ export class LocalAnalysisService {
           analyses[j].perceptualHash!
         );
 
-        if (similarity > 0.85) { // Seuil de similarité
+        if (similarity > 0.85) {
+          // Seuil de similarité
           group.push(analyses[j]);
           processed.add(j);
         }
@@ -117,7 +142,7 @@ export class LocalAnalysisService {
       if (group.length > 1) {
         duplicateGroups.push({
           photos: group,
-          similarity: this.calculateGroupSimilarity(group)
+          similarity: this.calculateGroupSimilarity(group),
         });
       }
     }
@@ -178,15 +203,17 @@ export class LocalAnalysisService {
     duplicateGroups: number;
     averageSharpness: number;
   } {
-    const validAnalyses = analyses.filter(a => !a.error);
+    const validAnalyses = analyses.filter((a) => !a.error);
 
-    const blurry = validAnalyses.filter(a => a.isBlurry).length;
-    const sharp = validAnalyses.filter(a => !a.isBlurry).length;
-    const withEyes = validAnalyses.filter(a => a.hasOpenEyes).length;
+    const blurry = validAnalyses.filter((a) => a.isBlurry).length;
+    const sharp = validAnalyses.filter((a) => !a.isBlurry).length;
+    const withEyes = validAnalyses.filter((a) => a.hasOpenEyes).length;
 
-    const averageSharpness = validAnalyses.length > 0
-      ? validAnalyses.reduce((sum, a) => sum + (a.sharpnessScore || 0), 0) / validAnalyses.length
-      : 0;
+    const averageSharpness =
+      validAnalyses.length > 0
+        ? validAnalyses.reduce((sum, a) => sum + (a.sharpnessScore || 0), 0) /
+          validAnalyses.length
+        : 0;
 
     const duplicateGroups = this.detectDuplicates(validAnalyses).length;
 
@@ -196,7 +223,7 @@ export class LocalAnalysisService {
       sharp,
       withEyes,
       duplicateGroups,
-      averageSharpness
+      averageSharpness,
     };
   }
 

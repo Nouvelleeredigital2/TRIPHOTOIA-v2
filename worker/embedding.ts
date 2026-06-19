@@ -39,7 +39,7 @@ const hashSeed = (input: string): number => {
 // Deterministic, normalised pseudo-embedding derived from a seed string.
 export const deterministicEmbedding = (
   seed: string,
-  dimensions = EMBEDDING_DIMENSIONS,
+  dimensions = EMBEDDING_DIMENSIONS
 ): number[] => {
   let state = hashSeed(seed) || 1;
   const vector = new Array<number>(dimensions);
@@ -64,7 +64,7 @@ export const deterministicEmbedding = (
 };
 
 export const createDeterministicEmbedder = (
-  dimensions = EMBEDDING_DIMENSIONS,
+  dimensions = EMBEDDING_DIMENSIONS
 ): Embedder => ({
   model: DETERMINISTIC_EMBEDDING_MODEL,
   async embedImage(input) {
@@ -89,7 +89,7 @@ export const DEFAULT_CLIP_MODEL = 'Xenova/clip-vit-base-patch32';
 // that is only installed on the VPS (`pnpm add @xenova/transformers`).
 const TRANSFORMERS_MODULE = '@xenova/transformers';
 // @xenova/transformers est un dep optionnel non typé (installé sur le VPS only).
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 const loadTransformers = async (): Promise<any> => import(TRANSFORMERS_MODULE);
 
 // Loads project image bytes from Supabase storage using the service-role client.
@@ -99,14 +99,25 @@ const createStorageImageLoader = (env: EmbeddingEnv) => {
   const key = env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   const bucket = env.PROJECT_PHOTOS_BUCKET?.trim() || 'project-photos';
   if (!url || !key) {
-    throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required for the clip provider');
+    throw new Error(
+      'SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required for the clip provider'
+    );
   }
 
-  let clientPromise: Promise<{ storage: { from: (b: string) => { download: (p: string) => Promise<{ data: Blob | null; error: unknown }> } } }> | null = null;
+  let clientPromise: Promise<{
+    storage: {
+      from: (b: string) => {
+        download: (p: string) => Promise<{ data: Blob | null; error: unknown }>;
+      };
+    };
+  }> | null = null;
   const getClient = async () => {
     if (!clientPromise) {
-      clientPromise = import('@supabase/supabase-js').then(({ createClient }) =>
-        createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } }) as never,
+      clientPromise = import('@supabase/supabase-js').then(
+        ({ createClient }) =>
+          createClient(url, key, {
+            auth: { persistSession: false, autoRefreshToken: false },
+          }) as never
       );
     }
     return clientPromise;
@@ -114,7 +125,9 @@ const createStorageImageLoader = (env: EmbeddingEnv) => {
 
   return async (storagePath: string): Promise<Blob> => {
     const client = await getClient();
-    const { data, error } = await client.storage.from(bucket).download(storagePath);
+    const { data, error } = await client.storage
+      .from(bucket)
+      .download(storagePath);
     if (error || !data) {
       throw new Error(`Failed to download ${storagePath} from storage`);
     }
@@ -131,10 +144,13 @@ export const createClipEmbedder = (env: EmbeddingEnv): Embedder => {
   const loadImage = createStorageImageLoader(env);
 
   // Objets issus de transformers.js (non typé) — types souples assumés.
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  let visionPromise: Promise<{ processor: any; model: any; RawImage: any }> | null = null;
+
+  let visionPromise: Promise<{
+    processor: any;
+    model: any;
+    RawImage: any;
+  }> | null = null;
   let textPromise: Promise<{ tokenizer: any; model: any }> | null = null;
-  /* eslint-enable @typescript-eslint/no-explicit-any */
 
   const getVision = async () => {
     if (!visionPromise) {
@@ -191,11 +207,14 @@ export const createClipEmbedder = (env: EmbeddingEnv): Embedder => {
 };
 
 export const createEmbedder = (env: EmbeddingEnv = {}): Embedder => {
-  const provider = (env.EMBEDDING_PROVIDER ?? 'deterministic').trim().toLowerCase();
+  const provider = (env.EMBEDDING_PROVIDER ?? 'deterministic')
+    .trim()
+    .toLowerCase();
   const dimensions = Number(env.EMBEDDING_DIMENSIONS ?? EMBEDDING_DIMENSIONS);
-  const safeDimensions = Number.isFinite(dimensions) && dimensions > 0
-    ? dimensions
-    : EMBEDDING_DIMENSIONS;
+  const safeDimensions =
+    Number.isFinite(dimensions) && dimensions > 0
+      ? dimensions
+      : EMBEDDING_DIMENSIONS;
 
   switch (provider) {
     case 'deterministic':
@@ -204,7 +223,7 @@ export const createEmbedder = (env: EmbeddingEnv = {}): Embedder => {
       return createClipEmbedder(env);
     default:
       throw new Error(
-        `Unknown EMBEDDING_PROVIDER "${provider}". Supported: deterministic, clip.`,
+        `Unknown EMBEDDING_PROVIDER "${provider}". Supported: deterministic, clip.`
       );
   }
 };

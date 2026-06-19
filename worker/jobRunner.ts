@@ -1,5 +1,9 @@
 import { createDeterministicEmbedder, Embedder } from './embedding';
-import { createDeterministicFaceDetector, DetectedFace, FaceDetector } from './faceDetection';
+import {
+  createDeterministicFaceDetector,
+  DetectedFace,
+  FaceDetector,
+} from './faceDetection';
 
 export type WorkerJobType =
   | 'generate_thumbnail'
@@ -41,7 +45,7 @@ export type JobProcessorMap = Partial<Record<WorkerJobType, JobProcessor>>;
 export interface SupabaseLikeClient {
   // Le query-builder Supabase est chaîné dynamiquement (.select().eq()...) ;
   // on garde un type minimal volontairement souple ici.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   from: (table: string) => any;
 }
 
@@ -52,9 +56,10 @@ const toErrorMessage = (error: unknown): string => {
 };
 
 const buildThumbnailPath = (job: WorkerJob): string => {
-  const source = typeof job.payload.storage_path === 'string'
-    ? job.payload.storage_path
-    : `projects/${job.project_id}/photos/${job.photo_id ?? job.id}`;
+  const source =
+    typeof job.payload.storage_path === 'string'
+      ? job.payload.storage_path
+      : `projects/${job.project_id}/photos/${job.photo_id ?? job.id}`;
   const withoutExt = source.replace(/\.[^/.]+$/, '');
   return `${withoutExt}_thumb.webp`;
 };
@@ -70,7 +75,7 @@ const stableHash = (input: string): string => {
 
 export const createDefaultJobProcessors = (
   embedder: Embedder = createDeterministicEmbedder(),
-  faceDetector: FaceDetector = createDeterministicFaceDetector(),
+  faceDetector: FaceDetector = createDeterministicFaceDetector()
 ): Required<JobProcessorMap> => ({
   async generate_thumbnail(job) {
     const thumbnailPath = buildThumbnailPath(job);
@@ -105,7 +110,9 @@ export const createDefaultJobProcessors = (
         composition_score: compositionScore,
         exposure_score: exposureScore,
         is_blurry: isBlurry,
-        explanation: isBlurry ? 'Image potentiellement floue.' : 'Qualite suffisante pour revue AutoFlow.',
+        explanation: isBlurry
+          ? 'Image potentiellement floue.'
+          : 'Qualite suffisante pour revue AutoFlow.',
       },
       photoUpdate: { analysis_status: 'completed' },
     };
@@ -116,7 +123,9 @@ export const createDefaultJobProcessors = (
       job.photo_id,
       job.payload.storage_path,
       job.payload.original_filename,
-    ].filter(Boolean).join(':');
+    ]
+      .filter(Boolean)
+      .join(':');
     const perceptualHash = stableHash(source || job.id);
 
     return {
@@ -129,9 +138,10 @@ export const createDefaultJobProcessors = (
   },
 
   async semantic_embedding(job) {
-    const storagePath = typeof job.payload.storage_path === 'string'
-      ? job.payload.storage_path
-      : '';
+    const storagePath =
+      typeof job.payload.storage_path === 'string'
+        ? job.payload.storage_path
+        : '';
     const vector = await embedder.embedImage({
       storagePath,
       photoId: job.photo_id,
@@ -144,9 +154,10 @@ export const createDefaultJobProcessors = (
   },
 
   async face_detection(job) {
-    const storagePath = typeof job.payload.storage_path === 'string'
-      ? job.payload.storage_path
-      : '';
+    const storagePath =
+      typeof job.payload.storage_path === 'string'
+        ? job.payload.storage_path
+        : '';
     const faces = await faceDetector.detect({
       storagePath,
       photoId: job.photo_id,
@@ -159,14 +170,18 @@ export const createDefaultJobProcessors = (
   },
 });
 
-export const defaultJobProcessors: Required<JobProcessorMap> = createDefaultJobProcessors();
+export const defaultJobProcessors: Required<JobProcessorMap> =
+  createDefaultJobProcessors();
 
 // P0-3 : réclamation atomique d'un job via la RPC SQL `claim_next_job`, qui
 // utilise FOR UPDATE SKIP LOCKED. Remplace l'ancien couple SELECT + UPDATE non
 // atomique : deux workers ne peuvent plus prendre le même job, et il n'y a plus
 // d'erreur `.single()` sur 0 ligne lorsqu'un autre worker a gagné la course.
 export interface RpcCapableClient extends SupabaseLikeClient {
-  rpc: (name: string, params?: Record<string, unknown>) => PromiseLike<{
+  rpc: (
+    name: string,
+    params?: Record<string, unknown>
+  ) => PromiseLike<{
     data: unknown;
     error: unknown;
   }>;
@@ -174,9 +189,11 @@ export interface RpcCapableClient extends SupabaseLikeClient {
 
 export async function claimNextJob(
   client: RpcCapableClient,
-  workerId: string,
+  workerId: string
 ): Promise<WorkerJob | null> {
-  const { data, error } = await client.rpc('claim_next_job', { p_worker_id: workerId });
+  const { data, error } = await client.rpc('claim_next_job', {
+    p_worker_id: workerId,
+  });
   if (error) throw error;
   // La RPC (setof) renvoie un tableau : [job] ou []. On normalise, et on ignore
   // par sécurité une ligne sans id (composite NULL d'anciennes définitions).
@@ -188,7 +205,7 @@ export async function claimNextJob(
 export async function markJobCompleted(
   client: SupabaseLikeClient,
   jobId: string,
-  result: Record<string, unknown>,
+  result: Record<string, unknown>
 ): Promise<void> {
   const { error } = await client
     .from('jobs')
@@ -207,7 +224,7 @@ export async function markJobCompleted(
 export async function markJobFailed(
   client: SupabaseLikeClient,
   jobId: string,
-  errorMessage: string,
+  errorMessage: string
 ): Promise<void> {
   const { error } = await client
     .from('jobs')
@@ -225,15 +242,13 @@ export async function markJobFailed(
 export async function applyWorkerResult(
   client: SupabaseLikeClient,
   job: WorkerJob,
-  workerResult: JobProcessorResult,
+  workerResult: JobProcessorResult
 ): Promise<void> {
   if (job.photo_id && workerResult.photoAnalysis) {
-    const { error } = await client
-      .from('photo_analysis')
-      .upsert({
-        photo_id: job.photo_id,
-        ...workerResult.photoAnalysis,
-      });
+    const { error } = await client.from('photo_analysis').upsert({
+      photo_id: job.photo_id,
+      ...workerResult.photoAnalysis,
+    });
     if (error) throw error;
   }
 
@@ -246,13 +261,11 @@ export async function applyWorkerResult(
   }
 
   if (job.photo_id && workerResult.embedding) {
-    const { error } = await client
-      .from('photo_embeddings')
-      .upsert({
-        photo_id: job.photo_id,
-        model: workerResult.embedding.model,
-        embedding: workerResult.embedding.vector,
-      });
+    const { error } = await client.from('photo_embeddings').upsert({
+      photo_id: job.photo_id,
+      model: workerResult.embedding.model,
+      embedding: workerResult.embedding.vector,
+    });
     if (error) throw error;
   }
 
@@ -271,10 +284,11 @@ export async function applyWorkerResult(
 export async function processWorkerJob(
   client: SupabaseLikeClient,
   job: WorkerJob,
-  processors: JobProcessorMap = defaultJobProcessors,
+  processors: JobProcessorMap = defaultJobProcessors
 ): Promise<void> {
   try {
-    const processor = processors[job.job_type] ?? defaultJobProcessors[job.job_type];
+    const processor =
+      processors[job.job_type] ?? defaultJobProcessors[job.job_type];
     const workerResult = await processor(job);
     await applyWorkerResult(client, job, workerResult);
     await markJobCompleted(client, job.id, workerResult.result ?? {});

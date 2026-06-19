@@ -1,8 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '../ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogDescription,
+  DialogFooter,
+} from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { performanceTracker, PerformanceMetric } from '../../lib/performance-tracker';
+import {
+  performanceTracker,
+  PerformanceMetric,
+} from '../../lib/performance-tracker';
 import toast from 'react-hot-toast';
 
 const METRICS_REFRESH_INTERVAL = 1000; // ms
@@ -13,17 +24,23 @@ const formatDuration = (duration?: number) =>
 
 const formatSuccessRate = (value: number) => `${(value * 100).toFixed(1)} %`;
 
-const formatTimestamp = (performanceTime: number) => `${performanceTime.toFixed(0)} ms`;
+const formatTimestamp = (performanceTime: number) =>
+  `${performanceTime.toFixed(0)} ms`;
 
 export const PerformanceDebugDialog: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [metrics, setMetrics] = useState<PerformanceMetric[]>([]);
-  const [activeOperations, setActiveOperations] = useState<PerformanceMetric[]>([]);
+  const [activeOperations, setActiveOperations] = useState<PerformanceMetric[]>(
+    []
+  );
 
   // `metrics` est un déclencheur de recalcul volontaire : il est mis à jour à
   // chaque tick de polling pour rafraîchir les stats (lues depuis le tracker).
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const stats = useMemo(() => performanceTracker.getPerformanceStats(), [metrics]);
+
+  const stats = useMemo(
+    () => performanceTracker.getPerformanceStats(),
+    [metrics]
+  );
 
   useEffect(() => {
     if (!open) {
@@ -38,7 +55,10 @@ export const PerformanceDebugDialog: React.FC = () => {
     };
 
     updateSnapshots();
-    const intervalId = window.setInterval(updateSnapshots, METRICS_REFRESH_INTERVAL);
+    const intervalId = window.setInterval(
+      updateSnapshots,
+      METRICS_REFRESH_INTERVAL
+    );
 
     return () => {
       window.clearInterval(intervalId);
@@ -87,25 +107,44 @@ export const PerformanceDebugDialog: React.FC = () => {
         <DialogHeader>
           <DialogTitle>Performance Tracker</DialogTitle>
           <DialogDescription>
-            Statistiques temps réel sur les opérations critiques (analyse, retouche, import, etc.).
+            Statistiques temps réel sur les opérations critiques (analyse,
+            retouche, import, etc.).
           </DialogDescription>
         </DialogHeader>
 
         <section className="grid gap-3 overflow-y-auto pr-1">
           <div className="grid gap-2 rounded-lg border border-border/60 bg-muted/30 p-4">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Synthèse</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Synthèse
+            </h3>
             <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
-              <StatCard label="Opérations (5 min)" value={stats.totalOperations} />
-              <StatCard label="Durée moyenne" value={formatDuration(stats.averageDuration)} />
-              <StatCard label="Taux de réussite" value={formatSuccessRate(stats.successRate)} />
-              <StatCard label="Opérations actives" value={activeOperations.length} />
+              <StatCard
+                label="Opérations (5 min)"
+                value={stats.totalOperations}
+              />
+              <StatCard
+                label="Durée moyenne"
+                value={formatDuration(stats.averageDuration)}
+              />
+              <StatCard
+                label="Taux de réussite"
+                value={formatSuccessRate(stats.successRate)}
+              />
+              <StatCard
+                label="Opérations actives"
+                value={activeOperations.length}
+              />
             </div>
           </div>
 
           <div className="grid gap-2 rounded-lg border border-border/60 bg-muted/20 p-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Opérations par type</h3>
-              <span className="text-xs text-muted-foreground">Glissant 5 minutes</span>
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                Opérations par type
+              </h3>
+              <span className="text-xs text-muted-foreground">
+                Glissant 5 minutes
+              </span>
             </div>
             <div className="max-h-48 overflow-y-auto rounded border border-border/40 bg-background/80">
               <table className="w-full text-left text-xs">
@@ -118,17 +157,28 @@ export const PerformanceDebugDialog: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.entries(stats.operationsByType).map(([operation, data]) => (
-                    <tr key={operation} className="border-t border-border/40">
-                      <td className="px-3 py-2 font-medium text-foreground">{operation}</td>
-                      <td className="px-3 py-2">{data.count}</td>
-                      <td className="px-3 py-2">{formatDuration(data.avgDuration)}</td>
-                      <td className="px-3 py-2">{formatSuccessRate(data.successRate)}</td>
-                    </tr>
-                  ))}
+                  {Object.entries(stats.operationsByType).map(
+                    ([operation, data]) => (
+                      <tr key={operation} className="border-t border-border/40">
+                        <td className="px-3 py-2 font-medium text-foreground">
+                          {operation}
+                        </td>
+                        <td className="px-3 py-2">{data.count}</td>
+                        <td className="px-3 py-2">
+                          {formatDuration(data.avgDuration)}
+                        </td>
+                        <td className="px-3 py-2">
+                          {formatSuccessRate(data.successRate)}
+                        </td>
+                      </tr>
+                    )
+                  )}
                   {Object.keys(stats.operationsByType).length === 0 && (
                     <tr>
-                      <td className="px-3 py-3 text-center text-muted-foreground" colSpan={4}>
+                      <td
+                        className="px-3 py-3 text-center text-muted-foreground"
+                        colSpan={4}
+                      >
                         Aucune donnée pour le moment
                       </td>
                     </tr>
@@ -139,7 +189,9 @@ export const PerformanceDebugDialog: React.FC = () => {
           </div>
 
           <div className="grid gap-2 rounded-lg border border-border/60 bg-muted/10 p-4">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Opérations actives</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Opérations actives
+            </h3>
             <div className="grid gap-2 text-xs">
               {activeOperations.length === 0 && (
                 <p className="rounded border border-border/40 bg-background/70 p-3 text-muted-foreground">
@@ -152,7 +204,9 @@ export const PerformanceDebugDialog: React.FC = () => {
                   className="rounded border border-border/40 bg-background/70 p-3"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-medium text-foreground">{operation.operation}</span>
+                    <span className="font-medium text-foreground">
+                      {operation.operation}
+                    </span>
                     <Badge variant="secondary">En cours</Badge>
                   </div>
                   <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1">
@@ -174,8 +228,12 @@ export const PerformanceDebugDialog: React.FC = () => {
 
           <div className="grid gap-2 rounded-lg border border-border/60 bg-muted/10 p-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Dernières opérations</h3>
-              <span className="text-xs text-muted-foreground">{metrics.length} affichées</span>
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                Dernières opérations
+              </h3>
+              <span className="text-xs text-muted-foreground">
+                {metrics.length} affichées
+              </span>
             </div>
             <div className="max-h-56 overflow-y-auto rounded border border-border/40 bg-background/80">
               <table className="w-full text-left text-xs">
@@ -191,18 +249,28 @@ export const PerformanceDebugDialog: React.FC = () => {
                 <tbody>
                   {metrics.map((metric) => (
                     <tr key={metric.id} className="border-t border-border/40">
-                      <td className="px-3 py-2 font-medium text-foreground">{metric.operation}</td>
-                      <td className="px-3 py-2">{formatTimestamp(metric.startTime)}</td>
-                      <td className="px-3 py-2">{formatDuration(metric.duration)}</td>
+                      <td className="px-3 py-2 font-medium text-foreground">
+                        {metric.operation}
+                      </td>
                       <td className="px-3 py-2">
-                        <Badge variant={metric.success ? 'secondary' : 'destructive'}>
+                        {formatTimestamp(metric.startTime)}
+                      </td>
+                      <td className="px-3 py-2">
+                        {formatDuration(metric.duration)}
+                      </td>
+                      <td className="px-3 py-2">
+                        <Badge
+                          variant={metric.success ? 'secondary' : 'destructive'}
+                        >
                           {metric.success ? 'Succès' : 'Erreur'}
                         </Badge>
                       </td>
                       <td className="px-3 py-2">
                         {metric.metadata ? (
                           <details>
-                            <summary className="cursor-pointer text-muted-foreground">Voir</summary>
+                            <summary className="cursor-pointer text-muted-foreground">
+                              Voir
+                            </summary>
                             <pre className="mt-2 max-h-32 overflow-x-auto overflow-y-auto rounded bg-muted/30 p-2 text-[10px] leading-tight">
                               {JSON.stringify(metric.metadata, null, 2)}
                             </pre>
@@ -215,7 +283,10 @@ export const PerformanceDebugDialog: React.FC = () => {
                   ))}
                   {metrics.length === 0 && (
                     <tr>
-                      <td className="px-3 py-3 text-center text-muted-foreground" colSpan={5}>
+                      <td
+                        className="px-3 py-3 text-center text-muted-foreground"
+                        colSpan={5}
+                      >
                         Aucune mesure disponible pour le moment
                       </td>
                     </tr>
@@ -243,7 +314,9 @@ type StatCardProps = {
 
 const StatCard: React.FC<StatCardProps> = ({ label, value }) => (
   <div className="rounded border border-border/40 bg-background/80 p-3 shadow-sm">
-    <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
+    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+      {label}
+    </p>
     <p className="mt-1 text-base font-semibold text-foreground">{value}</p>
   </div>
 );

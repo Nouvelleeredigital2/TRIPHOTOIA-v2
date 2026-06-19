@@ -48,7 +48,7 @@ const baseConfig = {
 };
 
 export default [
-  { ignores: ['dist/', 'node_modules/', 'coverage/', 'src/lib/computer-vision/', 'components/', 'App.tsx', 'index.tsx', 'services/', 'test-cv.js'] },
+  { ignores: ['dist/', 'node_modules/', 'coverage/', 'src/lib/computer-vision/', 'components/', 'App.tsx', 'index.tsx', 'services/', 'test-cv.js', 'supabase/'] },
   js.configs.recommended,
   {
     ...baseConfig,

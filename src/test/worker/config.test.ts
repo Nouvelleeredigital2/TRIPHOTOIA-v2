@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createWorkerConfig } from '../../../worker/config';
+import { assertProvidersAllowed, createWorkerConfig } from '../../../worker/config';
 
 describe('worker config', () => {
   it('requires Supabase URL and service role key', () => {
@@ -19,6 +19,44 @@ describe('worker config', () => {
       serviceRoleKey: 'service-role-key',
       workerId: 'worker-a',
       pollIntervalMs: 2500,
+    });
+  });
+
+  describe('assertProvidersAllowed (P0-4)', () => {
+    it('allows simulated providers outside production', () => {
+      expect(() => assertProvidersAllowed({ EMBEDDING_PROVIDER: 'deterministic' })).not.toThrow();
+      expect(() =>
+        assertProvidersAllowed({ WORKER_ENV: 'development', FACE_PROVIDER: 'deterministic' }),
+      ).not.toThrow();
+    });
+
+    it('rejects deterministic providers in production', () => {
+      expect(() =>
+        assertProvidersAllowed({ WORKER_ENV: 'production', EMBEDDING_PROVIDER: 'deterministic' }),
+      ).toThrow(/simulés interdits en production/);
+      expect(() =>
+        assertProvidersAllowed({ NODE_ENV: 'production', FACE_PROVIDER: 'deterministic' }),
+      ).toThrow(/simulés interdits en production/);
+    });
+
+    it('allows real providers in production', () => {
+      expect(() =>
+        assertProvidersAllowed({
+          WORKER_ENV: 'production',
+          EMBEDDING_PROVIDER: 'clip',
+          FACE_PROVIDER: 'onnx',
+        }),
+      ).not.toThrow();
+    });
+
+    it('honours the ALLOW_SIMULATED_PROVIDERS escape hatch', () => {
+      expect(() =>
+        assertProvidersAllowed({
+          WORKER_ENV: 'production',
+          EMBEDDING_PROVIDER: 'deterministic',
+          ALLOW_SIMULATED_PROVIDERS: 'true',
+        }),
+      ).not.toThrow();
     });
   });
 });

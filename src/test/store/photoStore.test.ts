@@ -72,7 +72,7 @@ describe('PhotoStore', () => {
   });
 
   it('should handle undo actions', () => {
-    const { addUndoAction, undo, setBestInGroup } = usePhotoStore.getState();
+    const { addUndoAction, undo } = usePhotoStore.getState();
 
     // Add an undo action
     addUndoAction({

@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useMemo, useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { UserMenu } from './components/auth/UserMenu';
 import { ShareView } from './components/ShareView';
 import { ShareDialog } from './components/ShareDialog';
@@ -11,7 +11,6 @@ import { ToastProvider } from './components/ToastProvider';
 import { CollectionSidebar } from './components/CollectionSidebar';
 import { Onboarding } from './components/Onboarding';
 import { usePhotoStore } from './store/photoStore';
-import { LogoIcon } from './components/IconComponents';
 import { Button } from './components/ui/button';
 import { Badge } from './components/ui/badge';
 import { ConfirmationDialog } from './components/ui/confirmation-dialog';
@@ -20,6 +19,7 @@ import { AnalysisReportDialog } from './components/AnalysisReportDialog';
 import { BarChart2, Sun, Moon, Trash2, HelpCircle, Menu, Palette, Share2 } from 'lucide-react';
 import { useAiErrorNotifications } from './hooks/useAiErrorNotifications';
 import { useCataloguePersistence } from './hooks/useCataloguePersistence';
+import { clearFullCatalogue } from './lib/catalogue-persistence';
 import { useTheme } from './hooks/useTheme';
 import { useAccentColor } from './hooks/useAccentColor';
 import { PhotoGridSkeleton } from './components/PhotoGridSkeleton';
@@ -41,6 +41,9 @@ import {
 const IngestionTab = lazy(() => import('./features/ingestion/IngestionTab'));
 const TriageTab = lazy(() => import('./features/triage/TriageTab'));
 const ExportTab = lazy(() => import('./features/export/ExportTab'));
+// Développement/Retouche : ouvert en overlay plein écran (déclenché par
+// startRetouchSession depuis le Triage), pas comme onglet permanent.
+const DevelopmentTab = lazy(() => import('./features/development/DevelopmentTab'));
 
 // Create a client
 const queryClient = new QueryClient({
@@ -52,7 +55,6 @@ const queryClient = new QueryClient({
   },
 });
 
-type Tab = 'ingestion' | 'triage' | 'export';
 
 /** Détecte si l'URL est une page de partage (#/share/TOKEN) */
 function getShareToken(): string | null {
@@ -115,6 +117,55 @@ function App() {
     clearAll,
   } = usePhotoStore();
 
+  // A-53/54 : synchroniser l'onglet actif avec le hash de l'URL (deep link + bouton
+  // retour navigateur), sans React Router. Préserve la page de partage #/share/:token.
+  useEffect(() => {
+    if (shareToken) return;
+    const TABS = ['ingestion', 'triage', 'export'] as const;
+    const applyHash = () => {
+      const h = window.location.hash.replace(/^#\//, '');
+      if ((TABS as readonly string[]).includes(h)) {
+        setActiveTab(h as typeof activeTab);
+      }
+    };
+    applyHash();
+    window.addEventListener('hashchange', applyHash);
+    return () => window.removeEventListener('hashchange', applyHash);
+  }, [shareToken, setActiveTab]);
+
+  useEffect(() => {
+    if (shareToken) return;
+    const TABS = ['ingestion', 'triage', 'export'];
+    if (!TABS.includes(activeTab)) return; // 'development' = overlay, pas de route
+    const target = `#/${activeTab}`;
+    if (window.location.hash !== target) {
+      // pushState pour que le bouton retour navigue entre onglets (ne déclenche pas hashchange)
+      window.history.pushState(null, '', target);
+    }
+  }, [activeTab, shareToken]);
+
+  // A-52 : avertir si le catalogue est modifié dans un autre onglet (pas de fusion auto).
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return;
+    const channel = new BroadcastChannel('treephoto');
+    const tabId = Math.random().toString(36).slice(2);
+    const onSave = () => channel.postMessage({ type: 'catalogue-saved', tabId });
+    window.addEventListener('treephoto:catalogue-saved', onSave);
+    channel.onmessage = (e) => {
+      if (e.data?.type === 'catalogue-saved' && e.data.tabId !== tabId) {
+        toast('Catalogue modifié dans un autre onglet — rechargez pour voir les changements.', {
+          icon: '🔄',
+          id: 'multi-tab',
+          duration: 6000,
+        });
+      }
+    };
+    return () => {
+      window.removeEventListener('treephoto:catalogue-saved', onSave);
+      channel.close();
+    };
+  }, []);
+
   // Ctrl+Z / Cmd+Z global — Annuler
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -137,6 +188,8 @@ function App() {
   // Sélecteurs optimisés pour éviter les boucles infinies
   const collections = usePhotoStore((state) => state.collections);
   const activeCollectionId = usePhotoStore((state) => state.activeCollectionId);
+  // Session de retouche active → overlay Développement plein écran
+  const retouchSessionPhotoIds = usePhotoStore((state) => state.retouchSessionPhotoIds);
 
   // Calculer les valeurs dérivées avec useMemo
   const activeCollection = useMemo(() =>
@@ -166,32 +219,6 @@ function App() {
     }
     return activePhotos.filter((photo) => photo.analysis && !photo.analysis.error).length;
   }, [activePhotos]);
-
-  const TabButton: React.FC<{ tab: Tab; label: string; badge?: number }> = ({
-    tab,
-    label,
-    badge,
-  }) => (
-    <Button
-      variant={activeTab === tab ? 'default' : 'ghost'}
-      onClick={() => setActiveTab(tab)}
-      className={`relative flex-1 font-medium transition-all ${
-        activeTab === tab
-          ? 'bg-background shadow-sm'
-          : 'hover:bg-background/50'
-      }`}
-    >
-      {label}
-      {badge !== undefined && badge > 0 && (
-        <Badge
-          variant="secondary"
-          className="ml-2 text-xs font-semibold min-w-[24px] h-5 flex items-center justify-center"
-        >
-          {badge}
-        </Badge>
-      )}
-    </Button>
-  );
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -230,7 +257,7 @@ function App() {
 
   /** Apply an AutoFlow mutation back to the store */
   const handleAfMutation = (id: string, changes: Partial<AfPhoto>) => {
-    const { togglePhotoPick, togglePhotoReject, setPhotoRating, unflagPhoto } = usePhotoStore.getState();
+    const { togglePhotoPick, togglePhotoReject, setPhotoRating } = usePhotoStore.getState();
     const photo = usePhotoStore.getState().photos.find((p) => p.id === id);
     if (!photo) return;
     if ('isPick' in changes) {
@@ -308,6 +335,9 @@ function App() {
           <div className="flex-1 flex flex-col min-w-0">
             {/* ── AutoFlow v2 TopBar ── */}
             <header style={{
+              // A-58 : chrome volontairement sombre (marque AutoFlow v2), cohérent dans
+              // les deux thèmes — le texte clair reste lisible. Le contenu principal, lui,
+              // respecte clair/sombre. (Conversion complète = refonte graphique, hors scope.)
               background: 'rgba(7,7,12,0.92)',
               backdropFilter: 'blur(14px)',
               borderBottom: '1px solid rgba(255,255,255,0.05)',
@@ -346,7 +376,7 @@ function App() {
                       <div style={{
                         fontSize: 13, fontWeight: 800, letterSpacing: '0.04em',
                         color: '#f0f0f7', lineHeight: 1,
-                      }}>TRIPHOTOIA</div>
+                      }}>Tree Photo IA</div>
                       <div style={{
                         fontSize: 9, fontWeight: 600, letterSpacing: '0.08em',
                         color: '#f59e0b', textTransform: 'uppercase', lineHeight: 1.4,
@@ -473,6 +503,9 @@ function App() {
                       <Palette className="w-4 h-4" />
                     </Button>
                     {accentPickerOpen && (
+                      /* Popover : conteneur qui se ferme au survol sortant ; les options
+                         à l'intérieur sont de vrais boutons, le trigger gère le clavier. */
+                      /* eslint-disable-next-line jsx-a11y/no-static-element-interactions */
                       <div className="absolute right-0 top-full mt-2 z-50 bg-card border border-border/60 rounded-xl shadow-xl p-3 flex flex-col gap-2 min-w-[160px]"
                         onMouseLeave={() => setAccentPickerOpen(false)}>
                         <p className="text-xs font-medium text-muted-foreground mb-1">Couleur d'accent</p>
@@ -567,26 +600,30 @@ function App() {
             </header>
 
             <main className="flex-grow px-6 py-8 overflow-hidden">
-            <Suspense
-              fallback={
-                <div className="pt-4">
-                  <PhotoGridSkeleton count={12} label="Chargement…" />
-                </div>
-              }
-            >
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="h-full"
+              {/* PAS d'AnimatePresence ici. Dans ce setup (React 19 + StrictMode +
+                  framer-motion v11), le cycle exit d'AnimatePresence ne se termine
+                  jamais (onExitComplete ne se déclenche pas) : avec mode="wait" le
+                  changement d'onglet se fige, sans mode les motion.div s'accumulent.
+                  Un motion.div keyé SANS AnimatePresence laisse React démonter/monter
+                  proprement à chaque changement de clé ; l'animation d'entrée joue,
+                  aucun suivi d'exit n'est requis. Suspense par onglet à l'intérieur. */}
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="h-full"
+              >
+                <Suspense
+                  fallback={
+                    <div className="pt-4">
+                      <PhotoGridSkeleton count={12} label="Chargement…" />
+                    </div>
+                  }
                 >
                   {renderTabContent()}
-                </motion.div>
-              </AnimatePresence>
-            </Suspense>
+                </Suspense>
+              </motion.div>
             </main>
 
             {/* Status Bar minimaliste */}
@@ -659,9 +696,14 @@ function App() {
         <ConfirmationDialog
           open={clearConfirmOpen}
           onOpenChange={setClearConfirmOpen}
-          onConfirm={() => {
+          onConfirm={async () => {
             clearAll();
-            toast.success('Catalogue effacé');
+            const ok = await clearFullCatalogue();
+            if (ok) {
+              toast.success('Catalogue effacé');
+            } else {
+              toast.error("Échec de l'effacement du stockage local. Vos données peuvent réapparaître au rechargement — réessayez.");
+            }
           }}
           title="Effacer tout le catalogue ?"
           description={`Cette action supprimera définitivement les ${photos.length} photo${photos.length > 1 ? 's' : ''} et toutes les données associées (analyses, collections, tags). Irréversible.`}
@@ -692,6 +734,23 @@ function App() {
               setAutoFlowPhotoIds(null);
             }}
           />
+        )}
+
+        {/* Overlay Développement / Retouche — déclenché par startRetouchSession
+            (bouton « Développer » du Triage). Se ferme via endRetouchSession,
+            qui vide retouchSessionPhotoIds et démonte l'overlay. */}
+        {retouchSessionPhotoIds.length > 0 && (
+          <div className="fixed inset-0 z-[200] overflow-auto bg-background p-6">
+            <Suspense
+              fallback={
+                <div className="pt-4">
+                  <PhotoGridSkeleton count={8} label="Chargement de l'atelier…" />
+                </div>
+              }
+            >
+              <DevelopmentTab />
+            </Suspense>
+          </div>
         )}
       </ErrorBoundary>
     </QueryClientProvider>

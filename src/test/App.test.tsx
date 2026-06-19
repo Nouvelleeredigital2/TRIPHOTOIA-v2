@@ -4,7 +4,7 @@ import { fireEvent, mockStore, renderApp, screen, waitFor } from './test-utils';
 describe('App', () => {
   it('renders the application title', async () => {
     await renderApp();
-    expect(screen.getByText('TRIPHOTOIA')).toBeInTheDocument();
+    expect(screen.getByText('Tree Photo IA')).toBeInTheDocument();
   });
 
   it('renders the logo', async () => {

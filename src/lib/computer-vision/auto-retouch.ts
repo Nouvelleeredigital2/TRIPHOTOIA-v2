@@ -46,6 +46,16 @@ export interface RetouchConfig {
   quality: number; // 0-100 pour la compression
 }
 
+/** Métriques d'image calculées par calculateImageMetrics. */
+interface ImageMetrics {
+  brightness: number;
+  contrast: number;
+  saturation: number;
+  sharpness: number;
+  whiteBalance: { temperature: number; tint: number };
+  exposure: number;
+}
+
 export class AutoRetoucher {
   private config: RetouchConfig;
 
@@ -290,7 +300,7 @@ export class AutoRetoucher {
   /**
    * Génère les options suggérées
    */
-  private generateSuggestedOptions(metrics: any): RetouchOptions {
+  private generateSuggestedOptions(metrics: ImageMetrics): RetouchOptions {
     const intensity = this.config.intensity;
 
     return {
@@ -390,7 +400,7 @@ export class AutoRetoucher {
   /**
    * Ajuste la saturation
    */
-  private adjustSaturation(value: number, adjustment: number, channel: number): number {
+  private adjustSaturation(value: number, adjustment: number, _channel: number): number {
     // Saturation affecte différemment chaque canal
     const factor = 1 + (adjustment / 100);
     return value * factor;
@@ -466,7 +476,7 @@ export class AutoRetoucher {
     return Math.abs(exposure) > 20;
   }
 
-  private calculateAnalysisConfidence(metrics: any): number {
+  private calculateAnalysisConfidence(metrics: ImageMetrics): number {
     let confidence = 0;
     let factors = 0;
 

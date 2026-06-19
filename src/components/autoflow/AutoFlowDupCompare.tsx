@@ -54,6 +54,9 @@ export const AutoFlowDupCompare: React.FC<AutoFlowDupCompareProps> = ({
     };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
+    // L'écouteur est réattaché quand le groupe courant change (gIdx/groups) ;
+    // handleKeep/advance/onBack opèrent sur ce groupe — déps volontaires.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gIdx, groups]);
 
   if (groups.length === 0) {
@@ -67,7 +70,7 @@ export const AutoFlowDupCompare: React.FC<AutoFlowDupCompareProps> = ({
         <p style={{ fontSize: 14, color: 'var(--af-t2)', margin: 0 }}>Aucun doublon a comparer.</p>
         <button onClick={onBack} style={{
           padding: '8px 20px', borderRadius: 8,
-          background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
+          background: 'rgba(var(--af-overlay-rgb),0.07)', border: '1px solid rgba(var(--af-overlay-rgb),0.1)',
           color: 'var(--af-t2)', cursor: 'pointer', outline: 'none', fontSize: 13,
         }}>Retour</button>
       </div>
@@ -86,13 +89,13 @@ export const AutoFlowDupCompare: React.FC<AutoFlowDupCompareProps> = ({
     }}>
       {/* Header */}
       <div style={{
-        padding: '10px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)',
+        padding: '10px 20px', borderBottom: '1px solid rgba(var(--af-overlay-rgb),0.05)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         flexShrink: 0, background: 'var(--af-s1)',
       }}>
         <button onClick={onBack} style={{
           display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px',
-          background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+          background: 'rgba(var(--af-overlay-rgb),0.05)', border: '1px solid rgba(var(--af-overlay-rgb),0.08)',
           borderRadius: 20, fontSize: 12, color: 'var(--af-t3)', cursor: 'pointer', outline: 'none',
         }}>← Tableau de bord</button>
 
@@ -108,10 +111,10 @@ export const AutoFlowDupCompare: React.FC<AutoFlowDupCompareProps> = ({
               height: 6, borderRadius: 3, transition: 'all 0.25s',
               width: i === gIdx ? 22 : 6,
               background: i < gIdx
-                ? 'rgba(134,239,172,0.7)'
+                ? 'rgba(var(--af-pick-rgb),0.7)'
                 : i === gIdx
                   ? 'var(--af-review)'
-                  : 'rgba(255,255,255,0.1)',
+                  : 'rgba(var(--af-overlay-rgb),0.1)',
             }} />
           ))}
         </div>
@@ -124,11 +127,11 @@ export const AutoFlowDupCompare: React.FC<AutoFlowDupCompareProps> = ({
           const sc = photo.score >= 80 ? 'var(--af-pick)' : photo.score >= 60 ? 'var(--af-review)' : 'var(--af-reject)';
 
           return (
-            <div key={photo.id} onClick={() => handleKeep(photo.id)} style={{
+            <div key={photo.id} role="button" tabIndex={0} onClick={() => handleKeep(photo.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleKeep(photo.id); } }} style={{
               flex: 1, display: 'flex', flexDirection: 'column', gap: 10, cursor: 'pointer',
               borderRadius: 14, padding: 14,
-              border: `1.5px solid ${isBetter ? 'rgba(245,158,11,0.28)' : 'rgba(255,255,255,0.05)'}`,
-              background: isBetter ? 'rgba(245,158,11,0.04)' : 'rgba(255,255,255,0.02)',
+              border: `1.5px solid ${isBetter ? 'rgba(var(--af-review-rgb),0.28)' : 'rgba(var(--af-overlay-rgb),0.05)'}`,
+              background: isBetter ? 'rgba(var(--af-review-rgb),0.04)' : 'rgba(var(--af-overlay-rgb),0.02)',
               transition: 'all 0.15s',
             }}>
               {/* Photo */}
@@ -155,7 +158,7 @@ export const AutoFlowDupCompare: React.FC<AutoFlowDupCompareProps> = ({
                   background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 60%)',
                   padding: '16px 12px 10px',
                 }}>
-                  <div style={{ fontFamily: 'monospace', fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
+                  <div style={{ fontFamily: 'monospace', fontSize: 11, color: 'rgba(var(--af-overlay-rgb),0.5)' }}>
                     {photo.name}
                   </div>
                 </div>
@@ -171,7 +174,7 @@ export const AutoFlowDupCompare: React.FC<AutoFlowDupCompareProps> = ({
                         <span style={{ fontSize: 11, color: 'var(--af-t3)' }}>{l}</span>
                         <span style={{ fontSize: 11, color: c, fontWeight: 700 }}>{v}</span>
                       </div>
-                      <div style={{ height: 3, background: 'rgba(255,255,255,0.05)', borderRadius: 2 }}>
+                      <div style={{ height: 3, background: 'rgba(var(--af-overlay-rgb),0.05)', borderRadius: 2 }}>
                         <div style={{ height: '100%', width: `${v}%`, background: c, borderRadius: 2 }} />
                       </div>
                     </div>
@@ -183,8 +186,8 @@ export const AutoFlowDupCompare: React.FC<AutoFlowDupCompareProps> = ({
               <button onClick={(e) => { e.stopPropagation(); handleKeep(photo.id); }} style={{
                 padding: '10px 0', borderRadius: 9, fontSize: 13, fontWeight: 700,
                 cursor: 'pointer', border: 'none', outline: 'none',
-                background: isBetter ? 'var(--af-review)' : 'rgba(255,255,255,0.08)',
-                color: isBetter ? '#000' : 'rgba(255,255,255,0.6)',
+                background: isBetter ? 'var(--af-review)' : 'rgba(var(--af-overlay-rgb),0.08)',
+                color: isBetter ? '#000' : 'rgba(var(--af-overlay-rgb),0.6)',
               }}>
                 {i === 0 ? '← Garder celle-ci' : 'Garder celle-ci →'}
               </button>
@@ -195,12 +198,12 @@ export const AutoFlowDupCompare: React.FC<AutoFlowDupCompareProps> = ({
 
       {/* Footer */}
       <div style={{
-        padding: '10px 20px', borderTop: '1px solid rgba(255,255,255,0.05)',
+        padding: '10px 20px', borderTop: '1px solid rgba(var(--af-overlay-rgb),0.05)',
         display: 'flex', gap: 14, justifyContent: 'center', alignItems: 'center', flexShrink: 0,
       }}>
         <button onClick={advance} style={{
           padding: '8px 20px', borderRadius: 8, fontSize: 12, fontWeight: 600,
-          cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)',
+          cursor: 'pointer', border: '1px solid rgba(var(--af-overlay-rgb),0.1)',
           background: 'transparent', color: 'var(--af-t3)', outline: 'none',
         }}>Passer ce groupe (Enter)</button>
       </div>
@@ -212,10 +215,10 @@ export const AutoFlowDupCompare: React.FC<AutoFlowDupCompareProps> = ({
         {([['←', 'Garder gauche'], ['→', 'Garder droite'], ['Enter', 'Passer'], ['Esc', 'Retour']] as [string, string][]).map(([k, l]) => (
           <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <span style={{
-              padding: '1px 5px', background: 'rgba(255,255,255,0.07)',
-              borderRadius: 3, fontSize: 10, fontFamily: 'monospace', color: 'rgba(255,255,255,0.35)',
+              padding: '1px 5px', background: 'rgba(var(--af-overlay-rgb),0.07)',
+              borderRadius: 3, fontSize: 10, fontFamily: 'monospace', color: 'rgba(var(--af-overlay-rgb),0.35)',
             }}>{k}</span>
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>{l}</span>
+            <span style={{ fontSize: 10, color: 'rgba(var(--af-overlay-rgb),0.2)' }}>{l}</span>
           </div>
         ))}
       </div>

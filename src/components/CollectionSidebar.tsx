@@ -39,7 +39,6 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [collectionToDelete, setCollectionToDelete] = useState<string | null>(null);
   const [hoveredCollection, setHoveredCollection] = useState<string | null>(null);
-  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const collections = usePhotoStore((state) => state.collections);
   const collectionOrder = usePhotoStore((state) => state.collectionOrder);
@@ -49,6 +48,7 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
   const applyWeddingTemplate = usePhotoStore((state) => state.applyWeddingTemplate);
   const renameCollection = usePhotoStore((state) => state.renameCollection);
   const deleteCollection = usePhotoStore((state) => state.deleteCollection);
+  const undo = usePhotoStore((state) => state.undo);
   const setActiveCollection = usePhotoStore((state) => state.setActiveCollection);
   const setActiveSmartCollection = usePhotoStore((state) => state.setActiveSmartCollection);
   const smartCollections = useSmartCollections();
@@ -86,7 +86,11 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
       return;
     }
 
-    renameCollection(renameCollectionId, trimmed);
+    const ok = renameCollection(renameCollectionId, trimmed);
+    if (!ok) {
+      setRenameMessage('Ce nom est déjà utilisé par une autre collection.');
+      return;
+    }
     toast.success(`Collection renommée en « ${trimmed} »`);
     setRenameCollectionName('');
     setRenameCollectionId('');
@@ -102,8 +106,19 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
   const confirmDeleteCollection = () => {
     if (collectionToDelete && collectionOrder.length > 1) {
       deleteCollection(collectionToDelete);
-      toast.success('Collection supprimée');
       setCollectionToDelete(null);
+      // A-08 : suppression annulable.
+      toast((t) => (
+        <span className="flex items-center gap-3">
+          Collection supprimée
+          <button
+            onClick={() => { undo(); toast.dismiss(t.id); }}
+            className="px-2 py-0.5 rounded bg-primary/15 hover:bg-primary/25 text-xs font-medium"
+          >
+            Annuler
+          </button>
+        </span>
+      ), { duration: 6000 });
     }
   };
 
@@ -241,7 +256,10 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
                       : 'hover:bg-muted text-foreground'
                     }
                   `}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setActiveSmartCollection(isActive ? null : sc.id)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveSmartCollection(isActive ? null : sc.id); } }}
                 >
                   {colorMeta ? (
                     <span
@@ -295,7 +313,10 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
                         : 'hover:bg-muted text-foreground'
                       }
                     `}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setActiveCollection(collectionId)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveCollection(collectionId); } }}
                     onMouseEnter={() => setHoveredCollection(collectionId)}
                     onMouseLeave={() => setHoveredCollection(null)}
                   >
@@ -433,7 +454,10 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
                     return (
                       <div key={sc.id}
                         className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-all duration-200 mb-0.5 ${isActive2 ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 font-medium' : 'hover:bg-muted text-foreground'}`}
+                        role="button"
+                        tabIndex={0}
                         onClick={() => { setActiveSmartCollection(isActive2 ? null : sc.id); onMobileClose?.(); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveSmartCollection(isActive2 ? null : sc.id); onMobileClose?.(); } }}
                       >
                         {cm ? <span className="w-3.5 h-3.5 rounded-full shrink-0 border border-white/30" style={{ backgroundColor: cm.dot }} /> : <span className="text-sm w-4 text-center">{sc.icon}</span>}
                         <span className="flex-1 text-sm truncate">{sc.name}</span>
@@ -452,13 +476,45 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
                   return (
                     <div key={cid}
                       className={`flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition-all duration-200 mb-1 ${isActive2 ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted text-foreground'}`}
+                      role="button"
+                      tabIndex={0}
                       onClick={() => { setActiveCollection(cid); onMobileClose?.(); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveCollection(cid); onMobileClose?.(); } }}
                     >
                       <Folder className={`w-4 h-4 flex-shrink-0 ${isActive2 ? 'text-primary' : 'text-muted-foreground'}`} />
                       <span className="flex-1 text-sm truncate">{col?.name || 'Collection sans nom'}</span>
                       <Badge variant={isActive2 ? 'default' : 'secondary'} className="text-xs font-semibold h-5 min-w-[28px] flex items-center justify-center">
                         {col?.photoIds?.length || 0}
                       </Badge>
+                      {/* A-10 : actions toujours visibles sur mobile (pas de hover au tactile) */}
+                      {collectionOrder.length > 1 && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0 shrink-0"
+                            aria-label={`Renommer ${col?.name || 'la collection'}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openRenameDialog(cid, col?.name || '');
+                            }}
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0 shrink-0 text-destructive hover:text-destructive"
+                            aria-label={`Supprimer ${col?.name || 'la collection'}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteCollection(cid);
+                            }}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   );
                 })}

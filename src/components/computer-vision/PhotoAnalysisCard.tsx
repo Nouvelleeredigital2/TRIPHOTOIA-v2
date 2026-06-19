@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { PhotoAnalysisResult, PhotoScore } from '../../lib/computer-vision';
+import { PhotoAnalysisResult } from '../../lib/computer-vision';
 
 interface PhotoAnalysisCardProps {
   analysis: PhotoAnalysisResult;

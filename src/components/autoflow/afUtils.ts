@@ -59,23 +59,18 @@ export function deriveScore(photo: Photo): number {
   if (!a) return 50;
 
   let score = 50;
-  let total = 0;
 
   if (a.sharpnessScore !== undefined) {
     score += a.sharpnessScore * 30;
-    total += 30;
   }
   if (a.compositionScore !== undefined) {
     score += a.compositionScore * 20;
-    total += 20;
   }
   if (a.rating !== undefined && a.rating > 0) {
     score += (a.rating / 5) * 15;
-    total += 15;
   }
   if (a.hasOpenEyes !== undefined) {
     score += (a.hasOpenEyes ? 1 : 0.2) * 10;
-    total += 10;
   }
 
   // Penalise blur

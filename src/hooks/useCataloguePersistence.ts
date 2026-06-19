@@ -33,42 +33,10 @@ export function useCataloguePersistence(): { lastSavedAt: Date | null } {
       const currentPhotos = usePhotoStore.getState().photos;
       if (currentPhotos.length > 0) return; // L'utilisateur a déjà chargé des photos
 
-      const {
-        addPhotos,
-        setDuplicateGroups,
-        updateUserTags,
-        setActiveCollection,
-        setPhotoNote,
-      } = usePhotoStore.getState();
-
-      addPhotos(saved.photos);
-
-      if (saved.duplicateGroups.length > 0) {
-        setDuplicateGroups(saved.duplicateGroups);
-      }
-
-      Object.entries(saved.userTags).forEach(([photoId, tags]) => {
-        updateUserTags(photoId, tags);
-      });
-
-      if (saved.activeCollectionId) {
-        setActiveCollection(saved.activeCollectionId);
-      }
-
-      // Restaurer les notes
-      Object.entries(saved.photoNotes).forEach(([photoId, note]) => {
-        setPhotoNote(photoId, note);
-      });
-
-      // Rebuild rejectedPhotoIds from photo analysis (persisted in analysis.isRejected)
-      const rejectedIds = new Set(
-        saved.photos
-          .filter((p) => p.analysis?.isRejected === true)
-          .map((p) => p.id),
-      );
-      if (rejectedIds.size > 0) {
-        usePhotoStore.setState((s) => ({ ...s, rejectedPhotoIds: rejectedIds }));
-      }
+      // Restauration transactionnelle unique : photos + collections + ordre + collection
+      // active + tags + notes + doublons + rejets (A-47). Évite les divergences et ne
+      // pollue pas la pile undo.
+      usePhotoStore.getState().restoreCatalogueState(saved);
 
       // Réalimenter le LSH depuis les photos restaurées
       lshRebuildFromEntries(
@@ -102,7 +70,13 @@ export function useCataloguePersistence(): { lastSavedAt: Date | null } {
         photoNotes: state.photoNotes,
       };
       saveFullCatalogue(payload)
-        .then(() => setLastSavedAt(new Date()))
+        .then(() => {
+          setLastSavedAt(new Date());
+          // A-52 : notifier les autres onglets qu'une sauvegarde a eu lieu.
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new Event('treephoto:catalogue-saved'));
+          }
+        })
         .catch((err) => {
           console.warn('[useCataloguePersistence] sauvegarde échouée:', err);
         });
@@ -117,6 +91,7 @@ export function useCataloguePersistence(): { lastSavedAt: Date | null } {
     store.photos,
     store.duplicateGroups,
     store.userTags,
+    store.photoNotes,
     store.collections,
     store.collectionOrder,
     store.activeCollectionId,

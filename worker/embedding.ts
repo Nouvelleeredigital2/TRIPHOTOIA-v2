@@ -88,6 +88,8 @@ export const DEFAULT_CLIP_MODEL = 'Xenova/clip-vit-base-patch32';
 // Indirect specifier so TypeScript/tsx do not statically resolve an optional dep
 // that is only installed on the VPS (`pnpm add @xenova/transformers`).
 const TRANSFORMERS_MODULE = '@xenova/transformers';
+// @xenova/transformers est un dep optionnel non typé (installé sur le VPS only).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const loadTransformers = async (): Promise<any> => import(TRANSFORMERS_MODULE);
 
 // Loads project image bytes from Supabase storage using the service-role client.
@@ -128,8 +130,11 @@ export const createClipEmbedder = (env: EmbeddingEnv): Embedder => {
   const model = env.EMBEDDING_MODEL?.trim() || DEFAULT_CLIP_MODEL;
   const loadImage = createStorageImageLoader(env);
 
+  // Objets issus de transformers.js (non typé) — types souples assumés.
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   let visionPromise: Promise<{ processor: any; model: any; RawImage: any }> | null = null;
   let textPromise: Promise<{ tokenizer: any; model: any }> | null = null;
+  /* eslint-enable @typescript-eslint/no-explicit-any */
 
   const getVision = async () => {
     if (!visionPromise) {

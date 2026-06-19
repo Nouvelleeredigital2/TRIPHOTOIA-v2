@@ -56,19 +56,9 @@ describe('setProjectFaceAnalysis (opt-in)', () => {
 });
 
 describe('nameAnonymousGroup (manual naming only)', () => {
-  it('creates a confirmed person with the manual name and assigns the faces', async () => {
-    const single = vi.fn().mockResolvedValue({ data: { id: 'person-9' }, error: null });
-    const select = vi.fn(() => ({ single }));
-    const insert = vi.fn(() => ({ select }));
-    const inFn = vi.fn().mockResolvedValue({ error: null });
-    const update = vi.fn(() => ({ in: inFn }));
-    const client = {
-      from: vi.fn((table: string) => {
-        if (table === 'people') return { insert };
-        if (table === 'photo_faces') return { update };
-        throw new Error(`Unexpected table ${table}`);
-      }),
-    };
+  it('names a group atomically via the name_face_group RPC', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: 'person-9', error: null });
+    const client = { rpc, from: vi.fn() };
 
     const result = await nameAnonymousGroup({
       projectId: 'project-1',
@@ -77,22 +67,21 @@ describe('nameAnonymousGroup (manual naming only)', () => {
       client: client as never,
     });
 
-    expect(insert).toHaveBeenCalledWith({
-      project_id: 'project-1',
-      display_name: 'Laura',
-      status: 'confirmed',
+    expect(rpc).toHaveBeenCalledWith('name_face_group', {
+      p_project_id: 'project-1',
+      p_face_ids: ['f1', 'f2'],
+      p_display_name: 'Laura',
     });
-    expect(update).toHaveBeenCalledWith({ person_id: 'person-9' });
-    expect(inFn).toHaveBeenCalledWith('id', ['f1', 'f2']);
     expect(result).toEqual({ personId: 'person-9' });
   });
 
   it('refuses to name without an explicit name (never auto-names)', async () => {
-    const client = { from: vi.fn() };
+    const rpc = vi.fn();
+    const client = { rpc, from: vi.fn() };
     await expect(
       nameAnonymousGroup({ projectId: 'p1', faceIds: ['f1'], displayName: '   ', client: client as never }),
     ).rejects.toThrow(/obligatoire/);
-    expect(client.from).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalled();
   });
 });
 

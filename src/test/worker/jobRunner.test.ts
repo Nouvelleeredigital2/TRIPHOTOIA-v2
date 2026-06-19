@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  markJobProcessing,
-  pollNextPendingJob,
+  claimNextJob,
   processWorkerJob,
   WorkerJob,
 } from '../../../worker/jobRunner';
@@ -25,50 +24,36 @@ const makeJob = (overrides: Partial<WorkerJob> = {}): WorkerJob => ({
 });
 
 describe('worker job runner', () => {
-  it('polls the next pending job ready to run', async () => {
-    const select = vi.fn().mockReturnThis();
-    const eq = vi.fn().mockReturnThis();
-    const lte = vi.fn().mockReturnThis();
-    const order = vi.fn().mockReturnThis();
-    const limit = vi.fn().mockReturnThis();
-    const maybeSingle = vi.fn().mockResolvedValue({ data: makeJob(), error: null });
-    const client = {
-      from: vi.fn().mockReturnValue({ select, eq, lte, order, limit, maybeSingle }),
-    };
+  it('claims the next job atomically via the claim_next_job RPC', async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      data: makeJob({ status: 'processing', attempts: 1, locked_by: 'worker-a' }),
+      error: null,
+    });
+    const client = { from: vi.fn(), rpc };
 
-    const job = await pollNextPendingJob(client, new Date('2026-05-28T12:00:00Z'));
+    const job = await claimNextJob(client, 'worker-a');
 
-    expect(client.from).toHaveBeenCalledWith('jobs');
-    expect(select).toHaveBeenCalledWith('*');
-    expect(eq).toHaveBeenCalledWith('status', 'pending');
-    expect(lte).toHaveBeenCalledWith('run_after', '2026-05-28T12:00:00.000Z');
-    expect(order).toHaveBeenCalledWith('created_at', { ascending: true });
-    expect(limit).toHaveBeenCalledWith(1);
+    expect(rpc).toHaveBeenCalledWith('claim_next_job', { p_worker_id: 'worker-a' });
     expect(job?.id).toBe('job-1');
+    expect(job?.status).toBe('processing');
   });
 
-  it('marks a pending job as processing before work starts', async () => {
-    const update = vi.fn().mockReturnThis();
-    const eq = vi.fn().mockReturnThis();
-    const select = vi.fn().mockReturnThis();
-    const single = vi.fn().mockResolvedValue({ data: makeJob({ status: 'processing', attempts: 1 }), error: null });
-    const client = {
-      from: vi.fn().mockReturnValue({ update, eq, select, single }),
-    };
+  it('returns null when no job is available (RPC yields no row)', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: null, error: null });
+    const client = { from: vi.fn(), rpc };
 
-    const job = await markJobProcessing(client, makeJob(), 'worker-a', new Date('2026-05-28T12:00:00Z'));
+    const job = await claimNextJob(client, 'worker-a');
 
-    expect(client.from).toHaveBeenCalledWith('jobs');
-    expect(update).toHaveBeenCalledWith({
-      status: 'processing',
-      attempts: 1,
-      locked_at: '2026-05-28T12:00:00.000Z',
-      locked_by: 'worker-a',
-      error_message: null,
-    });
-    expect(eq).toHaveBeenCalledWith('id', 'job-1');
-    expect(eq).toHaveBeenCalledWith('status', 'pending');
-    expect(job?.status).toBe('processing');
+    expect(job).toBeNull();
+  });
+
+  it('normalises an array response from the claim RPC', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: [makeJob({ status: 'processing' })], error: null });
+    const client = { from: vi.fn(), rpc };
+
+    const job = await claimNextJob(client, 'worker-a');
+
+    expect(job?.id).toBe('job-1');
   });
 
   it('completes a quality analysis job and writes photo analysis results', async () => {

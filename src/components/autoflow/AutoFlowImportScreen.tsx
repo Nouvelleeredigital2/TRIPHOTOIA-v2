@@ -5,17 +5,17 @@ interface AutoFlowImportScreenProps {
   disabled?: boolean;
 }
 
+// P1-4 : seulement les formats décodés par le navigateur (HTMLImageElement/Canvas).
+// HEIC/HEIF/TIFF/RAW retirés tant qu'aucun décodeur dédié n'est branché.
 const ACCEPTED_TYPES = [
-  'image/jpeg', 'image/png', 'image/webp', 'image/heic',
-  'image/heif', 'image/avif', 'image/tiff',
-  'image/x-canon-cr2', 'image/x-nikon-nef', 'image/x-adobe-dng',
-  'image/x-sony-arw', 'image/x-fuji-raf', 'image/x-panasonic-rw2',
+  'image/jpeg', 'image/png', 'image/webp', 'image/avif',
+  'image/gif', 'image/bmp',
 ];
 
 const FEATURE_PILLS = [
   { icon: '⚡', label: 'Classification IA 3 piles', col: 'var(--af-review)' },
   { icon: '↔', label: 'Mode Swipe ultra-rapide',    col: 'var(--af-pick)' },
-  { icon: '⊕', label: 'Détection doublons',         col: '#c4b5fd' },
+  { icon: '⊕', label: 'Détection doublons',         col: 'var(--af-ai)' },
   { icon: '◎', label: 'Score netteté IA',           col: 'var(--af-reject)' },
 ];
 
@@ -71,7 +71,7 @@ export const AutoFlowImportScreen: React.FC<AutoFlowImportScreenProps> = ({
           <span style={{
             color: 'var(--af-pick)',
             textDecoration: 'underline',
-            textDecorationColor: 'rgba(134,239,172,0.3)',
+            textDecorationColor: 'rgba(var(--af-pick-rgb),0.3)',
           }}>3 minutes</span>
         </h2>
         <p style={{ fontSize: 15, color: 'var(--af-t3)', lineHeight: 1.65, margin: 0 }}>
@@ -81,15 +81,18 @@ export const AutoFlowImportScreen: React.FC<AutoFlowImportScreenProps> = ({
 
       {/* Dropzone */}
       <div
+        role="button"
+        tabIndex={0}
         onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
         onDragLeave={() => setDrag(false)}
         onDrop={handleDrop}
         onClick={handleClick}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(); } }}
         style={{
           width: '100%', maxWidth: 480, borderRadius: 18, padding: '46px 32px',
           textAlign: 'center', cursor: disabled ? 'not-allowed' : 'pointer',
-          border: `2px dashed ${drag ? 'var(--af-review)' : 'rgba(255,255,255,0.09)'}`,
-          background: drag ? 'rgba(245,158,11,0.05)' : 'rgba(255,255,255,0.02)',
+          border: `2px dashed ${drag ? 'var(--af-review)' : 'rgba(var(--af-overlay-rgb),0.09)'}`,
+          background: drag ? 'rgba(var(--af-review-rgb),0.05)' : 'rgba(var(--af-overlay-rgb),0.02)',
           transition: 'all 0.15s',
           opacity: disabled ? 0.5 : 1,
         }}
@@ -97,7 +100,7 @@ export const AutoFlowImportScreen: React.FC<AutoFlowImportScreenProps> = ({
         {/* Upload icon */}
         <div style={{
           width: 54, height: 54, borderRadius: 15, margin: '0 auto 14px',
-          background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)',
+          background: 'rgba(var(--af-review-rgb),0.1)', border: '1px solid rgba(var(--af-review-rgb),0.2)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <svg width={24} height={24} viewBox="0 0 24 24"
@@ -106,7 +109,7 @@ export const AutoFlowImportScreen: React.FC<AutoFlowImportScreenProps> = ({
             <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
           </svg>
         </div>
-        <p style={{ fontSize: 15, fontWeight: 700, color: '#bbb', marginBottom: 4 }}>
+        <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--af-t2)', marginBottom: 4 }}>
           Glissez vos photos ici
         </p>
         <p style={{ fontSize: 13, color: 'var(--af-t3)', marginBottom: 16 }}>
@@ -117,12 +120,12 @@ export const AutoFlowImportScreen: React.FC<AutoFlowImportScreenProps> = ({
         </p>
         {/* Format badges */}
         <div style={{ display: 'flex', gap: 5, justifyContent: 'center', flexWrap: 'wrap' }}>
-          {['JPEG', 'PNG', 'RAW', 'WebP', 'HEIC'].map((f) => (
+          {['JPEG', 'PNG', 'WebP', 'AVIF', 'GIF'].map((f) => (
             <span key={f} style={{
               padding: '2px 8px',
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 4, fontSize: 11, color: 'rgba(255,255,255,0.3)',
+              background: 'rgba(var(--af-overlay-rgb),0.05)',
+              border: '1px solid rgba(var(--af-overlay-rgb),0.08)',
+              borderRadius: 4, fontSize: 11, color: 'rgba(var(--af-overlay-rgb),0.3)',
             }}>{f}</span>
           ))}
         </div>
@@ -133,8 +136,8 @@ export const AutoFlowImportScreen: React.FC<AutoFlowImportScreenProps> = ({
         {FEATURE_PILLS.map((f) => (
           <div key={f.label} style={{
             display: 'flex', alignItems: 'center', gap: 7, padding: '6px 14px',
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.07)', borderRadius: 20,
+            background: 'rgba(var(--af-overlay-rgb),0.04)',
+            border: '1px solid rgba(var(--af-overlay-rgb),0.07)', borderRadius: 20,
           }}>
             <span style={{ fontSize: 13, color: f.col }}>{f.icon}</span>
             <span style={{ fontSize: 12, color: 'var(--af-t3)' }}>{f.label}</span>

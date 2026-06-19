@@ -7,14 +7,22 @@ import { cn } from '../../../lib/utils';
 import { FolderOpen, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.tif', '.heic', '.heif', '.avif']);
+// P1-4 : uniquement les formats réellement décodés par le pipeline navigateur
+// (HTMLImageElement/Canvas). HEIC/HEIF/TIFF/RAW étaient acceptés mais échouaient
+// au preview/analyse/export — on les retire tant qu'aucun décodeur dédié n'est intégré.
+const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.avif']);
 
-/** Recursively collect image files from a FileSystemDirectoryHandle */
+/** Recursively collect image files from a FileSystemDirectoryHandle.
+ *  `stats.skippedDeep` compte les sous-dossiers ignorés car trop profonds (A-16). */
 async function collectImagesFromDir(
   dirHandle: FileSystemDirectoryHandle,
+  stats: { skippedDeep: number },
   depth = 0,
 ): Promise<File[]> {
-  if (depth > 5) return []; // guard against very deep trees
+  if (depth > 5) {
+    stats.skippedDeep += 1; // arbre trop profond — on signale plutôt que d'ignorer en silence
+    return [];
+  }
   const files: File[] = [];
   for await (const entry of (dirHandle as unknown as AsyncIterable<FileSystemHandle>)) {
     if (entry.kind === 'file') {
@@ -24,7 +32,7 @@ async function collectImagesFromDir(
         files.push(file);
       }
     } else if (entry.kind === 'directory') {
-      const subFiles = await collectImagesFromDir(entry as FileSystemDirectoryHandle, depth + 1);
+      const subFiles = await collectImagesFromDir(entry as FileSystemDirectoryHandle, stats, depth + 1);
       files.push(...subFiles);
     }
   }
@@ -49,10 +57,20 @@ export function FileUpload({ onFilesSelected, disabled }: FileUploadProps) {
     [onFilesSelected]
   );
 
+  // A-15 : signaler les fichiers refusés (format non supporté) au lieu de les ignorer.
+  const onDropRejected = useCallback((rejections: { file: File }[]) => {
+    if (rejections.length > 0) {
+      toast.error(
+        `${rejections.length} fichier${rejections.length > 1 ? 's' : ''} ignoré${rejections.length > 1 ? 's' : ''} (format non supporté)`,
+      );
+    }
+  }, []);
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
+    onDropRejected,
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.tif', '.heic', '.heif', '.avif'],
+      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.bmp', '.webp', '.avif'],
     },
     multiple: true,
     disabled,
@@ -68,13 +86,18 @@ export function FileUpload({ onFilesSelected, disabled }: FileUploadProps) {
       // @ts-expect-error — showDirectoryPicker is not yet in all TS lib defs
       const dirHandle: FileSystemDirectoryHandle = await window.showDirectoryPicker({ mode: 'read' });
       const toastId = toast.loading('Lecture du dossier…');
-      const files = await collectImagesFromDir(dirHandle);
+      const stats = { skippedDeep: 0 };
+      const files = await collectImagesFromDir(dirHandle, stats);
       toast.dismiss(toastId);
       if (files.length === 0) {
         toast.error('Aucune image trouvée dans ce dossier.');
       } else {
         toast.success(`${files.length} photo${files.length > 1 ? 's' : ''} trouvée${files.length > 1 ? 's' : ''}`);
         onFilesSelected(files);
+        if (stats.skippedDeep > 0) {
+          // A-16 : prévenir que des sous-dossiers très profonds ont été ignorés.
+          toast('Certains sous-dossiers très profonds n\'ont pas été lus.', { icon: '⚠️' });
+        }
       }
     } catch (err) {
       // User cancelled the picker — no error needed
@@ -131,7 +154,7 @@ export function FileUpload({ onFilesSelected, disabled }: FileUploadProps) {
                 ou cliquez pour sélectionner des fichiers
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                JPEG · PNG · WebP · GIF · BMP · TIFF · HEIC · AVIF
+                JPEG · PNG · WebP · GIF · BMP · AVIF
               </p>
             </div>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-4">

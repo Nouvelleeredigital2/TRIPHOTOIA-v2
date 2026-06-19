@@ -3,7 +3,7 @@
  * Remplace l'API Gemini par une analyse locale utilisant Canvas API
  */
 
-import { ImageProcessor, ImageAnalysisResult } from '../lib/image-analysis/imageProcessor';
+import { ImageProcessor } from '../lib/image-analysis/imageProcessor';
 import { PhotoAnalysis } from '../../types';
 
 export class LocalAnalysisService {

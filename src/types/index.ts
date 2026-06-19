@@ -193,6 +193,27 @@ type SetNoteAction = {
   payload: { photoId: string; previousNote: string };
 };
 
+type DeletePhotoAction = {
+  type: 'DELETE_PHOTO';
+  payload: {
+    photo: Photo;
+    index: number;
+    collectionIds: string[];
+    wasRejected: boolean;
+    /** Overrides « meilleur du groupe » qui pointaient sur cette photo (groupId → photoId). */
+    bestOverrides: Record<string, string>;
+  };
+};
+
+type DeleteCollectionAction = {
+  type: 'DELETE_COLLECTION';
+  payload: {
+    collection: PhotoCollection;
+    index: number;
+    wasActive: boolean;
+  };
+};
+
 export type UndoAction =
   | SetBestAction
   | ToggleRejectAction
@@ -201,7 +222,9 @@ export type UndoAction =
   | SetRejectAction
   | SetColorLabelAction
   | UnflagAction
-  | SetNoteAction;
+  | SetNoteAction
+  | DeletePhotoAction
+  | DeleteCollectionAction;
 
 export interface PhotoCollection {
   id: string;

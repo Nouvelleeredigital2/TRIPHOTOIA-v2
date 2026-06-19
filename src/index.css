@@ -1,5 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
-
+/* Space Grotesk est auto-hébergée via @fontsource (importée dans index.tsx). */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -137,17 +136,49 @@
   animation: spin 1s linear infinite;
 }
 
-/* ── AutoFlow v2 Design Tokens ─────────────────────────────────────────────── */
+/* ── AutoFlow v2 Design Tokens (theme-aware) ──────────────────────────────────
+   Light values live in :root, dark values in .dark. The dark values are kept
+   identical to the original palette, so dark mode is unchanged; light mode is new.
+   --af-overlay-rgb drives the alpha overlays (rgba(var(--af-overlay-rgb), a)) so
+   white-on-dark surfaces become black-on-light automatically. */
 :root {
-  /* AutoFlow semantic palette */
+  /* AutoFlow semantic palette — light */
+  --af-bg: #f4f4f7;
+  --af-bg-rgb: 244,244,247;
+  --af-s1: #ffffff;
+  --af-s2: #f1f1f5;
+  --af-s3: #e9e9ee;
+  --af-b1: rgba(0,0,0,0.06);
+  --af-b2: rgba(0,0,0,0.10);
+  --af-overlay-rgb: 0,0,0;
+
+  /* Classification colors — light (higher contrast on light surfaces) */
+  --af-pick:        #16a34a;
+  --af-pick-rgb:    22,163,74;
+  --af-reject:      #dc2626;
+  --af-reject-rgb:  220,38,38;
+  --af-review:      #d97706;
+  --af-review-rgb:  217,119,6;
+  --af-ai:          #7c3aed;
+  --af-ai-rgb:      124,58,237;
+
+  /* AutoFlow text scale — light */
+  --af-t1: #18181b;
+  --af-t2: #52525b;
+  --af-t3: #a1a1aa;
+}
+
+.dark {
+  /* AutoFlow semantic palette — dark (original values, unchanged) */
   --af-bg: #07070c;
+  --af-bg-rgb: 7,7,12;
   --af-s1: #0d0d14;
   --af-s2: #111118;
   --af-s3: #18181f;
   --af-b1: rgba(255,255,255,0.05);
   --af-b2: rgba(255,255,255,0.09);
+  --af-overlay-rgb: 255,255,255;
 
-  /* Classification colors */
   --af-pick:        #86efac;
   --af-pick-rgb:    134,239,172;
   --af-reject:      #fca5a5;
@@ -157,7 +188,6 @@
   --af-ai:          #c4b5fd;
   --af-ai-rgb:      196,181,253;
 
-  /* AutoFlow text scale */
   --af-t1: #f0f0f7;
   --af-t2: #8a8a9a;
   --af-t3: #46464e;

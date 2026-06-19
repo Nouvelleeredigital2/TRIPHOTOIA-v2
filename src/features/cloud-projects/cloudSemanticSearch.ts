@@ -120,6 +120,28 @@ export async function searchSimilarToPhoto({
 
 export type TextEmbedder = (query: string) => Promise<number[]>;
 
+/**
+ * TextEmbedder branché sur l'Edge Function `embed-text` (CLIP texte, 512d,
+ * même espace que les embeddings image). Renvoie null si Supabase n'est pas
+ * configuré (l'appelant retombe alors sur le fallback mot-clé V1).
+ */
+export function createEdgeTextEmbedder(
+  client: SupabaseClient | null = supabase,
+): TextEmbedder | null {
+  if (!client) return null;
+  return async (query: string): Promise<number[]> => {
+    const { data, error } = await client.functions.invoke('embed-text', {
+      body: { query },
+    });
+    if (error) throw error;
+    const embedding = (data as { embedding?: unknown } | null)?.embedding;
+    if (!Array.isArray(embedding) || embedding.length === 0) {
+      throw new Error('embed-text: réponse invalide');
+    }
+    return embedding.map((value) => Number(value));
+  };
+}
+
 interface SearchByTextParams {
   projectId: string;
   query: string;

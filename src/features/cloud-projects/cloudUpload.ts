@@ -19,9 +19,10 @@ interface CloudUploadClient {
       ) => Promise<{ error: Error | null } | { error: unknown }>;
     };
   };
-  from: (table: string) => {
-    insert: (payload: unknown) => unknown;
-  };
+  // Direct table inserts are kept for backward compat but not used by uploadPhotosToCloud
+  // (which uses RPCs to work around ES256/JWKS role-switching issues in new Supabase projects).
+  from?: (table: string) => { insert: (payload: unknown) => unknown };
+  rpc: (name: string, params?: Record<string, unknown>) => PromiseLike<{ error: unknown }>;
 }
 
 interface BuildProjectPhotoStoragePathParams {
@@ -76,7 +77,6 @@ export async function uploadPhotosToCloud({
   client = supabase,
   createPhotoId = createUuid,
   onProgress,
-  now = () => new Date(),
   faceAnalysisEnabled = false,
 }: UploadPhotosToCloudParams): Promise<UploadPhotosToCloudResult> {
   if (!client) {
@@ -101,70 +101,34 @@ export async function uploadPhotosToCloud({
 
     if (uploadError) throw uploadError;
 
-    const photoInsert = client
-      .from('photos')
-      .insert({
-        id: photoId,
-        project_id: activeProject.id,
-        original_filename: file.name,
-        file_size: file.size,
-        mime_type: file.type || null,
-        storage_path: storagePath,
-        analysis_status: 'pending',
-      }) as {
-        select: (columns: string) => {
-          single: () => Promise<{ error: unknown }>;
-        };
-      };
-    const { error: photoError } = await photoInsert.select('id').single();
+    // Sur les nouvelles instances Supabase ES256/JWKS, PostgREST n'effectue pas la
+    // bascule de rôle anon→authenticated, ce qui bloque les INSERTs directs via RLS.
+    // On passe par la RPC register_cloud_photo (SECURITY DEFINER) qui insère la photo
+    // et ses jobs côté serveur, avec vérification auth.uid() + is_project_member.
+    const { error: photoError } = await (client.rpc('register_cloud_photo', {
+      p_project_id: activeProject.id,
+      p_photo_id: photoId,
+      p_original_filename: file.name,
+      p_storage_path: storagePath,
+      p_file_size: file.size,
+      p_mime_type: file.type || null,
+      p_semantic_delay_ms: SEMANTIC_EMBEDDING_DELAY_MS,
+    }) as Promise<{ error: unknown }>);
 
     if (photoError) throw photoError;
 
-    const jobs: Array<Record<string, unknown>> = [
-      {
-        project_id: activeProject.id,
-        photo_id: photoId,
-        job_type: 'generate_thumbnail',
-        status: 'pending',
-      },
-      {
-        project_id: activeProject.id,
-        photo_id: photoId,
-        job_type: 'quality_analysis',
-        status: 'pending',
-      },
-      {
-        project_id: activeProject.id,
-        photo_id: photoId,
-        job_type: 'perceptual_hash',
-        status: 'pending',
-      },
-      {
-        project_id: activeProject.id,
-        photo_id: photoId,
-        job_type: 'semantic_embedding',
-        status: 'pending',
-        payload: { storage_path: storagePath },
-        run_after: new Date(now().getTime() + SEMANTIC_EMBEDDING_DELAY_MS).toISOString(),
-      },
-    ];
-
-    // Strict opt-in: face detection is only enqueued when the project enabled it.
+    // Opt-in face detection : enfilé séparément si activé, car la RPC principale
+    // n'inclut pas ce job (opt-in par projet).
     if (faceAnalysisEnabled) {
-      jobs.push({
-        project_id: activeProject.id,
-        photo_id: photoId,
-        job_type: 'face_detection',
-        status: 'pending',
-        payload: { storage_path: storagePath },
-        run_after: new Date(now().getTime() + FACE_DETECTION_DELAY_MS).toISOString(),
-      });
+      const faceJobInsert = client.rpc('enqueue_face_detection_job', {
+        p_project_id: activeProject.id,
+        p_photo_id: photoId,
+        p_storage_path: storagePath,
+        p_delay_ms: FACE_DETECTION_DELAY_MS,
+      }) as Promise<{ error: unknown }>;
+      const { error: faceError } = await faceJobInsert;
+      if (faceError) throw faceError;
     }
-
-    const jobsInsert = client.from('jobs').insert(jobs) as Promise<{ error: unknown }>;
-    const { error: jobsError } = await jobsInsert;
-
-    if (jobsError) throw jobsError;
 
     photoIds.push(photoId);
     const localPhotoId = localPhotoIds[index];

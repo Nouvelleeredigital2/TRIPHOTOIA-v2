@@ -1,11 +1,19 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
+  archiveCloudProject,
   buildProjectStats,
+  describeCloudProjectError,
   mapCloudPhotoRows,
+  renameCloudProject,
+  setCloudPhotoDeleted,
   sortProjectsByRecentActivity,
   type CloudPhotoRow,
   type CloudProjectRow,
 } from '../../../features/cloud-projects/cloudProjects';
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+const mockClient = (rpc: ReturnType<typeof vi.fn>) =>
+  ({ rpc } as unknown as SupabaseClient);
 
 const projects: CloudProjectRow[] = [
   {
@@ -53,6 +61,36 @@ describe('cloud project helpers', () => {
       'project-new',
       'project-old',
     ]);
+  });
+
+  it('renames a project via the SECURITY DEFINER RPC (A-39)', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: { id: 'p1', name: 'Nouveau' }, error: null });
+    const row = await renameCloudProject('p1', '  Nouveau  ', mockClient(rpc));
+    expect(rpc).toHaveBeenCalledWith('rename_user_project', { p_project_id: 'p1', p_name: 'Nouveau' });
+    expect(row.name).toBe('Nouveau');
+  });
+
+  it('archives a project via RPC (A-39)', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: null, error: null });
+    await archiveCloudProject('p1', mockClient(rpc));
+    expect(rpc).toHaveBeenCalledWith('archive_user_project', { p_project_id: 'p1' });
+  });
+
+  it('soft-deletes a cloud photo via RPC (A-42)', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: null, error: null });
+    await setCloudPhotoDeleted('photo-1', true, mockClient(rpc));
+    expect(rpc).toHaveBeenCalledWith('set_cloud_photo_deleted', { p_photo_id: 'photo-1', p_deleted: true });
+  });
+
+  it('throws the RPC error so the UI can surface it', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: null, error: new Error('duplicate_name') });
+    await expect(renameCloudProject('p1', 'X', mockClient(rpc))).rejects.toThrow('duplicate_name');
+  });
+
+  it('maps known RPC errors to readable messages (A-40)', () => {
+    expect(describeCloudProjectError(new Error('duplicate_name'))).toBe('Un projet porte déjà ce nom.');
+    expect(describeCloudProjectError(new Error('not_authorized'))).toBe("Vous n'avez pas accès à ce projet.");
+    expect(describeCloudProjectError(new Error('boom'))).toBe('boom');
   });
 
   it('maps cloud photo rows for dashboard display', () => {

@@ -73,10 +73,16 @@ async function analyzeImageWithCanvas(file: File): Promise<PhotoAnalysis> {
         resolve(analysis);
       } catch (error) {
         reject(error);
+      } finally {
+        URL.revokeObjectURL(objectUrl); // P1-5 : éviter la fuite de Blob URL
       }
     };
-    img.onerror = () => reject(new Error('Impossible de charger l\'image'));
-    img.src = URL.createObjectURL(file);
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Impossible de charger l\'image'));
+    };
+    const objectUrl = URL.createObjectURL(file);
+    img.src = objectUrl;
   });
 }
 
@@ -127,9 +133,6 @@ function detectBlur(data: Uint8ClampedArray, width: number, height: number): { i
 
   // Normaliser le score (0-1)
   const sharpnessScore = Math.min(Math.max(combinedScore, 0), 1);
-
-  // Calculer un seuil dynamique bas?? sur la distribution des scores
-  const imageSize = width * height;
 
   // Seuil bas?? sur la variance de l'image (plus l'image a de d??tails, plus le seuil doit ??tre ??lev??)
   const imageVariance = calculateImageVariance(data, width, height);
@@ -319,9 +322,8 @@ function generatePerceptualHash(data: Uint8ClampedArray, width: number, height: 
   return hash;
 }
 
-function analyzeColors(data: Uint8ClampedArray, width: number, height: number): { brightness: number; contrast: number; saturation: number } {
+function analyzeColors(data: Uint8ClampedArray, _width: number, _height: number): { brightness: number; contrast: number; saturation: number } {
   let totalBrightness = 0;
-  let totalContrast = 0;
   let totalSaturation = 0;
   let count = 0;
 
@@ -364,8 +366,6 @@ function analyzeColors(data: Uint8ClampedArray, width: number, height: number): 
 function detectEyes(data: Uint8ClampedArray, width: number, height: number): boolean {
   // Zone du haut de l'image (o?? sont g??n??ralement les yeux)
   const eyeRegionHeight = Math.floor(height * 0.3); // Zone plus petite et plus pr??cise
-  const startY = 0;
-  const endY = eyeRegionHeight;
 
   // Analyser plusieurs zones pour d??tecter les yeux
   const zones = [

@@ -51,7 +51,10 @@ export const Filmstrip: React.FC<FilmstripProps> = ({
           'group relative rounded-md border p-2 bg-background/70 hover:bg-background/90 transition-colors cursor-pointer',
           isActive ? 'border-primary shadow-md' : 'border-border/50'
         )}
+        role="button"
+        tabIndex={0}
         onClick={() => onSelect(photo.id)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(photo.id); } }}
       >
         <div className="flex items-center gap-3">
           <div className="relative h-16 w-16 overflow-hidden rounded">

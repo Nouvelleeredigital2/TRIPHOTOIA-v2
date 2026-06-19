@@ -1,5 +1,4 @@
-﻿import React from 'react';
-import { describe, it, expect, vi } from 'vitest';
+﻿import { describe, it, expect, vi } from 'vitest';
 import { renderApp, screen, fireEvent } from '../test-utils';
 
 describe('Compatibility Tests', () => {
@@ -9,19 +8,19 @@ describe('Compatibility Tests', () => {
     Object.defineProperty(window, 'innerHeight', { value: 667 });
 
     await renderApp();
-    expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
 
     // Test tablet viewport
     Object.defineProperty(window, 'innerWidth', { value: 768 });
     Object.defineProperty(window, 'innerHeight', { value: 1024 });
     fireEvent.resize(window);
-    expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
 
     // Test desktop viewport
     Object.defineProperty(window, 'innerWidth', { value: 1920 });
     Object.defineProperty(window, 'innerHeight', { value: 1080 });
     fireEvent.resize(window);
-    expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
   });
 
   it('should work with different browsers', async () => {
@@ -37,7 +36,7 @@ describe('Compatibility Tests', () => {
       Object.defineProperty(navigator, 'userAgent', { configurable: true, writable: true, value: userAgent });
 
       await renderApp();
-      expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
+      expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
     }
   });
 
@@ -48,7 +47,7 @@ describe('Compatibility Tests', () => {
       Object.defineProperty(navigator, 'platform', { configurable: true, writable: true, value: platform });
 
       await renderApp();
-      expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
+      expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
     }
   });
 
@@ -59,7 +58,7 @@ describe('Compatibility Tests', () => {
       Object.defineProperty(navigator, 'language', { configurable: true, writable: true, value: language });
 
       await renderApp();
-      expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
+      expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
     }
   });
 
@@ -73,7 +72,7 @@ describe('Compatibility Tests', () => {
       });
 
       await renderApp();
-      expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
+      expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
 
       spy.mockRestore();
     }
@@ -116,7 +115,7 @@ describe('Compatibility Tests', () => {
     });
 
     await renderApp();
-    expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
 
     // Test with high contrast
     Object.defineProperty(window, 'matchMedia', {
@@ -133,7 +132,7 @@ describe('Compatibility Tests', () => {
     });
 
     await renderApp();
-    expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
   });
 
   it('should work with different network conditions', async () => {
@@ -141,13 +140,13 @@ describe('Compatibility Tests', () => {
     Object.defineProperty(navigator, 'onLine', { configurable: true, writable: true, value: false });
 
     await renderApp();
-    expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
 
     // Test online mode
     Object.defineProperty(navigator, 'onLine', { configurable: true, writable: true, value: true });
 
     await renderApp();
-    expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
   });
 
   it('should work with different memory constraints', async () => {
@@ -155,13 +154,13 @@ describe('Compatibility Tests', () => {
     Object.defineProperty(navigator, 'deviceMemory', { configurable: true, writable: true, value: 2 });
 
     await renderApp();
-    expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
 
     // Mock high memory device
     Object.defineProperty(navigator, 'deviceMemory', { configurable: true, writable: true, value: 8 });
 
     await renderApp();
-    expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
   });
 
   it('should work with different connection types', async () => {
@@ -175,7 +174,7 @@ describe('Compatibility Tests', () => {
       });
 
       await renderApp();
-      expect(screen.getAllByText('TRIPHOTOIA')[0]).toBeInTheDocument();
+      expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
     }
   });
 });

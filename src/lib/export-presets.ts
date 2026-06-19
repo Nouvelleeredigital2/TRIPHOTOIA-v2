@@ -5,9 +5,9 @@
  * Pas d'IDB : les presets sont petits et n'ont pas de dépendance sur les photos.
  */
 
-import { ExportFormData } from '../features/export/ExportTab';
+import { ExportFormData } from '../features/export/exportTypes';
 
-const STORAGE_KEY = 'triphotoia-export-presets';
+const STORAGE_KEY = 'treephoto-export-presets';
 
 export interface ExportPreset {
   id: string;

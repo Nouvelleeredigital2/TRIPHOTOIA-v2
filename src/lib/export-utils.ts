@@ -81,13 +81,52 @@ function expandPattern(
 
 /**
  * Generates the final filename for a photo being exported.
+ *
+ * A-32 : avec un filigrane et le format « original », l'image est ré-encodée en JPEG
+ * (cf. processImage) — l'extension doit donc être .jpeg, pas l'extension d'origine.
  */
 function getExportFileName(photo: Photo, options: ExportOptions, index: number): string {
   const baseName = expandPattern(options.renamePattern, photo, index);
+  const watermarkedOriginal = options.format === 'original' && !!options.watermark?.text?.trim();
   const ext = options.format === 'original'
-    ? (photo.file.name.split('.').pop() ?? 'jpg')
+    ? (watermarkedOriginal ? 'jpeg' : (photo.file.name.split('.').pop() ?? 'jpg'))
     : options.format;
   return `${baseName}.${ext}`;
+}
+
+/**
+ * A-30 : évite les collisions de noms dans un même conteneur (ZIP, dossier de chapitre,
+ * répertoire). Si le nom est déjà pris, suffixe « -2 », « -3 », … avant l'extension.
+ */
+function dedupeFileName(name: string, used: Set<string>): string {
+  if (!used.has(name)) {
+    used.add(name);
+    return name;
+  }
+  const dot = name.lastIndexOf('.');
+  const base = dot === -1 ? name : name.slice(0, dot);
+  const ext = dot === -1 ? '' : name.slice(dot);
+  let i = 2;
+  let candidate = `${base}-${i}${ext}`;
+  while (used.has(candidate)) {
+    i += 1;
+    candidate = `${base}-${i}${ext}`;
+  }
+  used.add(candidate);
+  return candidate;
+}
+
+export interface ExportResult {
+  blob: Blob;
+  exported: number;
+  failed: number;
+  failedNames: string[];
+}
+
+export interface DirectoryExportResult {
+  exported: number;
+  failed: number;
+  failedNames: string[];
 }
 
 function sanitizeZipFolderName(name: string): string {
@@ -120,8 +159,6 @@ function applyWatermark(
   ctx.font = `bold ${fontSize}px sans-serif`;
   ctx.fillStyle = wm.color;
   ctx.textBaseline = 'middle';
-
-  const textWidth = ctx.measureText(wm.text).width;
 
   let x: number;
   let y: number;
@@ -204,6 +241,7 @@ async function processImage(
 
       canvas.toBlob(
         (blob) => {
+          URL.revokeObjectURL(objectUrl); // P1-5 : libérer la Blob URL après encodage
           if (blob) resolve(blob);
           else reject(new Error('Failed to convert image'));
         },
@@ -212,8 +250,12 @@ async function processImage(
       );
     };
 
-    img.onerror = () => reject(new Error('Failed to load image'));
-    img.src = URL.createObjectURL(file);
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Failed to load image'));
+    };
+    const objectUrl = URL.createObjectURL(file);
+    img.src = objectUrl;
   });
 }
 
@@ -223,25 +265,31 @@ export async function exportPhotosAsZip(
   photos: Photo[],
   options: ExportOptions,
   onProgress?: (progress: number) => void
-): Promise<Blob> {
+): Promise<ExportResult> {
   const zip = new JSZip();
   const total = photos.length;
+  const used = new Set<string>();
+  const failedNames: string[] = [];
+  let exported = 0;
 
   for (let i = 0; i < photos.length; i++) {
     const photo = photos[i];
-    const fileName = getExportFileName(photo, options, i);
+    const fileName = dedupeFileName(getExportFileName(photo, options, i), used);
 
     try {
       const processedBlob = await processImage(photo.file, options);
       zip.file(fileName, processedBlob);
+      exported += 1;
     } catch (error) {
       console.error(`Failed to process ${fileName}:`, error);
+      failedNames.push(photo.file.name);
     }
 
     if (onProgress) onProgress(Math.round(((i + 1) / total) * 100));
   }
 
-  return zip.generateAsync({ type: 'blob' });
+  const blob = await zip.generateAsync({ type: 'blob' });
+  return { blob, exported, failed: failedNames.length, failedNames };
 }
 
 // ── Directory export (File System Access API) ─────────────────────────────────
@@ -250,10 +298,12 @@ export async function exportPhotoChaptersAsZip(
   chapters: PhotoExportChapter[],
   options: ExportOptions,
   onProgress?: (progress: number) => void
-): Promise<Blob> {
+): Promise<ExportResult> {
   const zip = new JSZip();
   const total = chapters.reduce((sum, chapter) => sum + chapter.photos.length, 0);
   let processed = 0;
+  let exported = 0;
+  const failedNames: string[] = [];
 
   for (let chapterIndex = 0; chapterIndex < chapters.length; chapterIndex++) {
     const chapter = chapters[chapterIndex];
@@ -264,15 +314,20 @@ export async function exportPhotoChaptersAsZip(
       continue;
     }
 
+    // Anti-collision par dossier de chapitre (A-30).
+    const used = new Set<string>();
+
     for (let photoIndex = 0; photoIndex < chapter.photos.length; photoIndex++) {
       const photo = chapter.photos[photoIndex];
-      const fileName = getExportFileName(photo, options, photoIndex);
+      const fileName = dedupeFileName(getExportFileName(photo, options, photoIndex), used);
 
       try {
         const processedBlob = await processImage(photo.file, options);
         folder.file(fileName, processedBlob);
+        exported += 1;
       } catch (error) {
         console.error(`Failed to process ${folderName}/${fileName}:`, error);
+        failedNames.push(`${chapter.name}/${photo.file.name}`);
       }
 
       processed++;
@@ -282,7 +337,8 @@ export async function exportPhotoChaptersAsZip(
     }
   }
 
-  return zip.generateAsync({ type: 'blob' });
+  const blob = await zip.generateAsync({ type: 'blob' });
+  return { blob, exported, failed: failedNames.length, failedNames };
 }
 
 export function supportsDirectoryExport(): boolean {
@@ -293,26 +349,34 @@ export async function exportPhotosToDirectory(
   photos: Photo[],
   options: ExportOptions,
   onProgress?: (progress: number) => void,
-): Promise<void> {
+): Promise<DirectoryExportResult> {
   type ShowDirectoryPicker = (opts?: { mode?: string }) => Promise<FileSystemDirectoryHandle>;
   const pick = (window as unknown as { showDirectoryPicker: ShowDirectoryPicker }).showDirectoryPicker;
   const dirHandle = await pick({ mode: 'readwrite' });
 
   const total = photos.length;
+  const used = new Set<string>();
+  const failedNames: string[] = [];
+  let exported = 0;
+
   for (let i = 0; i < photos.length; i++) {
     const photo = photos[i];
-    const fileName = getExportFileName(photo, options, i);
+    const fileName = dedupeFileName(getExportFileName(photo, options, i), used);
     try {
       const blob = await processImage(photo.file, options);
       const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
       const writable = await fileHandle.createWritable();
       await writable.write(blob);
       await writable.close();
+      exported += 1;
     } catch (error) {
       console.error(`[export] failed to write ${fileName}:`, error);
+      failedNames.push(photo.file.name);
     }
     if (onProgress) onProgress(Math.round(((i + 1) / total) * 100));
   }
+
+  return { exported, failed: failedNames.length, failedNames };
 }
 
 // ── Misc helpers ──────────────────────────────────────────────────────────────

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 type Theme = 'light' | 'dark';
 
-const STORAGE_KEY = 'triphotoia-theme';
+const STORAGE_KEY = 'treephoto-theme';
 
 function getInitialTheme(): Theme {
   if (typeof window === 'undefined') return 'light';

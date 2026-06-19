@@ -1,8 +1,10 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { usePhotoStore } from '../store/photoStore';
-import { syncPhotoMetadata, loadCloudMetadata, trackStats } from '../lib/sync-utils';
+import { syncPhotoMetadata, loadCloudMetadata, trackStats, syncCollections } from '../lib/sync-utils';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { isAuthError, SESSION_EXPIRED_MESSAGE } from '../lib/auth-errors';
+import toast from 'react-hot-toast';
 
 const DEBOUNCE_MS = 2000;
 
@@ -14,6 +16,7 @@ export function useCloudSync() {
   const { user, setSyncStatus } = useAuthStore();
   const pendingRef = useRef<Set<string>>(new Set());
   const timerRef = useRef<number | null>(null);
+  const collectionsTimerRef = useRef<number | null>(null);
 
   const flush = useCallback(async () => {
     if (!user || !isSupabaseConfigured) return;
@@ -36,6 +39,10 @@ export function useCloudSync() {
     } catch (err) {
       console.warn('[useCloudSync] sync error:', err);
       setSyncStatus('error');
+      // A-50 : session expirée pendant la synchro → message actionnable (dédupliqué).
+      if (isAuthError(err)) {
+        toast.error(SESSION_EXPIRED_MESSAGE, { id: 'session-expired' });
+      }
     }
   }, [user, setSyncStatus]);
 
@@ -83,33 +90,87 @@ export function useCloudSync() {
     });
   }, [user]);
 
-  // Surveiller les mutations du store (rating, pick, reject, label)
+  // Surveiller les mutations du store (rating, pick, reject, label, tags, notes)
   useEffect(() => {
     if (!user || !isSupabaseConfigured) return;
 
     const unsub = usePhotoStore.subscribe((state, prev) => {
-      if (state.photos === prev.photos) return;
+      const photosChanged = state.photos !== prev.photos;
+      const tagsChanged = state.userTags !== prev.userTags;
+      const notesChanged = state.photoNotes !== prev.photoNotes;
 
-      // Détecter quelles photos ont changé leurs métadonnées
-      const changedIds: string[] = [];
-      state.photos.forEach((photo, i) => {
-        const prevPhoto = prev.photos[i];
-        if (!prevPhoto) return;
-        if (photo.id !== prevPhoto.id) return;
-        const a = photo.analysis;
-        const pa = prevPhoto.analysis;
-        if (!a || !pa) return;
-        if (
-          a.rating !== pa.rating ||
-          a.isPick !== pa.isPick ||
-          a.isRejected !== pa.isRejected ||
-          a.colorLabel !== pa.colorLabel
-        ) {
-          changedIds.push(photo.id);
-        }
+      // A-06 : synchroniser les collections cloud (débounce) quand elles changent.
+      if (state.collections !== prev.collections || state.collectionOrder !== prev.collectionOrder) {
+        if (collectionsTimerRef.current) clearTimeout(collectionsTimerRef.current);
+        collectionsTimerRef.current = window.setTimeout(() => {
+          const st = usePhotoStore.getState();
+          syncCollections(user.id, st.collections, st.collectionOrder).catch(() => {});
+        }, DEBOUNCE_MS);
+      }
+
+      if (!photosChanged && !tagsChanged && !notesChanged) return;
+
+      const changed = new Set<string>();
+
+      // A-28 : comparer par photo.id (et non par index), pour ne rien manquer si
+      // l'ordre change ou si une photo est supprimée.
+      // A-46 : compteurs d'activité (notation / picks / rejets) pour les analytics.
+      let ratedDelta = 0;
+      let picksDelta = 0;
+      let rejectsDelta = 0;
+
+      if (photosChanged) {
+        const prevById = new Map(prev.photos.map((p) => [p.id, p]));
+        state.photos.forEach((photo) => {
+          const prevPhoto = prevById.get(photo.id);
+          if (!prevPhoto) return;
+          const a = photo.analysis;
+          const pa = prevPhoto.analysis;
+          if (
+            (a?.rating ?? 0) !== (pa?.rating ?? 0) ||
+            !!a?.isPick !== !!pa?.isPick ||
+            !!a?.isRejected !== !!pa?.isRejected ||
+            (a?.colorLabel ?? null) !== (pa?.colorLabel ?? null)
+          ) {
+            changed.add(photo.id);
+          }
+          // Transitions comptabilisées une seule fois (montée de front).
+          if ((a?.rating ?? 0) > 0 && (a?.rating ?? 0) !== (pa?.rating ?? 0)) ratedDelta += 1;
+          if (!!a?.isPick && !pa?.isPick) picksDelta += 1;
+          if (!!a?.isRejected && !pa?.isRejected) rejectsDelta += 1;
+        });
+      }
+
+      if (ratedDelta || picksDelta || rejectsDelta) {
+        trackStats(user.id, {
+          photos_rated: ratedDelta,
+          picks_count: picksDelta,
+          rejects_count: rejectsDelta,
+        }).catch(() => {});
+      }
+
+      // A-27 : synchroniser aussi les tags et les notes (champs prévus dans
+      // syncPhotoMetadata mais jamais détectés auparavant).
+      if (tagsChanged) {
+        const ids = new Set([...Object.keys(state.userTags), ...Object.keys(prev.userTags)]);
+        ids.forEach((id) => {
+          const a = state.userTags[id];
+          const b = prev.userTags[id];
+          if (JSON.stringify(a ?? []) !== JSON.stringify(b ?? [])) changed.add(id);
+        });
+      }
+      if (notesChanged) {
+        const ids = new Set([...Object.keys(state.photoNotes), ...Object.keys(prev.photoNotes)]);
+        ids.forEach((id) => {
+          if ((state.photoNotes[id] ?? '') !== (prev.photoNotes[id] ?? '')) changed.add(id);
+        });
+      }
+
+      // Ne synchroniser que les photos qui existent encore.
+      const present = new Set(state.photos.map((p) => p.id));
+      changed.forEach((id) => {
+        if (present.has(id)) scheduleSync(id);
       });
-
-      changedIds.forEach((id) => scheduleSync(id));
     });
 
     return unsub;

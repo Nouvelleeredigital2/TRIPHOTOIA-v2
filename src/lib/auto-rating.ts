@@ -1,4 +1,4 @@
-import { Photo, PhotoAnalysis } from '../types';
+import { Photo } from '../types';
 
 /**
  * Algorithme de notation automatique basé sur l'analyse IA

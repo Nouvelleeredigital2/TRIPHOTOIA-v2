@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -114,7 +113,7 @@ export function AutoRatingPanel() {
 
         {/* Presets */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">Choisir un preset :</label>
+          <p className="text-sm font-medium">Choisir un preset :</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {PRESETS.map((preset) => (
               <button

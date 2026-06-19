@@ -106,6 +106,17 @@ export function PhotoCard({
             onSelect();
           }
         }}
+        role="button"
+        tabIndex={0}
+        aria-pressed={isSelected}
+        aria-label={`Photo ${photo.file.name}${isSelected ? ' (sélectionnée)' : ''}${isRejected ? ' (rejetée)' : ''}`}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (e.ctrlKey || e.metaKey) onToggleMultiSelect?.();
+            else onSelect();
+          }
+        }}
       >
         <div className="aspect-square relative overflow-hidden">
           <img
@@ -134,6 +145,8 @@ export function PhotoCard({
           <div className="absolute top-2 left-2 flex flex-col gap-1">
             {/* Notation par étoiles */}
             {hasAnalysis && (
+              /* Wrapper qui stoppe la propagation ; le contrôle réel est StarRating. */
+              /* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */
               <div
                 className="bg-black/60 backdrop-blur-sm rounded-md px-2 py-1"
                 onClick={(e) => e.stopPropagation()}

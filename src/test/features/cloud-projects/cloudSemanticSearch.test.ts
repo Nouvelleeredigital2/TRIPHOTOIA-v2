@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  createEdgeTextEmbedder,
   formatSimilarityScore,
   parseEmbedding,
   searchPhotosByText,
@@ -149,5 +150,31 @@ describe('searchPhotosByText', () => {
     });
     expect(response.source).toBe('semantic');
     expect(response.results).toEqual([{ photoId: 'photo-9', similarity: 0.8 }]);
+  });
+});
+
+describe('createEdgeTextEmbedder', () => {
+  it('returns null when Supabase is not configured', () => {
+    expect(createEdgeTextEmbedder(null)).toBeNull();
+  });
+
+  it('invokes the embed-text Edge Function and returns the vector', async () => {
+    const invoke = vi.fn().mockResolvedValue({ data: { embedding: [0.1, 0.2, 0.3] }, error: null });
+    const embedder = createEdgeTextEmbedder({ functions: { invoke } } as never);
+    const vector = await embedder!('coucher de soleil');
+    expect(invoke).toHaveBeenCalledWith('embed-text', { body: { query: 'coucher de soleil' } });
+    expect(vector).toEqual([0.1, 0.2, 0.3]);
+  });
+
+  it('throws when the Edge Function returns an error', async () => {
+    const invoke = vi.fn().mockResolvedValue({ data: null, error: { message: 'boom' } });
+    const embedder = createEdgeTextEmbedder({ functions: { invoke } } as never);
+    await expect(embedder!('x')).rejects.toBeTruthy();
+  });
+
+  it('throws when the response has no usable embedding', async () => {
+    const invoke = vi.fn().mockResolvedValue({ data: { embedding: [] }, error: null });
+    const embedder = createEdgeTextEmbedder({ functions: { invoke } } as never);
+    await expect(embedder!('x')).rejects.toThrow(/réponse invalide/);
   });
 });

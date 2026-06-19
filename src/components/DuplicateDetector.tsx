@@ -3,7 +3,7 @@ import { usePhotoStore } from '../store/photoStore';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-import { Photo, DuplicateGroup } from '../types';
+import { DuplicateGroup } from '../types';
 import { DuplicateComparison } from './DuplicateComparison';
 import { Maximize2, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -19,23 +19,12 @@ export function DuplicateDetector() {
   // Utiliser des sélecteurs optimisés pour éviter les boucles infinies
   const collections = usePhotoStore((state) => state.collections);
   const activeCollectionId = usePhotoStore((state) => state.activeCollectionId);
-  const allPhotos = usePhotoStore((state) => state.photos);
 
   // Calculer les valeurs dérivées avec useMemo
   const activeCollection = useMemo(() =>
     collections[activeCollectionId],
     [collections, activeCollectionId]
   );
-
-  const activePhotos = useMemo(() => {
-    if (!activeCollection) {
-      return allPhotos;
-    }
-    const photoMap = new Map(allPhotos.map((photo) => [photo.id, photo]));
-    return activeCollection.photoIds
-      .map((id) => photoMap.get(id))
-      .filter((photo): photo is Photo => Boolean(photo));
-  }, [activeCollection, allPhotos]);
 
   // Filtrer les groupes pour la collection active
   const filteredGroups = useMemo(() => {

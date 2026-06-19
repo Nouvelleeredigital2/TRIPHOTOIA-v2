@@ -8,6 +8,11 @@ function createFile(name: string) {
   return new File(['image-data'], name, { type: 'image/jpeg' });
 }
 
+// uploadPhotosToCloud now uses RPCs (register_cloud_photo, enqueue_face_detection_job)
+// instead of direct INSERT on photos/jobs tables, because on new Supabase instances
+// (ES256/JWKS), PostgREST does not switch to the 'authenticated' role from the JWT,
+// so direct INSERTs are blocked by RLS regardless of policy conditions.
+
 describe('cloud upload helpers', () => {
   it('builds a safe private storage path for project originals', () => {
     expect(
@@ -20,26 +25,13 @@ describe('cloud upload helpers', () => {
     ).toBe('organizations/org-1/projects/project-1/originals/photo-1-Laura-Maxime-01.JPG');
   });
 
-  it('uploads originals, creates photo rows, and creates initial worker jobs', async () => {
+  it('uploads the file to storage then calls register_cloud_photo RPC', async () => {
     const upload = vi.fn().mockResolvedValue({ data: { path: 'ok' }, error: null });
-    const photoSingle = vi.fn().mockResolvedValue({
-      data: { id: 'photo-generated-1' },
-      error: null,
-    });
-    const photoSelect = vi.fn(() => ({ single: photoSingle }));
-    const photoInsert = vi.fn(() => ({ select: photoSelect }));
-    const jobsInsert = vi.fn().mockResolvedValue({ data: null, error: null });
-    const from = vi.fn((table: string) => {
-      if (table === 'photos') return { insert: photoInsert };
-      if (table === 'jobs') return { insert: jobsInsert };
-      throw new Error(`Unexpected table ${table}`);
-    });
+    const rpc = vi.fn().mockResolvedValue({ data: [{ photo_id: 'photo-generated-1' }], error: null });
 
     const client = {
-      storage: {
-        from: vi.fn(() => ({ upload })),
-      },
-      from,
+      storage: { from: vi.fn(() => ({ upload })) },
+      rpc,
     };
 
     const progress: number[] = [];
@@ -51,7 +43,7 @@ describe('cloud upload helpers', () => {
       },
       files: [createFile('Laura & Maxime 01.JPG')],
       localPhotoIds: ['local-photo-1'],
-      client,
+      client: client as never,
       createPhotoId: () => 'photo-generated-1',
       onProgress: (value) => progress.push(value),
       now: () => new Date('2026-05-29T12:00:00.000Z'),
@@ -68,104 +60,59 @@ describe('cloud upload helpers', () => {
       expect.any(File),
       { cacheControl: '3600', upsert: false }
     );
-    expect(photoInsert).toHaveBeenCalledWith({
-      id: 'photo-generated-1',
-      project_id: 'project-1',
-      original_filename: 'Laura & Maxime 01.JPG',
-      file_size: 10,
-      mime_type: 'image/jpeg',
-      storage_path: 'organizations/org-1/projects/project-1/originals/photo-generated-1-Laura-Maxime-01.JPG',
-      analysis_status: 'pending',
+    // register_cloud_photo RPC called with correct args
+    expect(rpc).toHaveBeenCalledWith('register_cloud_photo', {
+      p_project_id: 'project-1',
+      p_photo_id: 'photo-generated-1',
+      p_original_filename: 'Laura & Maxime 01.JPG',
+      p_storage_path: 'organizations/org-1/projects/project-1/originals/photo-generated-1-Laura-Maxime-01.JPG',
+      p_file_size: 10,
+      p_mime_type: 'image/jpeg',
+      p_semantic_delay_ms: 5000,
     });
-    expect(jobsInsert).toHaveBeenCalledWith([
-      {
-        project_id: 'project-1',
-        photo_id: 'photo-generated-1',
-        job_type: 'generate_thumbnail',
-        status: 'pending',
-      },
-      {
-        project_id: 'project-1',
-        photo_id: 'photo-generated-1',
-        job_type: 'quality_analysis',
-        status: 'pending',
-      },
-      {
-        project_id: 'project-1',
-        photo_id: 'photo-generated-1',
-        job_type: 'perceptual_hash',
-        status: 'pending',
-      },
-      {
-        project_id: 'project-1',
-        photo_id: 'photo-generated-1',
-        job_type: 'semantic_embedding',
-        status: 'pending',
-        payload: {
-          storage_path: 'organizations/org-1/projects/project-1/originals/photo-generated-1-Laura-Maxime-01.JPG',
-        },
-        run_after: '2026-05-29T12:00:05.000Z',
-      },
-    ]);
     expect(progress).toEqual([100]);
   });
 
-  it('enqueues a face_detection job only when face analysis is opted in', async () => {
+  it('calls enqueue_face_detection_job only when face analysis is opted in', async () => {
     const upload = vi.fn().mockResolvedValue({ data: { path: 'ok' }, error: null });
-    const photoSingle = vi.fn().mockResolvedValue({ data: { id: 'photo-1' }, error: null });
-    const photoSelect = vi.fn(() => ({ single: photoSingle }));
-    const photoInsert = vi.fn(() => ({ select: photoSelect }));
-    const jobsInsert = vi.fn().mockResolvedValue({ data: null, error: null });
-    const client = {
-      storage: { from: vi.fn(() => ({ upload })) },
-      from: vi.fn((table: string) => {
-        if (table === 'photos') return { insert: photoInsert };
-        if (table === 'jobs') return { insert: jobsInsert };
-        throw new Error(`Unexpected table ${table}`);
-      }),
-    };
+    const rpc = vi.fn().mockResolvedValue({ data: null, error: null });
+
+    const client = { storage: { from: vi.fn(() => ({ upload })) }, rpc };
 
     await uploadPhotosToCloud({
       activeProject: { id: 'project-1', organizationId: 'org-1', name: 'Mariage' },
       files: [createFile('photo.jpg')],
-      client,
+      client: client as never,
       createPhotoId: () => 'photo-1',
       now: () => new Date('2026-05-29T12:00:00.000Z'),
       faceAnalysisEnabled: true,
     });
 
-    const insertedJobs = jobsInsert.mock.calls[0][0] as Array<{ job_type: string; run_after?: string }>;
-    const faceJob = insertedJobs.find((job) => job.job_type === 'face_detection');
-    expect(insertedJobs).toHaveLength(5);
-    expect(faceJob).toMatchObject({
-      job_type: 'face_detection',
-      run_after: '2026-05-29T12:00:05.000Z',
+    const calls = rpc.mock.calls.map((c: unknown[]) => c[0]);
+    expect(calls).toContain('register_cloud_photo');
+    expect(calls).toContain('enqueue_face_detection_job');
+    const faceCall = rpc.mock.calls.find((c: unknown[]) => c[0] === 'enqueue_face_detection_job');
+    expect(faceCall?.[1]).toMatchObject({
+      p_project_id: 'project-1',
+      p_photo_id: 'photo-1',
     });
   });
 
-  it('does not enqueue face_detection when opt-in is off (default)', async () => {
+  it('does not call enqueue_face_detection_job when opt-in is off (default)', async () => {
     const upload = vi.fn().mockResolvedValue({ data: { path: 'ok' }, error: null });
-    const photoSingle = vi.fn().mockResolvedValue({ data: { id: 'photo-1' }, error: null });
-    const photoSelect = vi.fn(() => ({ single: photoSingle }));
-    const photoInsert = vi.fn(() => ({ select: photoSelect }));
-    const jobsInsert = vi.fn().mockResolvedValue({ data: null, error: null });
-    const client = {
-      storage: { from: vi.fn(() => ({ upload })) },
-      from: vi.fn((table: string) => {
-        if (table === 'photos') return { insert: photoInsert };
-        if (table === 'jobs') return { insert: jobsInsert };
-        throw new Error(`Unexpected table ${table}`);
-      }),
-    };
+    const rpc = vi.fn().mockResolvedValue({ data: null, error: null });
+
+    const client = { storage: { from: vi.fn(() => ({ upload })) }, rpc };
 
     await uploadPhotosToCloud({
       activeProject: { id: 'project-1', organizationId: 'org-1', name: 'Mariage' },
       files: [createFile('photo.jpg')],
-      client,
+      client: client as never,
       createPhotoId: () => 'photo-1',
     });
 
-    const insertedJobs = jobsInsert.mock.calls[0][0] as Array<{ job_type: string }>;
-    expect(insertedJobs.some((job) => job.job_type === 'face_detection')).toBe(false);
+    const calls = rpc.mock.calls.map((c: unknown[]) => c[0]);
+    expect(calls).not.toContain('enqueue_face_detection_job');
+    expect(calls).toContain('register_cloud_photo');
   });
 });

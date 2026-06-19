@@ -72,7 +72,6 @@ describe('Accessibility Tests', () => {
     render(<Button>Test Button</Button>);
 
     const button = screen.getByRole('button', { name: 'Test Button' });
-    const styles = getComputedStyle(button);
 
     // Check that the button has proper contrast
     expect(button).toHaveClass('text-primary-foreground');

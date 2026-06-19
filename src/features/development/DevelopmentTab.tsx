@@ -139,7 +139,9 @@ export function DevelopmentTab() {
   const refreshRetouchPreview = usePhotoStore((state) => state.refreshRetouchPreview);
   const endRetouchSession = usePhotoStore((state) => state.endRetouchSession);
   const setActiveTab = usePhotoStore((state) => state.setActiveTab);
-  const developmentSelection = usePhotoStore((state) => new Set(state.developmentSelection));
+  // Référence brute (déjà un Set dans le store) : `new Set(...)` créerait une
+  // nouvelle référence à chaque rendu → cache getSnapshot cassé → boucle infinie (#185).
+  const developmentSelection = usePhotoStore((state) => state.developmentSelection);
   const toggleDevelopmentSelection = usePhotoStore((state) => state.toggleDevelopmentSelection);
   const setDevelopmentSelection = usePhotoStore((state) => state.setDevelopmentSelection);
   const retouchProcessingIds = usePhotoStore((state) => state.retouchProcessingIds);
@@ -178,6 +180,9 @@ export function DevelopmentTab() {
       return null;
     }
     return getRetouchOptions(retouchActivePhotoId);
+    // lastUpdated est un déclencheur de recalcul volontaire (les options sont
+    // lues via getRetouchOptions et changent quand la retouche est mise à jour).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getRetouchOptions, retouchActivePhotoId, activePhoto?.retouch?.lastUpdated]);
 
   const activePreviewUrl = useMemo(() => {
@@ -185,6 +190,9 @@ export function DevelopmentTab() {
       return null;
     }
     return getRetouchedPreviewUrl(retouchActivePhotoId);
+    // lastUpdated : déclencheur de recalcul volontaire (la preview change quand
+    // la retouche est mise à jour).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getRetouchedPreviewUrl, retouchActivePhotoId, activePhoto?.retouch?.lastUpdated]);
 
   const originalPreviewUrl = activePhoto?.retouch?.originalPreviewUrl ?? activePhoto?.previewUrl ?? null;
@@ -471,6 +479,11 @@ export function DevelopmentTab() {
         </section>
 
         <aside className="bg-muted/20 border border-border/40 rounded-lg p-4 overflow-y-auto flex flex-col gap-5">
+          {/* A-35 : rappel que la retouche est non destructive */}
+          <p className="text-[11px] leading-snug text-muted-foreground bg-background/60 border border-border/40 rounded-md px-2.5 py-1.5">
+            Réglages <span className="font-medium text-foreground">non destructifs</span> : l'original
+            n'est pas modifié ; ils sont appliqués à l'export. « Réinitialiser » les annule.
+          </p>
           <PresetsPanel
             currentOptions={activeOptions}
             onApplyPreset={handleApplyPreset}

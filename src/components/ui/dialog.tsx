@@ -25,13 +25,44 @@ type DialogContentProps = React.ComponentPropsWithoutRef<typeof DialogPrimitive.
   description?: string;
 };
 
+// Détecte récursivement si le sous-arbre contient déjà une DialogDescription,
+// afin de n'injecter le fallback sr-only que si AUCUNE description n'est fournie.
+// (Sinon, un dialog avec sa propre DialogDescription — ex. ConfirmationDialog —
+//  aurait deux descriptions, dont une redondante pour les lecteurs d'écran.)
+function elementIsDescription(type: unknown): boolean {
+  if (type == null) return false;
+  if (type === DialogDescription || type === DialogPrimitive.Description) return true;
+  const displayName = (type as { displayName?: string }).displayName;
+  return displayName != null && displayName === DialogPrimitive.Description.displayName;
+}
+
+function subtreeHasDescription(node: React.ReactNode): boolean {
+  let found = false;
+  React.Children.forEach(node, (child) => {
+    if (found || !React.isValidElement(child)) return;
+    if (elementIsDescription(child.type)) {
+      found = true;
+      return;
+    }
+    const childChildren = (child.props as { children?: React.ReactNode })?.children;
+    if (childChildren && subtreeHasDescription(childChildren)) {
+      found = true;
+    }
+  });
+  return found;
+}
+
 const DialogContent = React.forwardRef<React.ElementRef<typeof DialogPrimitive.Content>, DialogContentProps>(
   ({ className, children, description, ...props }, ref) => {
     const generatedId = React.useId();
-    const describedBy = props['aria-describedby'] ?? generatedId;
-    const shouldRenderDescription = Boolean(description) || !props['aria-describedby'];
+    const hasOwnDescription = React.useMemo(() => subtreeHasDescription(children), [children]);
+    // On n'injecte un fallback que si rien d'autre ne décrit le dialog.
+    const renderFallback = !description && !props['aria-describedby'] && !hasOwnDescription;
+    const shouldRenderDescription = Boolean(description) || renderFallback;
     const fallbackText = description ?? 'Contenu de la boîte de dialogue.';
-    const contentProps = { ...props, 'aria-describedby': describedBy };
+    // Si une DialogDescription enfant existe, Radix câble aria-describedby tout seul.
+    const describedBy = props['aria-describedby'] ?? (shouldRenderDescription ? generatedId : undefined);
+    const contentProps = describedBy ? { ...props, 'aria-describedby': describedBy } : props;
 
     return (
       <DialogPortal>

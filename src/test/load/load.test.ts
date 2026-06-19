@@ -137,7 +137,7 @@ describe('Load Tests', () => {
   });
 
   it('should handle concurrent operations', async () => {
-    const { addPhotos, setActiveTab, updatePhotoAnalysis } = usePhotoStore.getState();
+    const { addPhotos, setActiveTab } = usePhotoStore.getState();
 
     // Simulate 100 concurrent operations
     const promises = [];

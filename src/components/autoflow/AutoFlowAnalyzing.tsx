@@ -20,7 +20,7 @@ export const AutoFlowAnalyzing: React.FC<AutoFlowAnalyzingProps> = ({ total, pro
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 90,
-      background: 'rgba(7,7,12,0.92)', backdropFilter: 'blur(8px)',
+      background: 'rgba(var(--af-bg-rgb),0.92)', backdropFilter: 'blur(8px)',
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center', gap: 28,
       fontFamily: "'Space Grotesk', sans-serif",
@@ -29,7 +29,7 @@ export const AutoFlowAnalyzing: React.FC<AutoFlowAnalyzingProps> = ({ total, pro
       <div style={{ textAlign: 'center' }}>
         <div style={{
           width: 64, height: 64, borderRadius: '50%', margin: '0 auto 18px',
-          background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)',
+          background: 'rgba(var(--af-review-rgb),0.1)', border: '1px solid rgba(var(--af-review-rgb),0.2)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           animation: 'af-spin 2s linear infinite',
         }}>
@@ -58,7 +58,7 @@ export const AutoFlowAnalyzing: React.FC<AutoFlowAnalyzingProps> = ({ total, pro
           </span>
         </div>
         <div style={{
-          height: 4, background: 'rgba(255,255,255,0.05)',
+          height: 4, background: 'rgba(var(--af-overlay-rgb),0.05)',
           borderRadius: 4, overflow: 'hidden',
         }}>
           <div style={{
@@ -81,11 +81,11 @@ export const AutoFlowAnalyzing: React.FC<AutoFlowAnalyzingProps> = ({ total, pro
             }}>
               <div style={{
                 width: 6, height: 6, borderRadius: '50%',
-                background: done ? 'var(--af-pick)' : 'rgba(255,255,255,0.15)',
+                background: done ? 'var(--af-pick)' : 'rgba(var(--af-overlay-rgb),0.15)',
                 boxShadow: done ? '0 0 6px var(--af-pick)' : 'none',
                 transition: 'background 0.3s, box-shadow 0.3s',
               }} />
-              <span style={{ fontSize: 12, color: done ? 'var(--af-t2)' : 'rgba(255,255,255,0.2)' }}>
+              <span style={{ fontSize: 12, color: done ? 'var(--af-t2)' : 'rgba(var(--af-overlay-rgb),0.2)' }}>
                 {step}
               </span>
             </div>

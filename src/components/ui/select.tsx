@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 
 type SelectContextValue = {
   open: boolean;
@@ -30,12 +30,13 @@ export function Select({
     if (value !== undefined) setInternalValue(value);
   }, [value]);
 
-  const setValue = (newValue: string, label?: string) => {
+  // useCallback : sinon setValue est recréé à chaque rendu et invalide le useMemo du contexte.
+  const setValue = useCallback((newValue: string, label?: string) => {
     setInternalValue(newValue);
     if (label) setSelectedLabel(label);
     onValueChange?.(newValue);
     setOpen(false);
-  };
+  }, [onValueChange]);
 
   const ctx = useMemo<SelectContextValue>(
     () => ({ open, setOpen, value: internalValue, setValue, selectedLabel, placeholder }),

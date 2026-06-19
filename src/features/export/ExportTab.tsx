@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
 import { usePhotoStore } from '../../store/photoStore';
+import { useAuthStore } from '../../store/authStore';
+import { trackStats } from '../../lib/sync-utils';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -26,38 +27,14 @@ import {
   ExportPreset,
 } from '../../lib/export-presets';
 import { BookmarkPlus, Trash2, Download } from 'lucide-react';
+import { ConfirmationDialog } from '../../components/ui/confirmation-dialog';
 import { ExportFilterBar } from './components/ExportFilterBar';
 import { RenamePanel } from './components/RenamePanel';
 import { buildExportChapters } from './exportChapters';
 import { buildDuplicatePhotoIds, buildPhotosToExport } from './exportSelection';
+import type { ExportFormData } from './exportTypes';
 
-// ── Schema ────────────────────────────────────────────────────────────────────
-
-const exportSchema = z.object({
-  format: z.enum(['original', 'jpeg', 'png', 'webp']),
-  quality: z.number().min(1).max(100),
-  maxWidth: z.number().min(100).max(8000).optional(),
-  maxHeight: z.number().min(100).max(8000).optional(),
-  includeRejected: z.boolean(),
-  includeDuplicates: z.boolean(),
-  // Rename
-  renamePattern: z.string(),
-  // Filter mode
-  filterMode: z.enum(['all', 'picks-only', 'favorites-only', 'min-rating']),
-  minRating: z.number().min(1).max(5),
-  // Watermark
-  watermarkEnabled: z.boolean(),
-  watermarkText: z.string(),
-  watermarkPosition: z.enum([
-    'bottom-left', 'bottom-center', 'bottom-right',
-    'top-left', 'top-center', 'top-right',
-  ]),
-  watermarkSize: z.number().min(10).max(200),
-  watermarkOpacity: z.number().min(1).max(100),
-  watermarkColor: z.string(),
-});
-
-export type ExportFormData = z.infer<typeof exportSchema>;
+export type { ExportFormData } from './exportTypes';
 
 const fsaAvailable = supportsDirectoryExport();
 
@@ -132,23 +109,51 @@ function ExportTab() {
     toast.success(`Preset "${preset.name}" chargé`);
   }, [presets, form]);
 
-  const handleSavePreset = useCallback(() => {
-    const name = savePresetName.trim() || 'Preset';
-    if (selectedPresetId && presets.some((p) => p.id === selectedPresetId)) {
-      updatePreset(selectedPresetId, form.getValues());
-      refreshPresets();
-      toast.success(`Preset "${name}" mis à jour`);
-    } else {
-      const created = createPreset(name, form.getValues());
-      refreshPresets();
-      setSelectedPresetId(created.id);
-      toast.success(`Preset "${created.name}" sauvegardé`);
-    }
+  const [overwriteTarget, setOverwriteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const doUpdatePreset = useCallback((id: string, label: string) => {
+    updatePreset(id, form.getValues());
+    refreshPresets();
+    setSelectedPresetId(id);
     setSavePresetName('');
     setShowSaveInput(false);
-  }, [savePresetName, selectedPresetId, presets, form, refreshPresets]);
+    toast.success(`Preset "${label}" mis à jour`);
+  }, [form, refreshPresets]);
+
+  const handleSavePreset = useCallback(() => {
+    // A-33 : nom obligatoire (plus de repli silencieux « Preset »).
+    const name = savePresetName.trim();
+    if (selectedPresetId && presets.some((p) => p.id === selectedPresetId)) {
+      const existing = presets.find((p) => p.id === selectedPresetId);
+      doUpdatePreset(selectedPresetId, existing?.name ?? (name || 'Preset'));
+      return;
+    }
+    if (!name) {
+      toast.error('Donnez un nom au preset.');
+      return;
+    }
+    // A-33 : si le nom entre en collision avec un preset existant, confirmer l'écrasement.
+    const clash = presets.find((p) => p.name.trim().toLowerCase() === name.toLowerCase());
+    if (clash) {
+      setOverwriteTarget({ id: clash.id, name: clash.name });
+      return;
+    }
+    const created = createPreset(name, form.getValues());
+    refreshPresets();
+    setSelectedPresetId(created.id);
+    setSavePresetName('');
+    setShowSaveInput(false);
+    toast.success(`Preset "${created.name}" sauvegardé`);
+  }, [savePresetName, selectedPresetId, presets, form, refreshPresets, doUpdatePreset]);
+
+  const [presetDeleteOpen, setPresetDeleteOpen] = useState(false);
 
   const handleDeletePreset = useCallback(() => {
+    if (!selectedPresetId) return;
+    setPresetDeleteOpen(true);
+  }, [selectedPresetId]);
+
+  const confirmDeletePreset = useCallback(() => {
     if (!selectedPresetId) return;
     const preset = presets.find((p) => p.id === selectedPresetId);
     deletePreset(selectedPresetId);
@@ -156,6 +161,8 @@ function ExportTab() {
     setSelectedPresetId('');
     toast.success(`Preset "${preset?.name ?? ''}" supprimé`);
   }, [selectedPresetId, presets, refreshPresets]);
+
+  const presetToDeleteName = presets.find((p) => p.id === selectedPresetId)?.name ?? '';
 
   const {
     includeRejected,
@@ -222,7 +229,50 @@ function ExportTab() {
     return { count: photos.length, totalSize, duplicates: duplicatesCount, rejected: rejectedCount };
   }, [activePhotos, duplicateGroups, rejectedPhotoIds, includeRejected, includeDuplicates, filterModeWatch, minRatingWatch]);
 
+  // A-31 : nombre réel de photos exportables par chapitres (selon les filtres courants),
+  // pour ne pas activer le bouton si rien n'est exportable.
+  const exportableChapterCount = useMemo(() => {
+    const chapters = buildExportChapters({
+      photos: allPhotos,
+      collections,
+      collectionOrder,
+      duplicateGroups,
+      rejectedPhotoIds,
+      options: {
+        includeRejected,
+        includeDuplicates,
+        filterMode: filterModeWatch,
+        minRating: minRatingWatch,
+      },
+    });
+    return chapters.reduce((sum, c) => sum + c.photos.length, 0);
+  }, [allPhotos, collections, collectionOrder, duplicateGroups, rejectedPhotoIds, includeRejected, includeDuplicates, filterModeWatch, minRatingWatch]);
+
   // ── Handle submit ─────────────────────────────────────────────────────────
+
+  // A-29 : feedback honnête succès complet / partiel / échec total.
+  const reportExportResult = (
+    result: { exported: number; failed: number; failedNames: string[] },
+    mode: 'ZIP' | 'dossier' | 'chapitres',
+  ) => {
+    // A-46 : comptabiliser les exports réussis dans les analytics.
+    if (result.exported > 0) {
+      const uid = useAuthStore.getState().user?.id;
+      if (uid) trackStats(uid, { exports_count: result.exported }).catch(() => {});
+    }
+    if (result.failed === 0) {
+      toast.success(`Export ${mode} terminé : ${result.exported} photo${result.exported > 1 ? 's' : ''}.`);
+    } else if (result.exported === 0) {
+      toast.error(`Échec de l'export : aucune des ${result.failed} photos n'a pu être traitée.`);
+    } else {
+      const sample = result.failedNames.slice(0, 3).join(', ');
+      const more = result.failedNames.length > 3 ? ` (+${result.failedNames.length - 3})` : '';
+      toast(
+        `Export ${mode} terminé avec ${result.failed} erreur(s) — ${result.exported} réussie(s). Échecs : ${sample}${more}`,
+        { icon: '⚠️', duration: 7000 },
+      );
+    }
+  };
 
   const handleExport = async (data: ExportFormData) => {
     const photosToExport = buildPhotosToExportFromForm(data);
@@ -252,15 +302,15 @@ function ExportTab() {
     };
 
     try {
+      let result: { exported: number; failed: number; failedNames: string[] };
       if (fsaAvailable) {
-        await exportPhotosToDirectory(photosToExport, options, (p) => setExportProgress(p));
-        toast.success(`Export terminé ! ${photosToExport.length} photos écrites dans le dossier.`);
+        result = await exportPhotosToDirectory(photosToExport, options, (p) => setExportProgress(p));
       } else {
-        const zipBlob = await exportPhotosAsZip(photosToExport, options, (p) => setExportProgress(p));
-        const fileName = generateZipFileName(activeCollection?.name);
-        downloadBlob(zipBlob, fileName);
-        toast.success(`Export terminé ! ${photosToExport.length} photos exportées.`);
+        const zipResult = await exportPhotosAsZip(photosToExport, options, (p) => setExportProgress(p));
+        downloadBlob(zipResult.blob, generateZipFileName(activeCollection?.name));
+        result = zipResult;
       }
+      reportExportResult(result, fsaAvailable ? 'dossier' : 'ZIP');
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return;
       toast.error("Erreur lors de l'export");
@@ -311,14 +361,12 @@ function ExportTab() {
         : undefined,
     };
 
-    const photoCount = chapters.reduce((sum, chapter) => sum + chapter.photos.length, 0);
-
     try {
       setIsExporting(true);
       setExportProgress(0);
-      const zipBlob = await exportPhotoChaptersAsZip(chapters, options, (p) => setExportProgress(p));
-      downloadBlob(zipBlob, generateZipFileName('chapitres-mariage'));
-      toast.success(`Export par chapitres terminé : ${photoCount} photos dans ${chapters.length} dossiers.`);
+      const result = await exportPhotoChaptersAsZip(chapters, options, (p) => setExportProgress(p));
+      downloadBlob(result.blob, generateZipFileName('chapitres-mariage'));
+      reportExportResult(result, 'chapitres');
     } catch (error) {
       toast.error("Erreur lors de l'export par chapitres");
       console.error('Chapter export error:', error);
@@ -739,12 +787,13 @@ function ExportTab() {
         <Button
           type="button"
           variant="outline"
-          disabled={isExporting || allPhotos.length === 0}
+          disabled={isExporting || exportableChapterCount === 0}
           onClick={handleExportByChapters}
           className="min-w-[210px] gap-2"
+          title={exportableChapterCount === 0 ? 'Aucune photo exportable par chapitres avec les filtres actuels' : undefined}
         >
           <Download className="w-4 h-4" />
-          Exporter par chapitres
+          Exporter par chapitres{exportableChapterCount > 0 ? ` (${exportableChapterCount})` : ''}
         </Button>
         <Button
           form="export-form"
@@ -781,6 +830,28 @@ function ExportTab() {
           </CardContent>
         </Card>
       )}
+
+      <ConfirmationDialog
+        open={overwriteTarget !== null}
+        onOpenChange={(o) => { if (!o) setOverwriteTarget(null); }}
+        onConfirm={() => { if (overwriteTarget) doUpdatePreset(overwriteTarget.id, overwriteTarget.name); setOverwriteTarget(null); }}
+        title="Écraser ce preset ?"
+        description={`Un preset nommé « ${overwriteTarget?.name ?? ''} » existe déjà. Voulez-vous l'écraser avec les réglages actuels ?`}
+        confirmText="Écraser"
+        cancelText="Annuler"
+        variant="destructive"
+      />
+
+      <ConfirmationDialog
+        open={presetDeleteOpen}
+        onOpenChange={setPresetDeleteOpen}
+        onConfirm={confirmDeletePreset}
+        title="Supprimer ce preset d'export ?"
+        description={`Le preset « ${presetToDeleteName} » sera définitivement supprimé. Cette action est irréversible.`}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        variant="destructive"
+      />
     </motion.div>
   );
 }

@@ -9,6 +9,7 @@ export type TriageFilterType =
   | 'picks'
   | 'favorites'
   | 'review'
+  | 'errors'
   | `color:${ColorLabel}`
   | `stars:${number}`;
 
@@ -153,6 +154,11 @@ export function filterTriagePhotos({
   userTags = {},
   searchCriteria,
 }: FilterTriagePhotosParams): Photo[] {
+  // A-19 : le filtre « errors » montre les photos en échec d'analyse (exclues partout ailleurs).
+  if (activeFilter === 'errors') {
+    return photos.filter((p) => !!p.analysis?.error);
+  }
+
   const analyzedPhotos = photos.filter((p) => p.analysis && !p.analysis.error);
 
   let result: Photo[];

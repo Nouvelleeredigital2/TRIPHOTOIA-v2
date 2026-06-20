@@ -37,7 +37,7 @@ import { Photo } from './types';
 import toast from 'react-hot-toast';
 import { AutoFlowMode } from './components/autoflow/AutoFlowMode';
 import { AutoFlowAnalyzing } from './components/autoflow/AutoFlowAnalyzing';
-import { toAfPhotos } from './components/autoflow/afUtils';
+import { toAfPhotos, applyAutoFlowMutation } from './components/autoflow/afUtils';
 import type { AfPhoto } from './components/autoflow/afUtils';
 import { useCloudProjectStore } from './store/cloudProjectStore';
 import {
@@ -281,21 +281,7 @@ function App() {
 
   /** Apply an AutoFlow mutation back to the store */
   const handleAfMutation = (id: string, changes: Partial<AfPhoto>) => {
-    const { togglePhotoPick, togglePhotoReject, setPhotoRating } =
-      usePhotoStore.getState();
-    const photo = usePhotoStore.getState().photos.find((p) => p.id === id);
-    if (!photo) return;
-    if ('isPick' in changes) {
-      const wantPick = !!changes.isPick;
-      if (wantPick !== !!photo.analysis?.isPick) togglePhotoPick(id);
-    }
-    if ('isRejected' in changes) {
-      const wantRej = !!changes.isRejected;
-      if (wantRej !== !!photo.analysis?.isRejected) togglePhotoReject(id);
-    }
-    if ('rating' in changes && typeof changes.rating === 'number') {
-      setPhotoRating(id, changes.rating);
-    }
+    applyAutoFlowMutation(id, changes, usePhotoStore.getState());
   };
 
   const handleAfDecision = (

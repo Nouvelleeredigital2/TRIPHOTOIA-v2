@@ -147,3 +147,41 @@ export function toAfPhotos(photos: Photo[], duplicateGroups: DuplicateGroup[]): 
     };
   });
 }
+
+/**
+ * Minimal photoStore surface needed to commit an AutoFlow decision locally.
+ * Kept decoupled from the store module so this helper stays unit-testable.
+ */
+export interface AutoFlowStoreBridge {
+  photos: Photo[];
+  togglePhotoPick: (photoId: string) => void;
+  togglePhotoReject: (photoId: string) => void;
+  setPhotoRating: (photoId: string, rating: number) => void;
+}
+
+/**
+ * Applies an AutoFlow mutation (AfPhoto changes) back onto the local photo store.
+ * This is the local-mode persistence path: every swipe/gallery/dup decision flows
+ * through here so that `analysis.isPick/isRejected/rating` reflect the decision
+ * even when no cloud project is active. Toggles are computed against the photo's
+ * current state so they are idempotent (no double-toggle).
+ */
+export function applyAutoFlowMutation(
+  id: string,
+  changes: Partial<AfPhoto>,
+  store: AutoFlowStoreBridge,
+): void {
+  const photo = store.photos.find((p) => p.id === id);
+  if (!photo) return;
+  if ('isPick' in changes) {
+    const wantPick = !!changes.isPick;
+    if (wantPick !== !!photo.analysis?.isPick) store.togglePhotoPick(id);
+  }
+  if ('isRejected' in changes) {
+    const wantRej = !!changes.isRejected;
+    if (wantRej !== !!photo.analysis?.isRejected) store.togglePhotoReject(id);
+  }
+  if ('rating' in changes && typeof changes.rating === 'number') {
+    store.setPhotoRating(id, changes.rating);
+  }
+}

@@ -32,6 +32,7 @@ import { useCataloguePersistence } from './hooks/useCataloguePersistence';
 import { clearFullCatalogue } from './lib/catalogue-persistence';
 import { useTheme } from './hooks/useTheme';
 import { useAccentColor } from './hooks/useAccentColor';
+import { useT } from './i18n';
 import { PhotoGridSkeleton } from './components/PhotoGridSkeleton';
 import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
 import { Photo } from './types';
@@ -89,6 +90,7 @@ function App() {
 
   const { theme, toggleTheme } = useTheme();
   const { accentId, setAccentId, options: accentOptions } = useAccentColor();
+  const { t, lang, setLanguage } = useT();
   const [accentPickerOpen, setAccentPickerOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
@@ -451,19 +453,19 @@ function App() {
                   {[
                     {
                       key: 'ingestion' as const,
-                      label: 'Import',
+                      label: t('nav.import'),
                       ariaLabel: 'Ingestion',
                       n: 1,
                     },
                     {
                       key: 'triage' as const,
-                      label: 'Triage',
+                      label: t('nav.triage'),
                       ariaLabel: 'Triage',
                       n: 2,
                     },
                     {
                       key: 'export' as const,
-                      label: 'Export',
+                      label: t('nav.export'),
                       ariaLabel: 'Exportation',
                       n: 3,
                     },
@@ -701,6 +703,18 @@ function App() {
                     ) : (
                       <Moon className="h-4 w-4" />
                     )}
+                  </Button>
+
+                  {/* Language toggle (FR/EN) */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-xs font-bold uppercase"
+                    onClick={() => setLanguage(lang === 'fr' ? 'en' : 'fr')}
+                    title={t('header.language')}
+                    aria-label={t('header.language')}
+                  >
+                    {lang === 'fr' ? 'EN' : 'FR'}
                   </Button>
 
                   {/* Help */}

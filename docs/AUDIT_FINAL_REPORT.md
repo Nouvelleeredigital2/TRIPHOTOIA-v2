@@ -9,10 +9,21 @@ Date : 2026-06-21 · Branche : `codex/autoflow-local-foundation`
 | `pnpm install --ignore-workspace --frozen-lockfile` | ✅ |
 | `pnpm type-check` | ✅ |
 | `pnpm lint` | ✅ (0 erreur) |
-| `pnpm test` | ✅ 56 fichiers, **308 tests** |
-| `pnpm build` | ✅ 4.73 s, **aucun warning** (vendors chunkés, gzip ~285 kB total) |
-| `pnpm smoke:cloud` (live) | ⛔ bloqué — credentials staging absents |
-| `pnpm smoke:worker` (live) | ⛔ bloqué — credentials staging absents |
+| `pnpm test` | ✅ **348 tests** |
+| `pnpm build` | ✅ aucun warning |
+| `pnpm smoke:cloud` (live) | ✅ **ok** — staging `cnnshwmdynggvjcxaohe` (bucket privé, org/project/photo/job, décision) |
+| `pnpm smoke:worker` (live) | ✅ **ok** — 3 jobs drainés par le runner, états terminaux avec diagnostics |
+
+> Runtime cloud **vérifié sur staging** le 2026-06-21 (projet `cnnshwmdynggvjcxaohe`) :
+> schéma + RLS + buckets privés confirmés sur le live, advisors perf corrigés
+> (index FK + RLS init-plan), smokes cloud & worker passés de bout en bout.
+>
+> Caveat connu : le cleanup du user temporaire des smokes échoue car
+> `projects.created_by` référence `auth.users` sans `ON DELETE CASCADE` — les
+> orphelins ont été nettoyés manuellement ; durcir le `finally` (supprimer l'org
+> avant le user) reste à faire.
+> Restant pour 100% : auth UI réelle + déploiement Vercel ; advisors sécurité
+> WARN (leaked-password protection, EXECUTE sur fonctions internes).
 
 > Note environnement : ce dépôt est imbriqué sous un `pnpm-workspace.yaml` parent.
 > Installer **toujours** avec `--ignore-workspace` (cf. RELEASE_CHECKLIST / READMEs).
@@ -55,9 +66,9 @@ Date : 2026-06-21 · Branche : `codex/autoflow-local-foundation`
 
 ```
 Application locale            : vérifiée
-Code et migrations cloud      : vérifiés statiquement
-Runtime cloud                 : bloqué en attente de credentials staging
-Runtime worker                : bloqué en attente de credentials staging / VPS
+Code et migrations cloud      : vérifiés (statique + live staging)
+Runtime cloud                 : vérifié sur staging (smoke:cloud ok)
+Runtime worker                : vérifié sur staging (smoke:worker ok ; VPS de prod restant)
 ```
 
 ## Décision beta

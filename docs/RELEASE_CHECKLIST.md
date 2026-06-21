@@ -20,26 +20,25 @@
 
 ## Cloud Verification
 
-> ⛔ Bloqué en attente de credentials staging — à exécuter avant ouverture cloud.
-> Code et migrations vérifiés statiquement (cf. AUDIT_FINAL_REPORT.md).
+> ✅ Vérifié sur staging `cnnshwmdynggvjcxaohe` le 2026-06-21 (cf. AUDIT_FINAL_REPORT.md).
 
-- [ ] Supabase migrations applied on staging
-- [ ] Private bucket `project-photos` exists
-- [ ] Auth sign-in works
-- [ ] Project create/open works
-- [ ] Upload creates `photos` rows
-- [ ] AutoFlow decisions persist after refresh
-- [ ] `TREEPHOTO_SMOKE_CONFIRM=1 pnpm smoke:cloud` → `cloud smoke: ok`
+- [x] Supabase migrations applied on staging (21 migrations)
+- [x] Private bucket `project-photos` exists (privé)
+- [ ] Auth sign-in works (UI réelle — non testée)
+- [x] Project create/open works (via smoke RPC)
+- [x] Upload creates `photos` rows (via smoke)
+- [ ] AutoFlow decisions persist after refresh (UI réelle — non testée)
+- [x] `TREEPHOTO_SMOKE_CONFIRM=1 pnpm smoke:cloud` → `cloud smoke: ok`
 
 ## Worker Verification
 
-> ⛔ Bloqué en attente de credentials staging / VPS.
+> ✅ Vérifié sur staging (smoke). VPS de production restant.
 
-- [ ] Worker starts with service role key
-- [ ] Pending jobs become processing
-- [ ] Jobs complete with thumbnail/quality/hash
-- [ ] Failed jobs write `error_message`
-- [ ] `TREEPHOTO_SMOKE_CONFIRM=1 pnpm smoke:worker` → `worker smoke: ok`
+- [x] Worker starts with service role key
+- [x] Pending jobs become processing
+- [x] Jobs complete with thumbnail/quality/hash
+- [x] Failed jobs write `error_message`
+- [x] `TREEPHOTO_SMOKE_CONFIRM=1 pnpm smoke:worker` → `worker smoke: ok`
 
 ## Production Verification
 

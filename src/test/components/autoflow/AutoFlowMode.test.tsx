@@ -292,6 +292,28 @@ describe('AutoFlowMode', () => {
     }
   });
 
+  it('rates a photo from the gallery detail panel when a star is clicked', () => {
+    const onMutation = vi.fn();
+
+    render(
+      <AutoFlowMode
+        photos={[makePhoto({ id: 'picked-1', cls: 'keep', name: 'PICKED.JPG', isPick: true })]}
+        onMutation={onMutation}
+        onClose={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /voir les picks/i }));
+    fireEvent.click(screen.getByRole('button', { name: /picked\.jpg/i }));
+    // The gallery detail-panel stars must be interactive (regression).
+    fireEvent.click(screen.getByRole('button', { name: /noter 3 étoiles/i }));
+
+    expect(onMutation).toHaveBeenCalledWith(
+      'picked-1',
+      expect.objectContaining({ rating: 3 })
+    );
+  });
+
   it('emits a review decision when a gallery pick is toggled off', () => {
     const onMutation = vi.fn();
     const onDecision = vi.fn();

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AfPhoto } from './afUtils';
+import { AfStars } from './AfStars';
 
 type SwipeDecision = 'pick' | 'reject' | 'favorite' | 'review';
 
@@ -51,53 +52,6 @@ const AfIcon: React.FC<{ n: string; sz?: number; c?: string }> = ({
   );
 };
 
-const Stars: React.FC<{
-  rating: number;
-  size?: number;
-  onRate?: (n: number) => void;
-}> = ({ rating, size = 18, onRate }) => (
-  <div style={{ display: 'flex', gap: 2 }}>
-    {[1, 2, 3, 4, 5].map((n) => {
-      const color =
-        n <= rating ? 'var(--af-review)' : 'rgba(var(--af-overlay-rgb),0.12)';
-      if (!onRate) {
-        return (
-          <span
-            key={n}
-            style={{ fontSize: size, lineHeight: 1, userSelect: 'none', color }}
-          >
-            ★
-          </span>
-        );
-      }
-      return (
-        <button
-          key={n}
-          type="button"
-          aria-label={`Noter ${n} étoile${n > 1 ? 's' : ''}`}
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            // Empêche le clic/drag de la carte (swipe) de se déclencher.
-            e.stopPropagation();
-            onRate(n);
-          }}
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: 0,
-            cursor: 'pointer',
-            fontSize: size,
-            lineHeight: 1,
-            userSelect: 'none',
-            color,
-          }}
-        >
-          ★
-        </button>
-      );
-    })}
-  </div>
-);
 
 const CardBackground: React.FC<{
   photo: AfPhoto;
@@ -688,7 +642,7 @@ export const SwipeMode: React.FC<SwipeModeProps> = ({
                 padding: '30px 16px 14px',
               }}
             >
-              <Stars
+              <AfStars
                 rating={photo.rating}
                 size={22}
                 onRate={(n) => onRate?.(photo.id, n)}

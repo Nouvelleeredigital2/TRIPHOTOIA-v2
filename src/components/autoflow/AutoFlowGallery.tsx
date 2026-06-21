@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AfPhoto, AfClass } from './afUtils';
+import { AfStars } from './AfStars';
 
 interface AutoFlowGalleryProps {
   photos: AfPhoto[];
@@ -59,29 +60,6 @@ const ScoreRing: React.FC<{ score: number; size?: number }> = ({
   );
 };
 
-const Stars: React.FC<{ rating: number; size?: number }> = ({
-  rating,
-  size = 18,
-}) => (
-  <div style={{ display: 'flex', gap: 2 }}>
-    {[1, 2, 3, 4, 5].map((n) => (
-      <span
-        key={n}
-        style={{
-          fontSize: size,
-          lineHeight: 1,
-          userSelect: 'none',
-          color:
-            n <= rating
-              ? 'var(--af-review)'
-              : 'rgba(var(--af-overlay-rgb),0.1)',
-        }}
-      >
-        ★
-      </span>
-    ))}
-  </div>
-);
 
 export const AutoFlowGallery: React.FC<AutoFlowGalleryProps> = ({
   photos,
@@ -305,7 +283,11 @@ export const AutoFlowGallery: React.FC<AutoFlowGalleryProps> = ({
               </div>
             </div>
 
-            <Stars rating={selected.rating} size={20} />
+            <AfStars
+              rating={selected.rating}
+              size={20}
+              onRate={(n) => upd(selected.id, { rating: n })}
+            />
 
             {/* Pick / Reject buttons */}
             <div style={{ display: 'flex', gap: 6 }}>

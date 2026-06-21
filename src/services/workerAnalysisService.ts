@@ -108,6 +108,17 @@ export class WorkerAnalysisService {
         perceptualHash: payload.result.perceptualHash,
         compositionScore: payload.result.compositionScore,
         suggestedRetouch: payload.result.suggestedRetouch,
+        // P0-1 : provenance obligatoire (sinon rejeté par validateAnalysisResult).
+        // Analyse pixel réelle via OffscreenCanvas dans le Web Worker (proxy ≤1600 px).
+        provenance: {
+          engine: 'treephoto-worker-offscreen',
+          model: 'pixel-heuristics',
+          modelVersion: '1.0.0',
+          analysisMode: 'local-pixel',
+          confidence: null,
+          isFallback: false,
+          computedAt: new Date().toISOString(),
+        },
       };
 
       task.resolve(photoAnalysis);

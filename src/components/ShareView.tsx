@@ -302,8 +302,9 @@ export function ShareView({ token }: ShareViewProps) {
                     </div>
 
                     {/* Tags */}
-                    {(photo.analysis as Record<string, unknown> | null)
-                      ?.tags && (
+                    {Boolean(
+                      (photo.analysis as Record<string, unknown> | null)?.tags
+                    ) && (
                       <div className="flex flex-wrap gap-1">
                         {(
                           (photo.analysis as Record<string, unknown>).tags as

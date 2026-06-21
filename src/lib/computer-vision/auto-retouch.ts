@@ -398,6 +398,16 @@ export class AutoRetoucher {
     const result = new Uint8Array(imageData);
     const channelsCount = imageData.length / (width * height);
 
+    // Normalisation : options partielles -> valeurs neutres (0 = pas de
+    // changement, échelle -100..100). Évite aussi un NaN latent si un champ
+    // manquait (undefined passé aux fonctions d'ajustement).
+    const brightness = options.brightness ?? 0;
+    const contrast = options.contrast ?? 0;
+    const exposure = options.exposure ?? 0;
+    const saturation = options.saturation ?? 0;
+    const temperature = options.whiteBalance?.temperature ?? 0;
+    const tint = options.whiteBalance?.tint ?? 0;
+
     for (let i = 0; i < width * height; i++) {
       const pixelIndex = i * channelsCount;
 
@@ -406,24 +416,20 @@ export class AutoRetoucher {
         let value = imageData[pixelIndex + c];
 
         // Luminosité
-        value = this.adjustBrightness(value, options.brightness);
+        value = this.adjustBrightness(value, brightness);
 
         // Contraste
-        value = this.adjustContrast(value, options.contrast);
+        value = this.adjustContrast(value, contrast);
 
         // Exposition
-        value = this.adjustExposure(value, options.exposure);
+        value = this.adjustExposure(value, exposure);
 
         // Balance des blancs
-        if (c === 0)
-          value = this.adjustTemperature(
-            value,
-            options.whiteBalance.temperature
-          );
-        if (c === 2) value = this.adjustTint(value, options.whiteBalance.tint);
+        if (c === 0) value = this.adjustTemperature(value, temperature);
+        if (c === 2) value = this.adjustTint(value, tint);
 
         // Saturation
-        if (c < 3) value = this.adjustSaturation(value, options.saturation, c);
+        if (c < 3) value = this.adjustSaturation(value, saturation, c);
 
         result[pixelIndex + c] = Math.max(0, Math.min(255, Math.round(value)));
       }

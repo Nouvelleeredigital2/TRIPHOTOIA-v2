@@ -143,7 +143,7 @@ describe('Load Tests', () => {
     const { addPhotos, setActiveTab } = usePhotoStore.getState();
 
     // Simulate 100 concurrent operations
-    const promises = [];
+    const promises: Promise<unknown>[] = [];
 
     for (let i = 0; i < 100; i++) {
       const mockFile = new File([''], `test-${i}.jpg`, { type: 'image/jpeg' });

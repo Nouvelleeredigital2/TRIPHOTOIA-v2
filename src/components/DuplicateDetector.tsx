@@ -163,7 +163,10 @@ export function DuplicateDetector() {
                           )}
                           <Badge variant="outline" className="text-xs">
                             Netteté:{' '}
-                            {Math.round(photo.analysis.sharpnessScore * 100)}%
+                            {Math.round(
+                              (photo.analysis.sharpnessScore ?? 0) * 100
+                            )}
+                            %
                           </Badge>
                         </div>
                       )}

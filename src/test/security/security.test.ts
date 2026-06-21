@@ -139,7 +139,7 @@ describe('Security Tests', () => {
     const store = usePhotoStore.getState();
 
     // Simulate concurrent malicious operations
-    const promises = [];
+    const promises: Promise<unknown>[] = [];
 
     for (let i = 0; i < 100; i++) {
       const maliciousFile = new File([''], `malicious-${i}.exe`, {

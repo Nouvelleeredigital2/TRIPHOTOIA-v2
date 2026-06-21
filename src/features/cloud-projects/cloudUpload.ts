@@ -80,7 +80,7 @@ export async function uploadPhotosToCloud({
   activeProject,
   files,
   localPhotoIds = [],
-  client = supabase,
+  client = supabase as unknown as CloudUploadClient | null,
   createPhotoId = createUuid,
   onProgress,
   faceAnalysisEnabled = false,

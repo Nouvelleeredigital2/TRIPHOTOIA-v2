@@ -6,8 +6,9 @@ import { vi, beforeEach, afterEach } from 'vitest';
 // Mock the store
 export const mockStore = {
   // ── State ─────────────────────────────────────────────────────────────────
-  photos: [],
-  analysisQueue: [],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  photos: [] as any[],
+  analysisQueue: [] as unknown[],
   analyzingPhotoIds: new Set<string>(),
   isProcessing: false,
   stopProcessing: false,

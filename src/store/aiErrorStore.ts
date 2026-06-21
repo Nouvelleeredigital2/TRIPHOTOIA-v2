@@ -47,11 +47,11 @@ export const useAiErrorStore = create<AiErrorState>()(
       errors: [],
       pushError: (error) => {
         const aiError: AiError = {
+          ...error,
           id: error.id ?? generateId(),
           timestamp: error.timestamp ?? Date.now(),
           status: error.status ?? 'new',
           severity: error.severity ?? 'error',
-          ...error,
         };
         set((state) => {
           state.errors.unshift(aiError);

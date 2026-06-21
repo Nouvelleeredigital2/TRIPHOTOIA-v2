@@ -556,11 +556,11 @@ export function FullscreenViewer({
                         />
                       )}
                       {/* EXIF caméra */}
-                      {photo.metadata?.exif &&
+                      {Boolean(photo.metadata?.exif) &&
                         (() => {
-                          const e = photo.metadata.exif as Record<
+                          const e = (photo.metadata?.exif ?? {}) as Record<
                             string,
-                            unknown
+                            string | number | undefined
                           >;
                           return (
                             <>

@@ -1870,19 +1870,22 @@ export const usePhotoStore = create<PhotoState>()(
                 if (!photo.retouch) {
                   return;
                 }
+                // Capture locale : le narrowing de `photo.retouch` se perd dans
+                // les closures (forEach) sous strictNullChecks.
+                const retouch = photo.retouch;
 
                 recordRetouchHistory(photo);
                 RETOUCH_OPTION_KEYS.forEach((key) => {
                   const nextValue = preset.options[key];
                   if (typeof nextValue === 'number') {
-                    photo.retouch.currentOptions[key] = clampRetouchValue(
+                    retouch.currentOptions[key] = clampRetouchValue(
                       key,
                       nextValue
                     );
                   }
                 });
-                photo.retouch.lastUpdated = new Date().toISOString();
-                photo.retouch.lastAutoPreset = { ...preset.options };
+                retouch.lastUpdated = new Date().toISOString();
+                retouch.lastAutoPreset = { ...preset.options };
                 photo.retouch.autoPresetConfidence = preset.confidence;
               });
 

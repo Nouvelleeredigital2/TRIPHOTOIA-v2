@@ -637,7 +637,7 @@ export async function syncCollections(
         display_order: index,
       };
     })
-    .filter(Boolean);
+    .filter((row): row is NonNullable<typeof row> => row !== null);
 
   if (rows.length === 0) return;
 

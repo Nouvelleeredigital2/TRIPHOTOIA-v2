@@ -19,8 +19,11 @@
     "noEmit": true,
     "noImplicitThis": true,
     "strictBindCallApply": true,
+    "strictFunctionTypes": true,
     "useUnknownInCatchVariables": true,
-    "alwaysStrict": true
+    "alwaysStrict": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedParameters": true
   },
   "include": [
     "src",

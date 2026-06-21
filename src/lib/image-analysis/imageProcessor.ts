@@ -869,7 +869,7 @@ export class ImageProcessor {
    * Suggère des ajustements de retouche optimisés pour GPU
    */
   private suggestRetouch(
-    imageData: ImageData,
+    _imageData: ImageData,
     blurAnalysis: { isBlurry: boolean; sharpnessScore: number },
     colorAnalysis: { brightness: number; contrast: number; saturation: number }
   ): {

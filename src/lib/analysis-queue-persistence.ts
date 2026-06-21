@@ -85,7 +85,9 @@ export const loadAnalysisState = async (): Promise<{
     const metaStore = tx.objectStore(META_STORE);
 
     const [persistedPhotos, meta] = await Promise.all([
-      requestToPromise<readonly PersistedPhoto[]>(photoStore.getAll()),
+      requestToPromise<readonly PersistedPhoto[]>(
+        photoStore.getAll() as unknown as IDBRequest<readonly PersistedPhoto[]>
+      ),
       requestToPromise<QueueMeta | undefined>(metaStore.get(META_KEY))
         .then((value) => value as QueueMeta | undefined)
         .catch(() => undefined),

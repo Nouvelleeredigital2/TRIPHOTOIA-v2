@@ -70,7 +70,7 @@ export class PhotoScorer {
    * Calcule le score complet d'une photo
    */
   async scorePhoto(
-    photoId: string,
+    _photoId: string,
     imageData: Uint8Array,
     width: number,
     height: number,

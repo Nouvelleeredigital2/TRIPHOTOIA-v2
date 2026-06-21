@@ -164,7 +164,7 @@ export async function fetchCloudProjects(
 }
 
 export async function createCloudProject(
-  userId: string,
+  _userId: string,
   projectName: string,
   client: SupabaseClient | null = supabase
 ): Promise<CloudProjectSummary> {

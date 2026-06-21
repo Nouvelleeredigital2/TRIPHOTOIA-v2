@@ -48,6 +48,7 @@ export interface SmokeClient {
   from: (table: string) => {
     insert: (payload: Record<string, unknown>) => InsertBuilder;
     update: (payload: Record<string, unknown>) => MutateBuilder;
+    delete: () => MutateBuilder;
   };
 }
 
@@ -119,6 +120,7 @@ export async function runCloudSmoke({
   }
 
   let userId: string | null = null;
+  let orgId: string | null = null;
   try {
     const conn = await client.storage.getBucket(config.bucket);
     if (conn.error) fail(`bucket "${config.bucket}" lookup`, conn.error);
@@ -139,6 +141,7 @@ export async function runCloudSmoke({
       .select('id')
       .single();
     if (org.error || !org.data) fail('insert organization', org.error);
+    orgId = org.data!.id;
     record('organization inserted');
 
     const project = await client
@@ -178,12 +181,23 @@ export async function runCloudSmoke({
 
     return { ok: true, dryRun: false, steps };
   } finally {
+    // Delete the org FIRST: projects.created_by references auth.users without
+    // ON DELETE CASCADE, so deleting the user while a project exists fails.
+    // Removing the org cascades project/photo/job, freeing the user for deletion.
+    if (orgId) {
+      const removedOrg = await client.from('organizations').delete().eq('id', orgId);
+      if (removedOrg.error) {
+        log(`cloud smoke: WARNING cleanup of smoke org failed — ${removedOrg.error.message ?? 'unknown'}`);
+      } else {
+        record('smoke org + cascaded rows deleted');
+      }
+    }
     if (userId) {
       const removed = await client.auth.admin.deleteUser(userId);
       if (removed.error) {
         log(`cloud smoke: WARNING cleanup of temp user failed — ${removed.error.message ?? 'unknown'}`);
       } else {
-        record('temp user + cascaded smoke rows deleted');
+        record('temp user deleted');
       }
     }
   }

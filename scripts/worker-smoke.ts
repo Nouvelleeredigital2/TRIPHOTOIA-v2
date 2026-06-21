@@ -31,6 +31,9 @@ interface SingleBuilder {
 interface SelectEqBuilder {
   select: (columns: string) => { eq: (column: string, value: string) => PromiseLike<{ data: JobRow[] | null; error: SupabaseError }> };
 }
+interface DeleteEqBuilder {
+  delete: () => { eq: (column: string, value: string) => PromiseLike<{ error: SupabaseError }> };
+}
 
 export interface WorkerSmokeClient extends RpcCapableClient {
   auth: {
@@ -45,6 +48,7 @@ export interface WorkerSmokeClient extends RpcCapableClient {
   from: (table: string) => {
     insert: (payload: Record<string, unknown> | Record<string, unknown>[]) => SingleBuilder & PromiseLike<{ error: SupabaseError }>;
     select: SelectEqBuilder['select'];
+    delete: DeleteEqBuilder['delete'];
   };
 }
 
@@ -99,6 +103,7 @@ export async function runWorkerSmoke({
   }
 
   let userId: string | null = null;
+  let orgId: string | null = null;
   try {
     const created = await client.auth.admin.createUser({
       email: `worker-smoke+${nonce}@treephoto.invalid`,
@@ -115,6 +120,7 @@ export async function runWorkerSmoke({
       .select('id')
       .single();
     if (org.error || !org.data) fail('insert organization', org.error);
+    orgId = org.data!.id;
 
     const project = await client
       .from('projects')
@@ -174,12 +180,22 @@ export async function runWorkerSmoke({
 
     return { ok: true, dryRun: false, jobs, steps };
   } finally {
+    // Delete the org FIRST (cascade): projects.created_by has no ON DELETE
+    // CASCADE to auth.users, so the user can't be removed while a project exists.
+    if (orgId) {
+      const removedOrg = await client.from('organizations').delete().eq('id', orgId);
+      if (removedOrg.error) {
+        log(`worker smoke: WARNING cleanup of smoke org failed — ${removedOrg.error.message ?? 'unknown'}`);
+      } else {
+        record('smoke org + cascaded rows deleted');
+      }
+    }
     if (userId) {
       const removed = await client.auth.admin.deleteUser(userId);
       if (removed.error) {
         log(`worker smoke: WARNING cleanup of temp user failed — ${removed.error.message ?? 'unknown'}`);
       } else {
-        record('temp user + cascaded smoke rows deleted');
+        record('temp user deleted');
       }
     }
   }

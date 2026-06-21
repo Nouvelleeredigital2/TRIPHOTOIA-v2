@@ -58,6 +58,12 @@ const createFakeClient = (opts: FakeOptions = {}) => {
           return Promise.resolve({ data: jobRows, error: null });
         },
       }),
+      delete: () => ({
+        eq: (column: string, value: string) => {
+          calls.push(`delete:${table}:${column}=${value}`);
+          return Promise.resolve({ error: null });
+        },
+      }),
     }),
   } as unknown as WorkerSmokeClient;
 
@@ -95,8 +101,9 @@ describe('runWorkerSmoke', () => {
     expect(runOnce).toHaveBeenCalledTimes(4); // 3 jobs + 1 terminating false
     // Three job inserts happened.
     expect(calls.filter((c) => c === 'insert:jobs')).toHaveLength(3);
-    // Verification queried jobs by project, and cleanup ran.
+    // Verification queried jobs by project, and cleanup ran (org first, then user).
     expect(calls.some((c) => c.startsWith('select:jobs:project_id='))).toBe(true);
+    expect(calls).toContain('delete:organizations:id=id-1');
     expect(calls).toContain('auth.deleteUser:user-1');
   });
 

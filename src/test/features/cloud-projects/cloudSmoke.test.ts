@@ -18,6 +18,7 @@ interface FakeOptions {
   bucketError?: string;
   insertErrorFor?: string;
   deleteUserError?: string;
+  deleteOrgError?: string;
 }
 
 const createFakeClient = (opts: FakeOptions = {}) => {
@@ -70,6 +71,14 @@ const createFakeClient = (opts: FakeOptions = {}) => {
         void payload;
         return { eq: () => Promise.resolve({ error: null }) };
       },
+      delete: () => ({
+        eq: (column: string, value: string) => {
+          calls.push(`delete:${table}:${column}=${value}`);
+          return Promise.resolve({
+            error: opts.deleteOrgError ? { message: opts.deleteOrgError } : null,
+          });
+        },
+      }),
     }),
   };
 
@@ -129,6 +138,8 @@ describe('runCloudSmoke', () => {
       'insert:photos',
       'insert:jobs',
       'update:photos',
+      // Cleanup: org deleted FIRST (cascade), then the user can be removed.
+      'delete:organizations:id=id-1',
       'auth.deleteUser:user-1',
     ]);
   });
@@ -147,7 +158,8 @@ describe('runCloudSmoke', () => {
     await expect(
       runCloudSmoke({ config: baseConfig(), client, nonce: 'n4' }),
     ).rejects.toThrow(/insert project failed/);
-    // Cleanup must run despite the failure (finally block).
+    // Cleanup must run despite the failure (finally block): org first, then user.
+    expect(calls).toContain('delete:organizations:id=id-1');
     expect(calls).toContain('auth.deleteUser:user-1');
   });
 

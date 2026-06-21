@@ -80,16 +80,34 @@ export function deriveScore(photo: Photo): number {
   return Math.min(100, Math.max(0, Math.round(score)));
 }
 
-/** Classify a photo into keep / review / reject */
+/** Classify a photo into keep / review / reject.
+ *
+ * P0-3 : appartenir à un groupe de doublons ne suffit JAMAIS à rejeter
+ * automatiquement. Le meilleur représentant du groupe (`isGroupBest`) est au
+ * minimum conservé en revue ; les autres membres deviennent des candidats à
+ * revue, pas des rejets définitifs. Chaque groupe garde donc ≥ 1 photo non
+ * rejetée. Les décisions manuelles de l'utilisateur priment toujours. */
 export function classifyPhoto(
   photo: Photo,
-  isDup: boolean,
-  score: number
+  score: number,
+  opts: { isDuplicate?: boolean; isGroupBest?: boolean } = {}
 ): AfClass {
+  const { isDuplicate = false, isGroupBest = false } = opts;
+
+  // Décisions manuelles : toujours respectées.
   if (photo.analysis?.isRejected) return 'reject';
-  if (photo.analysis?.isBlurry || score < 50) return 'reject';
-  if (isDup) return 'reject';
-  if (photo.analysis?.isPick || score >= 82) return 'keep';
+  if (photo.analysis?.isPick) return 'keep';
+
+  // Doublon non-meilleur : candidat à revue (jamais rejet auto).
+  if (isDuplicate && !isGroupBest) return 'review';
+
+  // Raisons de rejet réelles (flou, score faible) — mais on préserve toujours
+  // le meilleur représentant d'un groupe en le laissant en revue.
+  if (photo.analysis?.isBlurry || score < 50) {
+    return isGroupBest ? 'review' : 'reject';
+  }
+
+  if (score >= 82) return 'keep';
   return 'review';
 }
 
@@ -99,25 +117,19 @@ export function toAfPhotos(
   duplicateGroups: DuplicateGroup[]
 ): AfPhoto[] {
   const dupMap = new Map<string, string>(); // photoId -> groupId
+  const groupBest = new Set<string>(); // meilleur représentant par groupe
   duplicateGroups.forEach((g) => {
     g.photos.forEach((p) => dupMap.set(p.id, g.id));
+    if (g.bestPhotoId) groupBest.add(g.bestPhotoId);
   });
-
-  const suggestions = [
-    'Bonne lumiere naturelle. Essayez un recadrage pour ameliorer la composition.',
-    'Netteté excellente. Léger ajustement des ombres recommandé.',
-    'Exposition correcte. Le sujet est bien isolé du fond.',
-    'Composition equilibree. Augmentez légèrement le contraste.',
-    'Belle profondeur de champ. Retouchez les hautes lumières.',
-    'Image nette. Jouez sur la saturation pour plus de vibrance.',
-    'Photo réussie. Peu de corrections nécessaires.',
-    'Bon cadrage. Ajustez les tons clairs pour plus de détail.',
-  ];
 
   return photos.map((p) => {
     const score = deriveScore(p);
     const isDup = dupMap.has(p.id);
-    const cls = classifyPhoto(p, isDup, score);
+    const cls = classifyPhoto(p, score, {
+      isDuplicate: isDup,
+      isGroupBest: groupBest.has(p.id),
+    });
     const a = p.analysis;
 
     const sharp = Math.round((a?.sharpnessScore ?? 0.5) * 100);
@@ -129,10 +141,6 @@ export function toAfPhotos(
     const expo = Math.round(
       Math.max(0, Math.min(100, (1 - brightnessDev * 2) * 100))
     );
-
-    let idx = 0;
-    for (let i = 0; i < p.id.length; i++)
-      idx = (idx + p.id.charCodeAt(i)) % suggestions.length;
 
     return {
       id: p.id,
@@ -154,9 +162,42 @@ export function toAfPhotos(
       sharp,
       expo,
       comp,
-      suggestion: suggestions[idx],
+      suggestion: buildSuggestion(p),
     };
   });
+}
+
+/**
+ * Construit une explication AutoFlow À PARTIR DES MÉTRIQUES réelles (P0-4).
+ * Renvoie undefined si aucune métrique exploitable n'est disponible — on
+ * n'affiche jamais une phrase fabriquée à partir de l'identifiant du fichier.
+ */
+export function buildSuggestion(photo: Photo): string | undefined {
+  const a = photo.analysis;
+  if (!a || a.error) return undefined;
+
+  const parts: string[] = [];
+
+  if (a.isBlurry) {
+    parts.push('Image potentiellement floue.');
+  } else if (typeof a.sharpnessScore === 'number') {
+    parts.push(a.sharpnessScore >= 0.7 ? 'Bonne netteté.' : 'Netteté moyenne.');
+  }
+
+  if (typeof a.compositionScore === 'number') {
+    parts.push(
+      a.compositionScore >= 0.7
+        ? 'Composition équilibrée.'
+        : 'Composition à retravailler.'
+    );
+  }
+
+  if (a.suggestedRetouch) {
+    const dev = Math.abs(a.suggestedRetouch.brightness - 1);
+    if (dev > 0.15) parts.push('Exposition à ajuster.');
+  }
+
+  return parts.length > 0 ? parts.join(' ') : undefined;
 }
 
 /**

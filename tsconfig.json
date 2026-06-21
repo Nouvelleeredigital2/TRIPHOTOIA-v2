@@ -17,16 +17,11 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "noImplicitThis": true,
-    "strictBindCallApply": true,
-    "strictFunctionTypes": true,
-    "useUnknownInCatchVariables": true,
-    "alwaysStrict": true,
+    "strict": true,
     "noFallthroughCasesInSwitch": true,
     "noUnusedParameters": true,
     "noUnusedLocals": true,
-    "noImplicitReturns": true,
-    "strictNullChecks": true
+    "noImplicitReturns": true
   },
   "include": [
     "src",

@@ -1453,7 +1453,7 @@ export const usePhotoStore = create<PhotoState>()(
             if (distribution) {
               // Distribuer selon preset
               let index = 0;
-              const counts = {
+              const counts: Record<number, number> = {
                 5: Math.ceil(photos.length * distribution[5]),
                 4: Math.ceil(photos.length * distribution[4]),
                 3: Math.ceil(photos.length * distribution[3]),
@@ -1496,7 +1496,7 @@ export const usePhotoStore = create<PhotoState>()(
             );
 
             // Afficher distribution
-            const dist = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+            const dist: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
             photos.forEach((p) => {
               const r = p.analysis?.rating || 0;
               dist[r]++;

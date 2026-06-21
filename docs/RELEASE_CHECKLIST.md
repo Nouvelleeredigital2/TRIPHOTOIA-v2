@@ -12,13 +12,16 @@
 
 ## Local Verification
 
-- [ ] `pnpm install --ignore-workspace --frozen-lockfile`
-- [ ] `pnpm type-check`
-- [ ] `pnpm lint`
-- [ ] `pnpm test`
-- [ ] `pnpm build`
+- [x] `pnpm install --ignore-workspace --frozen-lockfile`
+- [x] `pnpm type-check`
+- [x] `pnpm lint`
+- [x] `pnpm test` (308 tests)
+- [x] `pnpm build` (aucun warning)
 
 ## Cloud Verification
+
+> ⛔ Bloqué en attente de credentials staging — à exécuter avant ouverture cloud.
+> Code et migrations vérifiés statiquement (cf. AUDIT_FINAL_REPORT.md).
 
 - [ ] Supabase migrations applied on staging
 - [ ] Private bucket `project-photos` exists
@@ -26,13 +29,17 @@
 - [ ] Project create/open works
 - [ ] Upload creates `photos` rows
 - [ ] AutoFlow decisions persist after refresh
+- [ ] `TREEPHOTO_SMOKE_CONFIRM=1 pnpm smoke:cloud` → `cloud smoke: ok`
 
 ## Worker Verification
+
+> ⛔ Bloqué en attente de credentials staging / VPS.
 
 - [ ] Worker starts with service role key
 - [ ] Pending jobs become processing
 - [ ] Jobs complete with thumbnail/quality/hash
 - [ ] Failed jobs write `error_message`
+- [ ] `TREEPHOTO_SMOKE_CONFIRM=1 pnpm smoke:worker` → `worker smoke: ok`
 
 ## Production Verification
 

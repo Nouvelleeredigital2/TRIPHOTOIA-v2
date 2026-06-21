@@ -335,6 +335,7 @@ Interface adaptative pour :
 - [docs/BETA_WEDDING_SCENARIO.md](docs/BETA_WEDDING_SCENARIO.md) — parcours de recette
 - [docs/SECURITY.md](docs/SECURITY.md) — frontières de sécurité (RLS, secrets, faces)
 - [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) — checklist de release
+- [docs/AUDIT_FINAL_REPORT.md](docs/AUDIT_FINAL_REPORT.md) — rapport d'audit final
 - [docs/USER_GUIDE.md](docs/USER_GUIDE.md) — guide utilisateur (version courte)
 - [supabase/README.md](supabase/README.md) · [worker/README.md](worker/README.md)
 

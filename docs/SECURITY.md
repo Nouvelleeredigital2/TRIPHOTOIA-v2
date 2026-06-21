@@ -52,6 +52,22 @@ The frontend bundle is public. Only public values may reach it.
     (`photo_faces.person_id … on delete set null`).
 - `photo_faces` is RLS-protected (members-only select/insert/update/delete).
 
+## Supabase advisors (staging audit, 2026-06-21)
+
+Audit live sur `cnnshwmdynggvjcxaohe` (cf. AUDIT_FINAL_REPORT.md). État :
+
+- **Perf** : corrigés (index FK + RLS `(select auth.uid())`) — voir migration
+  `..._advisor_perf_fk_indexes_rls_initplan.sql`.
+- **Sécurité — corrigé** : `claim_next_job`, `fail_or_retry_job`,
+  `reclaim_stuck_jobs` ne sont plus exécutables par `authenticated` (worker only,
+  via service_role) — migration `..._advisor_security_revoke_worker_rpc.sql`.
+- **Sécurité — by-design (conservés)** : fonctions de partage anon-callables
+  (partage par token), helpers RLS évalués dans les policies (révoquer casserait
+  la RLS), RPC applicatives de l'utilisateur authentifié.
+- **Sécurité — manuel restant** : activer « Leaked password protection »
+  (dashboard Auth) ; déplacer l'extension `vector` hors du schéma `public`
+  (cosmétique).
+
 ## Beta data warning
 
 TreePhoto is a beta. Do not store irreplaceable originals only in the cloud:

@@ -36,7 +36,7 @@ export function ComparisonView({
 
   // Raccourcis clavier en mode comparaison
   useEffect(() => {
-    if (!open) return;
+    if (!open) return undefined;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       switch (e.key) {

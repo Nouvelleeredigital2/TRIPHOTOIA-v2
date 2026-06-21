@@ -58,7 +58,7 @@ export function useKeyboardShortcuts(
   handlersRef.current = handlers;
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) return undefined;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       const h = handlersRef.current;

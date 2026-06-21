@@ -92,7 +92,7 @@ export function FullscreenViewer({
         window.clearInterval(slideshowTimerRef.current);
         slideshowTimerRef.current = null;
       }
-      return;
+      return undefined;
     }
     slideshowTimerRef.current = window.setInterval(() => {
       if (hasNext) {
@@ -198,7 +198,7 @@ export function FullscreenViewer({
 
   // Raccourcis clavier en mode plein écran
   useEffect(() => {
-    if (!open) return;
+    if (!open) return undefined;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const s = stateRef.current;

@@ -53,8 +53,8 @@ export function useCataloguePersistence(): { lastSavedAt: Date | null } {
 
   // Auto-sauvegarde debounce sur les mutations du store
   useEffect(() => {
-    if (!isRestoredRef.current) return;
-    if (store.photos.length === 0) return;
+    if (!isRestoredRef.current) return undefined;
+    if (store.photos.length === 0) return undefined;
 
     if (saveTimerRef.current !== null) {
       window.clearTimeout(saveTimerRef.current);

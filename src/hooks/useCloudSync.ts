@@ -104,7 +104,7 @@ export function useCloudSync() {
 
   // Surveiller les mutations du store (rating, pick, reject, label, tags, notes)
   useEffect(() => {
-    if (!user || !isSupabaseConfigured) return;
+    if (!user || !isSupabaseConfigured) return undefined;
 
     const unsub = usePhotoStore.subscribe((state, prev) => {
       const photosChanged = state.photos !== prev.photos;
@@ -205,7 +205,7 @@ export function useCloudSync() {
 
   // Tracker les imports
   useEffect(() => {
-    if (!user || !isSupabaseConfigured) return;
+    if (!user || !isSupabaseConfigured) return undefined;
 
     let prevCount = usePhotoStore.getState().photos.length;
 

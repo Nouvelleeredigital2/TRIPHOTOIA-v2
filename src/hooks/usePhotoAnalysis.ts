@@ -73,7 +73,7 @@ export function usePhotoAnalysis() {
   useEffect(() => {
     if (typeof window === 'undefined') {
       isRestoringRef.current = false;
-      return;
+      return undefined;
     }
 
     let cancelled = false;
@@ -130,14 +130,14 @@ export function usePhotoAnalysis() {
   // Persist queue state when photos or queue change
   useEffect(() => {
     if (typeof window === 'undefined') {
-      return;
+      return undefined;
     }
 
     photosRef.current = photos;
     analysisQueueRef.current = analysisQueue;
 
     if (isRestoringRef.current) {
-      return;
+      return undefined;
     }
 
     if (persistenceTimeoutRef.current !== null) {

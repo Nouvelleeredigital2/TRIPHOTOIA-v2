@@ -136,7 +136,7 @@ function App() {
   // A-53/54 : synchroniser l'onglet actif avec le hash de l'URL (deep link + bouton
   // retour navigateur), sans React Router. Préserve la page de partage #/share/:token.
   useEffect(() => {
-    if (shareToken) return;
+    if (shareToken) return undefined;
     const TABS = ['ingestion', 'triage', 'export'] as const;
     const applyHash = () => {
       const h = window.location.hash.replace(/^#\//, '');
@@ -162,7 +162,7 @@ function App() {
 
   // A-52 : avertir si le catalogue est modifié dans un autre onglet (pas de fusion auto).
   useEffect(() => {
-    if (typeof BroadcastChannel === 'undefined') return;
+    if (typeof BroadcastChannel === 'undefined') return undefined;
     const channel = new BroadcastChannel('treephoto');
     const tabId = Math.random().toString(36).slice(2);
     const onSave = () =>

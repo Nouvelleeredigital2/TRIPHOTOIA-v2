@@ -38,6 +38,7 @@ export function Notification({
       }, duration);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [duration, onClose]);
 
   return (

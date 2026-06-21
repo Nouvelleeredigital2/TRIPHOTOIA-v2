@@ -73,7 +73,7 @@ export function CullingView({
 
   // Raccourcis clavier propres au culling
   useEffect(() => {
-    if (!open) return;
+    if (!open) return undefined;
 
     const handler = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;

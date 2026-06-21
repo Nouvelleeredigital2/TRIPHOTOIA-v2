@@ -19,12 +19,12 @@ export const Histogram: React.FC<HistogramProps> = ({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) {
-      return;
+      return undefined;
     }
 
     const ctx = canvas.getContext('2d');
     if (!ctx) {
-      return;
+      return undefined;
     }
 
     const drawPlaceholder = () => {
@@ -43,7 +43,7 @@ export const Histogram: React.FC<HistogramProps> = ({
 
     if (!imageUrl) {
       drawPlaceholder();
-      return;
+      return undefined;
     }
 
     const image = new Image();

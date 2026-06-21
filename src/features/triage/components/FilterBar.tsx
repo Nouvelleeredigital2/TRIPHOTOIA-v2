@@ -55,7 +55,7 @@ export function FilterBar({
 
   // Close stars popover on click outside
   useEffect(() => {
-    if (!starsOpen) return;
+    if (!starsOpen) return undefined;
     const handler = (e: MouseEvent) => {
       if (starsRef.current && !starsRef.current.contains(e.target as Node)) {
         setStarsOpen(false);

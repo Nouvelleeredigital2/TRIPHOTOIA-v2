@@ -199,6 +199,34 @@ describe('AutoFlowMode', () => {
     expect(screen.getByText('DSC_0001.JPG')).toBeInTheDocument();
   });
 
+  it('rates the current photo when a star is clicked (without leaving it)', async () => {
+    const onMutation = vi.fn();
+    const onRating = vi.fn();
+
+    render(
+      <AutoFlowMode
+        photos={[makePhoto({ id: 'review-1', cls: 'review', rating: 1 })]}
+        onMutation={onMutation}
+        onRating={onRating}
+        onClose={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /mode swipe/i }));
+    // Clicking the 4th star sets rating=4 — the stars must be interactive.
+    fireEvent.click(screen.getByRole('button', { name: /noter 4 étoiles/i }));
+
+    await waitFor(() =>
+      expect(onMutation).toHaveBeenCalledWith(
+        'review-1',
+        expect.objectContaining({ rating: 4 })
+      )
+    );
+    expect(onRating).toHaveBeenCalledWith('review-1', 4, expect.anything());
+    // Rating must not advance the queue.
+    expect(screen.getByText('DSC_0001.JPG')).toBeInTheDocument();
+  });
+
   it('undoes the last swipe decision, returns to that photo, and emits the restored decision', async () => {
     const onMutation = vi.fn();
     const onDecision = vi.fn();

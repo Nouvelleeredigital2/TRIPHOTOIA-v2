@@ -12,6 +12,7 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "worker": "tsx worker/index.ts",
+    "smoke:cloud": "tsx scripts/cloud-smoke.ts",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --ext ts,tsx --fix",
     "format": "prettier --write .",

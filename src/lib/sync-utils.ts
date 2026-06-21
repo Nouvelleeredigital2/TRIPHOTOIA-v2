@@ -186,6 +186,52 @@ function sharedPhotoPath(userId: string, fileHash: string): string {
 }
 
 /**
+ * P1-1 (confidentialité) : produit un dérivé JPEG redimensionné pour le partage.
+ * Le ré-encodage via <canvas> supprime EXIF/GPS (les originaux ne doivent jamais
+ * fuiter de métadonnées de localisation dans une galerie partagée). Robuste :
+ * en cas d'indisponibilité du canvas/décodage, on retombe sur le fichier
+ * d'origine plutôt que d'échouer l'upload.
+ */
+export async function buildSharePreview(
+  file: File,
+  maxDim = 2048,
+  quality = 0.85
+): Promise<Blob> {
+  try {
+    // Environnements sans décodage image (Node/jsdom) : repli sur l'original.
+    if (
+      typeof document === 'undefined' ||
+      typeof createImageBitmap === 'undefined'
+    ) {
+      return file;
+    }
+    const bitmap = await createImageBitmap(file);
+    try {
+      const scale = Math.min(
+        1,
+        maxDim / Math.max(bitmap.width, bitmap.height || 1)
+      );
+      const w = Math.max(1, Math.round(bitmap.width * scale));
+      const h = Math.max(1, Math.round(bitmap.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return file;
+      ctx.drawImage(bitmap, 0, 0, w, h);
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob((b) => resolve(b), 'image/jpeg', quality)
+      );
+      return blob ?? file;
+    } finally {
+      bitmap.close?.();
+    }
+  } catch {
+    return file;
+  }
+}
+
+/**
  * P1-C : le bucket `shared-photos` est désormais PRIVÉ (migration
  * `20260617120000_treephoto_private_shared_bucket`). On n'émet plus d'URL
  * publique durable (devinable, non révocable, sans expiration) côté client.
@@ -241,11 +287,14 @@ export async function uploadSharedPhotos(
       continue;
     }
     try {
+      // P1-1 : on partage un dérivé JPEG redimensionné SANS EXIF/GPS,
+      // jamais l'original (évite toute fuite de métadonnées de localisation).
+      const derivative = await buildSharePreview(photo.file);
       const { error } = await supabase.storage
         .from(SHARED_BUCKET)
-        .upload(sharedPhotoPath(userId, photo.fileHash), photo.file, {
+        .upload(sharedPhotoPath(userId, photo.fileHash), derivative, {
           upsert: true,
-          contentType: photo.file.type || 'image/jpeg',
+          contentType: 'image/jpeg',
         });
       if (error) {
         failedNames.push(photo.file.name);

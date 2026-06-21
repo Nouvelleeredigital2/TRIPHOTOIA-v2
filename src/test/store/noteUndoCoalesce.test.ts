@@ -22,7 +22,9 @@ describe('setPhotoNote undo coalescing (A-25)', () => {
     s.setPhotoNote('p1', 'ab');
     s.setPhotoNote('p1', 'abc');
 
-    const noteUndos = usePhotoStore.getState().undoStack.filter((u) => u.type === 'SET_NOTE');
+    const noteUndos = usePhotoStore
+      .getState()
+      .undoStack.filter((u) => u.type === 'SET_NOTE');
     expect(noteUndos).toHaveLength(1);
 
     // Un seul undo ramène à l'état initial (note absente).
@@ -35,7 +37,9 @@ describe('setPhotoNote undo coalescing (A-25)', () => {
     const s = usePhotoStore.getState();
     s.setPhotoNote('p1', 'x');
     s.setPhotoNote('p2', 'y');
-    const noteUndos = usePhotoStore.getState().undoStack.filter((u) => u.type === 'SET_NOTE');
+    const noteUndos = usePhotoStore
+      .getState()
+      .undoStack.filter((u) => u.type === 'SET_NOTE');
     expect(noteUndos).toHaveLength(2);
   });
 });

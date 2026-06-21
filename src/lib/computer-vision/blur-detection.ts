@@ -42,22 +42,32 @@ export class BlurDetector {
       autoCalibration: true,
       calibrationSamples: 50,
       method: 'combined',
-      ...config
+      ...config,
     };
   }
 
   /**
    * Analyse le flou d'une image
    */
-  async analyzeBlur(imageData: Uint8Array, width: number, height: number): Promise<BlurAnalysis> {
-    const methods = this.config.method === 'combined'
-      ? ['laplacian', 'sobel', 'gradient'] as const
-      : [this.config.method];
+  async analyzeBlur(
+    imageData: Uint8Array,
+    width: number,
+    height: number
+  ): Promise<BlurAnalysis> {
+    const methods =
+      this.config.method === 'combined'
+        ? (['laplacian', 'sobel', 'gradient'] as const)
+        : [this.config.method];
 
     const results: BlurAnalysis[] = [];
 
     for (const method of methods) {
-      const result = await this.analyzeWithMethod(imageData, width, height, method);
+      const result = await this.analyzeWithMethod(
+        imageData,
+        width,
+        height,
+        method
+      );
       results.push(result);
     }
 
@@ -97,8 +107,8 @@ export class BlurDetector {
         maxValue,
         meanValue,
         edgeCount,
-        sharpness
-      }
+        sharpness,
+      },
     };
   }
 
@@ -119,7 +129,7 @@ export class BlurDetector {
       maxValue: 0,
       meanValue: 0,
       edgeCount: 0,
-      sharpness: 0
+      sharpness: 0,
     };
 
     results.forEach((result, index) => {
@@ -142,7 +152,7 @@ export class BlurDetector {
     const isBlurry = blurryCount > results.length / 2;
 
     // Normaliser les détails
-    Object.keys(combinedDetails).forEach(key => {
+    Object.keys(combinedDetails).forEach((key) => {
       combinedDetails[key as keyof typeof combinedDetails] /= totalWeight;
     });
 
@@ -151,14 +161,18 @@ export class BlurDetector {
       isBlurry,
       confidence: finalConfidence,
       method: 'combined',
-      details: combinedDetails
+      details: combinedDetails,
     };
   }
 
   /**
    * Convertit l'image en niveaux de gris
    */
-  private convertToGrayscale(imageData: Uint8Array, width: number, height: number): number[] {
+  private convertToGrayscale(
+    imageData: Uint8Array,
+    width: number,
+    height: number
+  ): number[] {
     const grayscale: number[] = [];
     const channels = imageData.length / (width * height);
 
@@ -182,25 +196,25 @@ export class BlurDetector {
         return [
           [0, -1, 0],
           [-1, 4, -1],
-          [0, -1, 0]
+          [0, -1, 0],
         ];
       case 'sobel':
         return [
           [-1, -2, -1],
           [0, 0, 0],
-          [1, 2, 1]
+          [1, 2, 1],
         ];
       case 'gradient':
         return [
           [-1, 0, 1],
           [-2, 0, 2],
-          [-1, 0, 1]
+          [-1, 0, 1],
         ];
       default:
         return [
           [0, -1, 0],
           [-1, 4, -1],
-          [0, -1, 0]
+          [0, -1, 0],
         ];
     }
   }
@@ -208,7 +222,12 @@ export class BlurDetector {
   /**
    * Applique un kernel à l'image
    */
-  private applyKernel(image: number[], width: number, height: number, kernel: number[][]): number[] {
+  private applyKernel(
+    image: number[],
+    width: number,
+    height: number,
+    kernel: number[][]
+  ): number[] {
     const result: number[] = [];
     const kernelSize = kernel.length;
     const offset = Math.floor(kernelSize / 2);
@@ -243,7 +262,7 @@ export class BlurDetector {
    */
   private calculateVariance(values: number[]): number {
     const mean = this.calculateMean(values);
-    const squaredDiffs = values.map(value => Math.pow(value - mean, 2));
+    const squaredDiffs = values.map((value) => Math.pow(value - mean, 2));
     return this.calculateMean(squaredDiffs);
   }
 
@@ -257,7 +276,11 @@ export class BlurDetector {
   /**
    * Compte le nombre de bords détectés
    */
-  private countEdges(filtered: number[], _width: number, _height: number): number {
+  private countEdges(
+    filtered: number[],
+    _width: number,
+    _height: number
+  ): number {
     const threshold = this.config.edgeThreshold * 255;
     let edgeCount = 0;
 
@@ -302,7 +325,11 @@ export class BlurDetector {
   /**
    * Calcule la confiance de la détection
    */
-  private calculateConfidence(variance: number, threshold: number, edgeCount: number): number {
+  private calculateConfidence(
+    variance: number,
+    threshold: number,
+    edgeCount: number
+  ): number {
     const varianceConfidence = Math.min(variance / threshold, 1);
     const edgeConfidence = Math.min(edgeCount / 1000, 1); // Normalisé
     const distanceConfidence = Math.abs(variance - threshold) / threshold;
@@ -320,8 +347,18 @@ export class BlurDetector {
   /**
    * Calibre automatiquement les seuils
    */
-  async calibrate(sampleImages: { imageData: Uint8Array; width: number; height: number; isSharp: boolean }[]): Promise<void> {
-    if (!this.config.autoCalibration || sampleImages.length < this.config.calibrationSamples) {
+  async calibrate(
+    sampleImages: {
+      imageData: Uint8Array;
+      width: number;
+      height: number;
+      isSharp: boolean;
+    }[]
+  ): Promise<void> {
+    if (
+      !this.config.autoCalibration ||
+      sampleImages.length < this.config.calibrationSamples
+    ) {
       return;
     }
 
@@ -329,7 +366,11 @@ export class BlurDetector {
     const blurryScores: number[] = [];
 
     for (const sample of sampleImages) {
-      const analysis = await this.analyzeBlur(sample.imageData, sample.width, sample.height);
+      const analysis = await this.analyzeBlur(
+        sample.imageData,
+        sample.width,
+        sample.height
+      );
 
       if (sample.isSharp) {
         sharpScores.push(analysis.score);
@@ -344,15 +385,19 @@ export class BlurDetector {
       const threshold = (sharpMean + blurryMean) / 2;
 
       // Calculer l'accuracy
-      const correctSharp = sharpScores.filter(score => score >= threshold).length;
-      const correctBlurry = blurryScores.filter(score => score < threshold).length;
+      const correctSharp = sharpScores.filter(
+        (score) => score >= threshold
+      ).length;
+      const correctBlurry = blurryScores.filter(
+        (score) => score < threshold
+      ).length;
       const accuracy = (correctSharp + correctBlurry) / sampleImages.length;
 
       this.calibrationData = {
         sharpImages: sharpScores,
         blurryImages: blurryScores,
         threshold,
-        accuracy
+        accuracy,
       };
     }
   }

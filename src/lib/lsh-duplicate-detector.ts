@@ -95,7 +95,9 @@ export class LSHDuplicateDetector {
   }
 
   private bucketKey(tableIndex: number, hash: string): string {
-    return this.bitPositions[tableIndex].map((pos) => hash[pos] ?? '0').join('');
+    return this.bitPositions[tableIndex]
+      .map((pos) => hash[pos] ?? '0')
+      .join('');
   }
 }
 

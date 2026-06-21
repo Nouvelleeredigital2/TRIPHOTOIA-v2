@@ -508,7 +508,7 @@ export const SwipeMode: React.FC<SwipeModeProps> = ({
 
           {/* Current card — surface de swipe (drag), pas un bouton ; les décisions
               clavier (flèches) sont gérées par l'effet keydown global d'AutoFlow. */}
-          {}
+          {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
           <div
             onMouseDown={handleMouseDown}
             className="af-grab"

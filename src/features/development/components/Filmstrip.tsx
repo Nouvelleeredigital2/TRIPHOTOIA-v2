@@ -45,20 +45,34 @@ export const Filmstrip: React.FC<FilmstripProps> = ({
   );
 
   const renderCard = useCallback(
-    (photo: Photo, isActive: boolean, isSelected: boolean, isProcessing: boolean) => (
+    (
+      photo: Photo,
+      isActive: boolean,
+      isSelected: boolean,
+      isProcessing: boolean
+    ) => (
       <div
         className={cn(
-          'group relative rounded-md border p-2 bg-background/70 hover:bg-background/90 transition-colors cursor-pointer',
+          'group relative cursor-pointer rounded-md border bg-background/70 p-2 transition-colors hover:bg-background/90',
           isActive ? 'border-primary shadow-md' : 'border-border/50'
         )}
         role="button"
         tabIndex={0}
         onClick={() => onSelect(photo.id)}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(photo.id); } }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onSelect(photo.id);
+          }
+        }}
       >
         <div className="flex items-center gap-3">
           <div className="relative h-16 w-16 overflow-hidden rounded">
-            <img src={photo.previewUrl} alt={photo.file.name} className="h-full w-full object-cover" />
+            <img
+              src={photo.previewUrl}
+              alt={photo.file.name}
+              className="h-full w-full object-cover"
+            />
             {isProcessing && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/60 border-t-transparent" />
@@ -66,12 +80,19 @@ export const Filmstrip: React.FC<FilmstripProps> = ({
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-foreground">{photo.file.name}</p>
+            <p className="truncate text-sm font-medium text-foreground">
+              {photo.file.name}
+            </p>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               {photo.retouch?.lastUpdated && (
-                <span>Maj : {new Date(photo.retouch.lastUpdated).toLocaleTimeString()}</span>
+                <span>
+                  Maj :{' '}
+                  {new Date(photo.retouch.lastUpdated).toLocaleTimeString()}
+                </span>
               )}
-              {photo.analysis?.isBlurry && <Badge variant="destructive">Floue</Badge>}
+              {photo.analysis?.isBlurry && (
+                <Badge variant="destructive">Floue</Badge>
+              )}
             </div>
           </div>
         </div>
@@ -81,7 +102,9 @@ export const Filmstrip: React.FC<FilmstripProps> = ({
           size="sm"
           className={cn(
             'mt-3 w-full text-xs transition-all',
-            isSelected ? 'bg-purple-600 hover:bg-purple-700' : 'hover:bg-background'
+            isSelected
+              ? 'bg-purple-600 hover:bg-purple-700'
+              : 'hover:bg-background'
           )}
           onClick={(event) => handleToggleDevelopment(event, photo.id)}
         >
@@ -93,7 +116,11 @@ export const Filmstrip: React.FC<FilmstripProps> = ({
   );
 
   return (
-    <div ref={parentRef} className="h-full overflow-y-auto pr-2" style={{ contain: 'strict' }}>
+    <div
+      ref={parentRef}
+      className="h-full overflow-y-auto pr-2"
+      style={{ contain: 'strict' }}
+    >
       <div
         style={{ height: totalSize, position: 'relative', width: '100%' }}
         className="relative"

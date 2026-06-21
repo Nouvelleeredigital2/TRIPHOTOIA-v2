@@ -36,7 +36,11 @@ interface AutoFlowModeProps {
   photos: AfPhoto[];
   initialPhotoIds?: string[];
   onMutation: (id: string, changes: Partial<AfPhoto>) => void;
-  onDecision?: (id: string, decision: AutoFlowDecision, previous: Partial<AfPhoto>) => void;
+  onDecision?: (
+    id: string,
+    decision: AutoFlowDecision,
+    previous: Partial<AfPhoto>
+  ) => void;
   onRating?: (id: string, rating: number, previous: Partial<AfPhoto>) => void;
   onExportPicks?: () => void;
   onClose: () => void;
@@ -53,7 +57,9 @@ export const AutoFlowMode: React.FC<AutoFlowModeProps> = ({
 }) => {
   const [screen, setScreen] = useState<Screen>('dashboard');
   const [swipeQueue, setSwipeQueue] = useState<AfPhoto[]>([]);
-  const [decisionHistory, setDecisionHistory] = useState<DecisionHistoryEntry[]>([]);
+  const [decisionHistory, setDecisionHistory] = useState<
+    DecisionHistoryEntry[]
+  >([]);
 
   // A-38 : revalider les ids reçus (certaines photos ont pu être supprimées depuis le
   // filtrage) + A-37 : informer une fois si les décisions ne sont pas synchronisées au cloud.
@@ -66,15 +72,23 @@ export const AutoFlowMode: React.FC<AutoFlowModeProps> = ({
       const openable = initialPhotoIds.filter((id) => available.has(id)).length;
       const missing = initialPhotoIds.length - openable;
       if (missing > 0) {
-        toast(`AutoFlow ouvert sur ${openable} photo(s) — ${missing} non disponible(s).`, { icon: 'ℹ️' });
+        toast(
+          `AutoFlow ouvert sur ${openable} photo(s) — ${missing} non disponible(s).`,
+          { icon: 'ℹ️' }
+        );
       }
     }
     if (!useCloudProjectStore.getState().activeProject) {
-      toast('Décisions enregistrées en local (aucun projet cloud actif).', { icon: '💾', id: 'autoflow-local' });
+      toast('Décisions enregistrées en local (aucun projet cloud actif).', {
+        icon: '💾',
+        id: 'autoflow-local',
+      });
     }
   }, [initialPhotoIds, photos]);
   /** Local overrides — merged on top of incoming photos */
-  const [overrides, setOverrides] = useState<Map<string, Partial<AfPhoto>>>(new Map());
+  const [overrides, setOverrides] = useState<Map<string, Partial<AfPhoto>>>(
+    new Map()
+  );
 
   const applyOverride = (id: string, changes: Partial<AfPhoto>) => {
     setOverrides((prev) => {
@@ -86,12 +100,14 @@ export const AutoFlowMode: React.FC<AutoFlowModeProps> = ({
   };
 
   /** Merged view: incoming photos + local overrides */
-  const mergedPhotos = useMemo<AfPhoto[]>(() =>
-    photos.map((p) => {
-      const ov = overrides.get(p.id);
-      return ov ? { ...p, ...ov } : p;
-    }),
-  [photos, overrides]);
+  const mergedPhotos = useMemo<AfPhoto[]>(
+    () =>
+      photos.map((p) => {
+        const ov = overrides.get(p.id);
+        return ov ? { ...p, ...ov } : p;
+      }),
+    [photos, overrides]
+  );
 
   const sessionPhotos = useMemo(() => {
     if (!initialPhotoIds || initialPhotoIds.length === 0) {
@@ -122,7 +138,9 @@ export const AutoFlowMode: React.FC<AutoFlowModeProps> = ({
     rating: photo.rating,
   });
 
-  const inferDecisionFromState = (state: Partial<AfPhoto>): AutoFlowDecision | null => {
+  const inferDecisionFromState = (
+    state: Partial<AfPhoto>
+  ): AutoFlowDecision | null => {
     if (state.isRejected === true || state.cls === 'reject') return 'reject';
     if (state.isFavorite === true) return 'favorite';
     if (state.isPick === true || state.cls === 'keep') return 'pick';
@@ -137,22 +155,40 @@ export const AutoFlowMode: React.FC<AutoFlowModeProps> = ({
       action === 'reject'
         ? { isRejected: true, isPick: false, isFavorite: false, cls: 'reject' }
         : action === 'review'
-          ? { isRejected: false, isPick: false, isFavorite: false, cls: 'review' }
+          ? {
+              isRejected: false,
+              isPick: false,
+              isFavorite: false,
+              cls: 'review',
+            }
           : action === 'favorite'
-            ? { rating: 5, isPick: true, isRejected: false, isFavorite: true, cls: 'keep' }
-            : { isPick: true, isRejected: false, isFavorite: false, cls: 'keep' };
+            ? {
+                rating: 5,
+                isPick: true,
+                isRejected: false,
+                isFavorite: true,
+                cls: 'keep',
+              }
+            : {
+                isPick: true,
+                isRejected: false,
+                isFavorite: false,
+                cls: 'keep',
+              };
     if (previousPhoto) {
       const current = snapshotDecisionState({ ...previousPhoto, ...changes });
-      setDecisionHistory((prev) => [
-        {
-          id,
-          name: previousPhoto.name,
-          action,
-          previous,
-          current,
-        },
-        ...prev,
-      ].slice(0, 5));
+      setDecisionHistory((prev) =>
+        [
+          {
+            id,
+            name: previousPhoto.name,
+            action,
+            previous,
+            current,
+          },
+          ...prev,
+        ].slice(0, 5)
+      );
     }
     applyOverride(id, changes);
     onDecision?.(id, action, previous);
@@ -165,16 +201,23 @@ export const AutoFlowMode: React.FC<AutoFlowModeProps> = ({
     onRating?.(id, rating, previous);
   };
 
-  const inferDecisionFromChanges = (changes: Partial<AfPhoto>): AutoFlowDecision | null => {
-    if (changes.isRejected === true || changes.cls === 'reject') return 'reject';
+  const inferDecisionFromChanges = (
+    changes: Partial<AfPhoto>
+  ): AutoFlowDecision | null => {
+    if (changes.isRejected === true || changes.cls === 'reject')
+      return 'reject';
     if (changes.isFavorite === true) return 'favorite';
     if (changes.isPick === true || changes.cls === 'keep') return 'pick';
-    if (changes.isPick === false && changes.isRejected === false) return 'review';
+    if (changes.isPick === false && changes.isRejected === false)
+      return 'review';
     if (changes.cls === 'review') return 'review';
     return null;
   };
 
-  const handleDirectDecisionMutation = (id: string, changes: Partial<AfPhoto>) => {
+  const handleDirectDecisionMutation = (
+    id: string,
+    changes: Partial<AfPhoto>
+  ) => {
     const previousPhoto = mergedPhotos.find((p) => p.id === id);
     const previous = previousPhoto ? snapshotDecisionState(previousPhoto) : {};
     applyOverride(id, changes);
@@ -199,7 +242,11 @@ export const AutoFlowMode: React.FC<AutoFlowModeProps> = ({
       typeof lastDecision.previous.rating === 'number' &&
       lastDecision.previous.rating !== lastDecision.current.rating
     ) {
-      onRating?.(lastDecision.id, lastDecision.previous.rating, lastDecision.current);
+      onRating?.(
+        lastDecision.id,
+        lastDecision.previous.rating,
+        lastDecision.current
+      );
     }
     return true;
   };
@@ -247,7 +294,7 @@ export const AutoFlowMode: React.FC<AutoFlowModeProps> = ({
       onStartSwipe={startSwipe}
       onGrid={(cls) => {
         const titles: Record<AfClass, string> = {
-          keep:   'Picks automatiques',
+          keep: 'Picks automatiques',
           review: 'A revoir',
           reject: 'Rejets IA',
         };

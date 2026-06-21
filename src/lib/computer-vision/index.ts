@@ -1,11 +1,29 @@
 import { DuplicateDetector } from './duplicate-detection';
-import type { ImageHash, DuplicateGroup, DuplicateDetectionConfig } from './duplicate-detection';
+import type {
+  ImageHash,
+  DuplicateGroup,
+  DuplicateDetectionConfig,
+} from './duplicate-detection';
 import { BlurDetector } from './blur-detection';
-import type { BlurAnalysis, BlurDetectionConfig, CalibrationData } from './blur-detection';
+import type {
+  BlurAnalysis,
+  BlurDetectionConfig,
+  CalibrationData,
+} from './blur-detection';
 import { AutoRetoucher } from './auto-retouch';
-import type { RetouchOptions, RetouchAnalysis, RetouchResult, RetouchConfig } from './auto-retouch';
+import type {
+  RetouchOptions,
+  RetouchAnalysis,
+  RetouchResult,
+  RetouchConfig,
+} from './auto-retouch';
 import { PhotoScorer } from './photo-scoring';
-import type { PhotoScore, ScoringWeights, ScoringConfig, PhotoRanking } from './photo-scoring';
+import type {
+  PhotoScore,
+  ScoringWeights,
+  ScoringConfig,
+  PhotoRanking,
+} from './photo-scoring';
 
 export { DuplicateDetector, BlurDetector, AutoRetoucher, PhotoScorer };
 export type {
@@ -56,7 +74,7 @@ export class ComputerVisionEngine {
   }
 
   /**
-   * Analyse complète d'une photo
+   * Analyse complï¿½te d'une photo
    */
   async analyzePhoto(
     photoId: string,
@@ -68,25 +86,27 @@ export class ComputerVisionEngine {
     const startTime = performance.now();
 
     try {
-      // Analyses parallèles pour optimiser les performances
-      const [
-        duplicateGroups,
-        blurAnalysis,
-        retouchAnalysis,
-        photoScore
-      ] = await Promise.all([
-        this.duplicateDetector.findDuplicates(photoId),
-        this.blurDetector.analyzeBlur(imageData, width, height),
-        this.autoRetoucher.analyzeImage(imageData, width, height),
-        this.photoScorer.scorePhoto(photoId, imageData, width, height, metadata)
-      ]);
+      // Analyses parallï¿½les pour optimiser les performances
+      const [duplicateGroups, blurAnalysis, retouchAnalysis, photoScore] =
+        await Promise.all([
+          this.duplicateDetector.findDuplicates(photoId),
+          this.blurDetector.analyzeBlur(imageData, width, height),
+          this.autoRetoucher.analyzeImage(imageData, width, height),
+          this.photoScorer.scorePhoto(
+            photoId,
+            imageData,
+            width,
+            height,
+            metadata
+          ),
+        ]);
 
-      // Générer les recommandations
+      // Gï¿½nï¿½rer les recommandations
       const recommendations = this.generateRecommendations({
         duplicateGroups,
         blurAnalysis,
         retouchAnalysis,
-        photoScore
+        photoScore,
       });
 
       const processingTime = performance.now() - startTime;
@@ -98,16 +118,18 @@ export class ComputerVisionEngine {
         retouchAnalysis,
         photoScore,
         recommendations,
-        processingTime
+        processingTime,
       };
     } catch (error) {
       console.error("Erreur lors de l'analyse de la photo:", error);
-      throw new Error(`Échec de l'analyse de la photo ${photoId}: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      throw new Error(
+        `ï¿½chec de l'analyse de la photo ${photoId}: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
+      );
     }
   }
 
   /**
-   * Analyse un groupe de photos et détecte les doublons
+   * Analyse un groupe de photos et dï¿½tecte les doublons
    */
   async analyzePhotoGroup(
     photos: Array<{
@@ -127,13 +149,21 @@ export class ComputerVisionEngine {
     try {
       // Analyser chaque photo individuellement
       const analyses = await Promise.all(
-        photos.map(photo => this.analyzePhoto(photo.id, photo.imageData, photo.width, photo.height, photo.metadata))
+        photos.map((photo) =>
+          this.analyzePhoto(
+            photo.id,
+            photo.imageData,
+            photo.width,
+            photo.height,
+            photo.metadata
+          )
+        )
       );
 
-      // Détecter les doublons globaux
+      // Dï¿½tecter les doublons globaux
       const allDuplicateGroups = new Map<string, DuplicateGroup>();
-      analyses.forEach(analysis => {
-        analysis.duplicateGroups.forEach(group => {
+      analyses.forEach((analysis) => {
+        analysis.duplicateGroups.forEach((group) => {
           allDuplicateGroups.set(group.id, group);
         });
       });
@@ -142,55 +172,72 @@ export class ComputerVisionEngine {
       const rankings = await this.photoScorer.rankPhotos(photos);
 
       const processingTime = performance.now() - startTime;
-      console.log(`Analyse de ${photos.length} photos terminée en ${processingTime.toFixed(2)}ms`);
+      console.log(
+        `Analyse de ${photos.length} photos terminï¿½e en ${processingTime.toFixed(2)}ms`
+      );
 
       return {
         analyses,
         duplicateGroups: Array.from(allDuplicateGroups.values()),
-        rankings
+        rankings,
       };
     } catch (error) {
-      console.error('Erreur lors de l\'analyse du groupe de photos:', error);
-      throw new Error(`Échec de l'analyse du groupe: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      console.error("Erreur lors de l'analyse du groupe de photos:", error);
+      throw new Error(
+        `ï¿½chec de l'analyse du groupe: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
+      );
     }
   }
 
   /**
-   * Calibre les détecteurs avec des données d'entraînement
+   * Calibre les dï¿½tecteurs avec des donnï¿½es d'entraï¿½nement
    */
   async calibrate(trainingData: {
-    sharpImages: Array<{ imageData: Uint8Array; width: number; height: number }>;
-    blurryImages: Array<{ imageData: Uint8Array; width: number; height: number }>;
+    sharpImages: Array<{
+      imageData: Uint8Array;
+      width: number;
+      height: number;
+    }>;
+    blurryImages: Array<{
+      imageData: Uint8Array;
+      width: number;
+      height: number;
+    }>;
     duplicateGroups: Array<{
       images: Array<{ imageData: Uint8Array }>;
     }>;
   }): Promise<void> {
     try {
-      // Calibrer le détecteur de flou
+      // Calibrer le dï¿½tecteur de flou
       const blurCalibrationData = [
-        ...trainingData.sharpImages.map(img => ({ ...img, isSharp: true })),
-        ...trainingData.blurryImages.map(img => ({ ...img, isSharp: false }))
+        ...trainingData.sharpImages.map((img) => ({ ...img, isSharp: true })),
+        ...trainingData.blurryImages.map((img) => ({ ...img, isSharp: false })),
       ];
       await this.blurDetector.calibrate(blurCalibrationData);
 
-      // Calibrer le détecteur de doublons
+      // Calibrer le dï¿½tecteur de doublons
       for (const group of trainingData.duplicateGroups) {
         for (const image of group.images) {
           // Simuler l'ajout d'images pour la calibration
           const mockPhotoId = `calibration_${Math.random().toString(36).substring(2, 11)}`;
-          await this.duplicateDetector.analyzeImage(mockPhotoId, image.imageData);
+          await this.duplicateDetector.analyzeImage(
+            mockPhotoId,
+            image.imageData
+          );
         }
       }
 
-      console.log('Calibration des détecteurs terminée avec succès');
+      console.log('Calibration des dï¿½tecteurs terminï¿½e avec succï¿½s');
     } catch (error) {
       console.error('Erreur lors de la calibration:', error);
-      throw new Error(`Échec de la calibration: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      throw new Error(
+        `ï¿½chec de la calibration: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
+      );
     }
   }
 
   /**
-   * Génère les recommandations basées sur l'analyse
+   * Gï¿½nï¿½re les recommandations basï¿½es sur l'analyse
    */
   private generateRecommendations(analysis: {
     duplicateGroups: DuplicateGroup[];
@@ -200,55 +247,61 @@ export class ComputerVisionEngine {
   }): string[] {
     const recommendations: string[] = [];
 
-    // Recommandations basées sur les doublons
+    // Recommandations basï¿½es sur les doublons
     if (analysis.duplicateGroups.length > 0) {
-      recommendations.push(`${analysis.duplicateGroups.length} groupe(s) de doublons détecté(s)`);
+      recommendations.push(
+        `${analysis.duplicateGroups.length} groupe(s) de doublons dï¿½tectï¿½(s)`
+      );
     }
 
-    // Recommandations basées sur le flou
+    // Recommandations basï¿½es sur le flou
     if (analysis.blurAnalysis.isBlurry) {
-      recommendations.push("Image floue détectée - considérer la retouche ou la suppression");
+      recommendations.push(
+        'Image floue dï¿½tectï¿½e - considï¿½rer la retouche ou la suppression'
+      );
     }
 
-    // Recommandations basées sur la retouche
+    // Recommandations basï¿½es sur la retouche
     if (analysis.retouchAnalysis.confidence > 0.7) {
       if (analysis.retouchAnalysis.needsBrightness) {
-        recommendations.push('Ajustement de luminosité recommandé');
+        recommendations.push('Ajustement de luminositï¿½ recommandï¿½');
       }
       if (analysis.retouchAnalysis.needsContrast) {
-        recommendations.push('Ajustement de contraste recommandé');
+        recommendations.push('Ajustement de contraste recommandï¿½');
       }
       if (analysis.retouchAnalysis.needsSaturation) {
-        recommendations.push('Ajustement de saturation recommandé');
+        recommendations.push('Ajustement de saturation recommandï¿½');
       }
       if (analysis.retouchAnalysis.needsSharpness) {
-        recommendations.push('Amélioration de la netteté recommandée');
+        recommendations.push('Amï¿½lioration de la nettetï¿½ recommandï¿½e');
       }
     }
 
-    // Recommandations basées sur le score
+    // Recommandations basï¿½es sur le score
     if (analysis.photoScore.overall > 80) {
-      recommendations.push('Photo de très bonne qualité');
+      recommendations.push('Photo de trï¿½s bonne qualitï¿½');
     } else if (analysis.photoScore.overall < 40) {
-      recommendations.push('Photo de qualité médiocre - considérer la suppression');
+      recommendations.push(
+        'Photo de qualitï¿½ mï¿½diocre - considï¿½rer la suppression'
+      );
     }
 
-    // Recommandations spécifiques
+    // Recommandations spï¿½cifiques
     if (analysis.photoScore.details.faceDetection > 0.8) {
-      recommendations.push('Visage bien détecté');
+      recommendations.push('Visage bien dï¿½tectï¿½');
     }
     if (analysis.photoScore.details.eyeOpenness > 0.8) {
-      recommendations.push('Yeux ouverts détectés');
+      recommendations.push('Yeux ouverts dï¿½tectï¿½s');
     }
     if (analysis.photoScore.details.smileDetection > 0.7) {
-      recommendations.push('Sourire détecté');
+      recommendations.push('Sourire dï¿½tectï¿½');
     }
 
     return recommendations;
   }
 
   /**
-   * Met à jour la configuration
+   * Met ï¿½ jour la configuration
    */
   updateConfig(newConfig: Partial<ComputerVisionConfig>): void {
     if (newConfig.duplicateDetection) {
@@ -276,7 +329,7 @@ export class ComputerVisionEngine {
     return {
       duplicateDetection: this.duplicateDetector.getStats(),
       blurDetection: this.blurDetector.getCalibrationStats(),
-      photoScoring: this.photoScorer.getStats()
+      photoScoring: this.photoScorer.getStats(),
     };
   }
 
@@ -284,7 +337,7 @@ export class ComputerVisionEngine {
    * Nettoie les ressources
    */
   cleanup(): void {
-    // Nettoyer les ressources si nécessaire
+    // Nettoyer les ressources si nï¿½cessaire
     this.blurDetector.resetCalibration();
   }
 }

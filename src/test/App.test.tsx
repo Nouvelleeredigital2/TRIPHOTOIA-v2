@@ -15,9 +15,13 @@ describe('App', () => {
   it('renders tab navigation', async () => {
     await renderApp();
     // AutoFlow v2 stepper buttons — aria-labels for accessibility
-    expect(screen.getByRole('button', { name: /ingestion/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /ingestion/i })
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /triage/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /exportation/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /exportation/i })
+    ).toBeInTheDocument();
   });
 
   it('renders the status bar with photo counts', async () => {
@@ -30,7 +34,9 @@ describe('App', () => {
   it('starts on the ingestion tab', async () => {
     await renderApp();
     // IngestionTab is lazy-loaded — wait for Suspense to resolve
-    await waitFor(() => expect(screen.getByText('Ingestion Tab')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('Ingestion Tab')).toBeInTheDocument()
+    );
   });
   it('opens AutoFlow with the filtered photo ids provided by the triage grid', async () => {
     mockStore.activeTab = 'triage';
@@ -51,7 +57,9 @@ describe('App', () => {
 
     await renderApp();
 
-    fireEvent.click(await screen.findByRole('button', { name: /open filtered autoflow/i }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: /open filtered autoflow/i })
+    );
     fireEvent.click(await screen.findByRole('button', { name: /mode swipe/i }));
 
     expect(screen.getByText('VISIBLE.JPG')).toBeInTheDocument();
@@ -73,9 +81,13 @@ describe('App', () => {
     await renderApp();
 
     fireEvent.click(await screen.findByTitle('Ouvrir AutoFlow v2'));
-    fireEvent.click(await screen.findByRole('button', { name: /^exporter les picks$/i }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: /^exporter les picks$/i })
+    );
 
-    expect(mockStore.setPendingExportFilterMode).toHaveBeenCalledWith('picks-only');
+    expect(mockStore.setPendingExportFilterMode).toHaveBeenCalledWith(
+      'picks-only'
+    );
     expect(mockStore.setActiveTab).toHaveBeenCalledWith('export');
   });
 });

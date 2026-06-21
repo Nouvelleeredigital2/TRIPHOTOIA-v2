@@ -72,6 +72,7 @@ export const AutoFlowDupCompare: React.FC<AutoFlowDupCompareProps> = ({
     return () => window.removeEventListener('keydown', h);
     // L'écouteur est réattaché quand le groupe courant change (gIdx/groups) ;
     // handleKeep/advance/onBack opèrent sur ce groupe — déps volontaires.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gIdx, groups]);
 
   if (groups.length === 0) {

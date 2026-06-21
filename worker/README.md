@@ -30,12 +30,12 @@ message instead of a cryptic runtime error.
 
 Required environment (worker/VPS only — never expose the service-role key to the browser):
 
-| Variable | Purpose |
-| --- | --- |
-| `SUPABASE_URL` | Supabase project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | Service-role key (trusted server only) |
-| `WORKER_ID` | Optional worker identity for job locking |
-| `WORKER_POLL_INTERVAL_MS` | Poll interval when idle (default 5000) |
+| Variable                    | Purpose                                  |
+| --------------------------- | ---------------------------------------- |
+| `SUPABASE_URL`              | Supabase project URL                     |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service-role key (trusted server only)   |
+| `WORKER_ID`                 | Optional worker identity for job locking |
+| `WORKER_POLL_INTERVAL_MS`   | Poll interval when idle (default 5000)   |
 
 See `.env.example` for the full list, including the embedding/face options below.
 

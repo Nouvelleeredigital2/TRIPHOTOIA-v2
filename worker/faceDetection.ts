@@ -10,7 +10,6 @@ import { deterministicEmbedding } from './embedding';
 
 export const FACE_EMBEDDING_DIMENSIONS = 128;
 export const DETERMINISTIC_FACE_MODEL = 'deterministic-face-v1';
-export const DISABLED_FACE_MODEL = 'disabled';
 
 export interface FaceBoundingBox {
   x: number;
@@ -38,7 +37,7 @@ export interface FaceDetector {
 type FaceEnv = Record<string, string | undefined>;
 
 export const createDeterministicFaceDetector = (
-  dimensions = FACE_EMBEDDING_DIMENSIONS,
+  dimensions = FACE_EMBEDDING_DIMENSIONS
 ): FaceDetector => ({
   model: DETERMINISTIC_FACE_MODEL,
   async detect(input) {
@@ -52,7 +51,8 @@ export const createDeterministicFaceDetector = (
 
     for (let i = 0; i < faceCount; i += 1) {
       const embedding = deterministicEmbedding(`face:${seed}:${i}`, dimensions);
-      const confidence = Math.round((0.7 + Math.abs(embedding[0]) * 0.3) * 100) / 100;
+      const confidence =
+        Math.round((0.7 + Math.abs(embedding[0]) * 0.3) * 100) / 100;
       faces.push({
         boundingBox: {
           x: Math.round((0.05 + i * 0.3) * 1000) / 1000,
@@ -69,38 +69,29 @@ export const createDeterministicFaceDetector = (
   },
 });
 
-// Honest "off" provider: face detection is explicitly disabled, so no records
-// are ever produced (privacy/GDPR opt-out). Unlike the deterministic provider it
-// fabricates nothing — it simply yields zero faces for every input.
-export const createDisabledFaceDetector = (): FaceDetector => ({
-  model: DISABLED_FACE_MODEL,
-  async detect() {
-    return [];
-  },
-});
-
 export const createFaceDetector = (env: FaceEnv = {}): FaceDetector => {
   const provider = (env.FACE_PROVIDER ?? 'deterministic').trim().toLowerCase();
-  const dimensions = Number(env.FACE_EMBEDDING_DIMENSIONS ?? FACE_EMBEDDING_DIMENSIONS);
-  const safeDimensions = Number.isFinite(dimensions) && dimensions > 0
-    ? dimensions
-    : FACE_EMBEDDING_DIMENSIONS;
+  const dimensions = Number(
+    env.FACE_EMBEDDING_DIMENSIONS ?? FACE_EMBEDDING_DIMENSIONS
+  );
+  const safeDimensions =
+    Number.isFinite(dimensions) && dimensions > 0
+      ? dimensions
+      : FACE_EMBEDDING_DIMENSIONS;
 
   switch (provider) {
     case 'deterministic':
       return createDeterministicFaceDetector(safeDimensions);
-    case 'disabled':
-      return createDisabledFaceDetector();
     case 'onnx':
       // Real detection+recognition (e.g. SCRFD detection + ArcFace embeddings via
       // onnxruntime-node) is wired here on the VPS. Left intentionally unimplemented
       // rather than faked, since it cannot be validated in CI.
       throw new Error(
-        'FACE_PROVIDER "onnx" is not wired yet. Implement SCRFD/ArcFace via onnxruntime-node in worker/faceDetection.ts on the VPS.',
+        'FACE_PROVIDER "onnx" is not wired yet. Implement SCRFD/ArcFace via onnxruntime-node in worker/faceDetection.ts on the VPS.'
       );
     default:
       throw new Error(
-        `Unknown FACE_PROVIDER "${provider}". Supported: deterministic, disabled (onnx is a documented extension point).`,
+        `Unknown FACE_PROVIDER "${provider}". Supported: deterministic (onnx is a documented extension point).`
       );
   }
 };

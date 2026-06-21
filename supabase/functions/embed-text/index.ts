@@ -19,12 +19,17 @@
 // Le front est agnostique : createEdgeTextEmbedder() n'a qu'à pointer vers
 // l'endpoint qui renvoie { embedding: number[512] }. En attendant, l'UI retombe
 // proprement sur le fallback mot-clé (source='fallback').
-import { env, AutoTokenizer, CLIPTextModelWithProjection } from 'https://esm.sh/@huggingface/transformers@3.3.3';
+import {
+  env,
+  AutoTokenizer,
+  CLIPTextModelWithProjection,
+} from 'https://esm.sh/@huggingface/transformers@3.3.3';
 
 env.allowLocalModels = false;
 // Tentative de chargement des binaires WASM depuis un CDN (cf. limite ci-dessus).
 try {
-  env.backends.onnx.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/';
+  env.backends.onnx.wasm.wasmPaths =
+    'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/';
   env.backends.onnx.wasm.numThreads = 1;
 } catch {
   /* config best-effort */
@@ -34,13 +39,18 @@ const MODEL = 'Xenova/clip-vit-base-patch32';
 
 let tokenizerPromise: Promise<unknown> | null = null;
 let modelPromise: Promise<unknown> | null = null;
-const getTokenizer = () => (tokenizerPromise ??= AutoTokenizer.from_pretrained(MODEL));
+const getTokenizer = () =>
+  (tokenizerPromise ??= AutoTokenizer.from_pretrained(MODEL));
 const getModel = () =>
-  (modelPromise ??= CLIPTextModelWithProjection.from_pretrained(MODEL, { device: 'wasm', dtype: 'fp32' }));
+  (modelPromise ??= CLIPTextModelWithProjection.from_pretrained(MODEL, {
+    device: 'wasm',
+    dtype: 'fp32',
+  }));
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type',
 };
 
 const json = (body: unknown, status = 200) =>
@@ -63,10 +73,15 @@ Deno.serve(async (req: Request) => {
     const model = await getModel();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const inputs = (tokenizer as any)([query.trim()], { padding: true, truncation: true });
+    const inputs = (tokenizer as any)([query.trim()], {
+      padding: true,
+      truncation: true,
+    });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { text_embeds } = await (model as any)(inputs);
-    const embedding = Array.from(text_embeds.normalize(2, -1).data as Iterable<number>);
+    const embedding = Array.from(
+      text_embeds.normalize(2, -1).data as Iterable<number>
+    );
 
     return json({ embedding, model: MODEL, dimensions: embedding.length });
   } catch (error) {

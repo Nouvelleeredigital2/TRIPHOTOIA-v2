@@ -18,7 +18,9 @@ export interface AnonymousFaceGroup {
   size: number;
 }
 
-function requireSupabase(client: SupabaseClient | null = supabase): SupabaseClient {
+function requireSupabase(
+  client: SupabaseClient | null = supabase
+): SupabaseClient {
   if (!client) {
     throw new Error('Supabase non configuré');
   }
@@ -43,7 +45,7 @@ const cosineSimilarity = (a: number[], b: number[]): number => {
 // Produces anonymous groups for display; it never names anyone.
 export function clusterFacesIntoGroups(
   faces: FaceRecord[],
-  threshold = DEFAULT_FACE_GROUP_THRESHOLD,
+  threshold = DEFAULT_FACE_GROUP_THRESHOLD
 ): AnonymousFaceGroup[] {
   const anonymous = faces.filter((face) => face.personId == null);
   const used = new Set<string>();
@@ -194,7 +196,9 @@ export async function deleteAllProjectFaces({
     .eq('project_id', projectId);
   if (photosError) throw photosError;
 
-  const photoIds = ((photos ?? []) as Array<{ id: string }>).map((row) => row.id);
+  const photoIds = ((photos ?? []) as Array<{ id: string }>).map(
+    (row) => row.id
+  );
   if (photoIds.length > 0) {
     const { error: facesError } = await db
       .from('photo_faces')
@@ -238,5 +242,9 @@ export async function fetchPhotosForConfirmedPerson({
     .eq('person_id', personId);
   if (error) throw error;
 
-  return [...new Set(((faces ?? []) as Array<{ photo_id: string }>).map((row) => row.photo_id))];
+  return [
+    ...new Set(
+      ((faces ?? []) as Array<{ photo_id: string }>).map((row) => row.photo_id)
+    ),
+  ];
 }

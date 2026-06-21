@@ -65,7 +65,12 @@ export function FilterBar({
     return () => document.removeEventListener('mousedown', handler);
   }, [starsOpen]);
 
-  const btn = (id: FilterType, label: React.ReactNode, count?: number, extra?: string) => (
+  const btn = (
+    id: FilterType,
+    label: React.ReactNode,
+    count?: number,
+    extra?: string
+  ) => (
     <Button
       key={String(id)}
       variant={activeFilter === id ? 'default' : 'outline'}
@@ -77,7 +82,7 @@ export function FilterBar({
       {count !== undefined && count > 0 && (
         <Badge
           variant={activeFilter === id ? 'secondary' : 'outline'}
-          className="text-xs min-w-[1.25rem] h-4 px-1"
+          className="h-4 min-w-[1.25rem] px-1 text-xs"
         >
           {count}
         </Badge>
@@ -86,22 +91,22 @@ export function FilterBar({
   );
 
   return (
-    <div className="flex flex-col gap-2 p-3 bg-muted/40 rounded-xl border border-border/40">
+    <div className="flex flex-col gap-2 rounded-xl border border-border/40 bg-muted/40 p-3">
       {/* Ligne 1 : Recherche */}
       <div className="relative">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Nom, tag, appareil, objectif, ISO, date…"
-          className="pl-8 pr-8 h-8 text-sm"
+          className="h-8 pl-8 pr-8 text-sm"
         />
         {searchTerm && (
           <button
             className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             onClick={() => onSearchChange('')}
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="h-3.5 w-3.5" />
           </button>
         )}
       </div>
@@ -157,27 +162,33 @@ export function FilterBar({
           >
             ⭐ Notes
             {activeFilter.startsWith('stars:') && (
-              <Badge variant="secondary" className="text-xs h-4 px-1">
+              <Badge variant="secondary" className="h-4 px-1 text-xs">
                 ≥{activeFilter.slice(6)}★
               </Badge>
             )}
           </Button>
           {starsOpen && (
-            <div className="absolute top-full mt-1 left-0 z-30 bg-card border border-border rounded-xl shadow-xl p-2 flex gap-1">
+            <div className="absolute left-0 top-full z-30 mt-1 flex gap-1 rounded-xl border border-border bg-card p-2 shadow-xl">
               {STAR_FILTERS.map((n) => (
                 <button
                   key={n}
-                  onClick={() => { onFilterChange(`stars:${n}`); setStarsOpen(false); }}
-                  className={`flex flex-col items-center px-2 py-1.5 rounded-lg text-xs hover:bg-muted transition-colors ${activeFilter === `stars:${n}` ? 'bg-primary text-primary-foreground' : ''}`}
+                  onClick={() => {
+                    onFilterChange(`stars:${n}`);
+                    setStarsOpen(false);
+                  }}
+                  className={`flex flex-col items-center rounded-lg px-2 py-1.5 text-xs transition-colors hover:bg-muted ${activeFilter === `stars:${n}` ? 'bg-primary text-primary-foreground' : ''}`}
                 >
                   <span className="font-semibold">≥{n}★</span>
                 </button>
               ))}
               <button
-                onClick={() => { onFilterChange('all'); setStarsOpen(false); }}
-                className="flex flex-col items-center px-2 py-1.5 rounded-lg text-xs hover:bg-muted transition-colors text-muted-foreground"
+                onClick={() => {
+                  onFilterChange('all');
+                  setStarsOpen(false);
+                }}
+                className="flex flex-col items-center rounded-lg px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted"
               >
-                <X className="w-3 h-3" />
+                <X className="h-3 w-3" />
               </button>
             </div>
           )}
@@ -186,13 +197,16 @@ export function FilterBar({
         {btn('duplicates', 'Doublons', duplicateGroups)}
         {btn('blurry', 'Floues', blurryCount)}
         {btn('rejected', '❌ Rejetées', rejectedCount)}
-        {errorsCount > 0 && btn('errors', '⚠️ Erreurs', errorsCount, 'text-destructive')}
+        {errorsCount > 0 &&
+          btn('errors', '⚠️ Erreurs', errorsCount, 'text-destructive')}
         {selectedCount > 0 && btn('selected', 'Sélection', selectedCount)}
       </div>
 
       {/* Ligne 3 : Labels couleur */}
       <div className="flex items-center gap-1.5">
-        <span className="text-xs text-muted-foreground shrink-0">Couleur :</span>
+        <span className="shrink-0 text-xs text-muted-foreground">
+          Couleur :
+        </span>
         {COLOR_LABEL_KEYS.map((c) => {
           const meta = COLOR_LABEL_META[c];
           const isActive = activeFilter === `color:${c}`;
@@ -202,17 +216,19 @@ export function FilterBar({
               key={c}
               onClick={() => onFilterChange(isActive ? 'all' : `color:${c}`)}
               title={`${meta.label}${count > 0 ? ` (${count})` : ''}`}
-              className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-all ${
+              className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-all ${
                 isActive
                   ? 'border-foreground bg-foreground/10 font-semibold'
                   : 'border-transparent hover:border-border'
               } ${count === 0 ? 'opacity-40' : ''}`}
             >
               <span
-                className="w-2.5 h-2.5 rounded-full shrink-0"
+                className="h-2.5 w-2.5 shrink-0 rounded-full"
                 style={{ backgroundColor: meta.dot }}
               />
-              {count > 0 && <span className="text-muted-foreground">{count}</span>}
+              {count > 0 && (
+                <span className="text-muted-foreground">{count}</span>
+              )}
             </button>
           );
         })}

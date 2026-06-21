@@ -5,9 +5,9 @@ import { CloudProjectsDashboard } from '../../../features/cloud-projects/CloudPr
 import { useCloudProjectStore } from '../../../store/cloudProjectStore';
 
 vi.mock('../../../features/cloud-projects/cloudProjects', async () => {
-  const actual = await vi.importActual<typeof import('../../../features/cloud-projects/cloudProjects')>(
-    '../../../features/cloud-projects/cloudProjects'
-  );
+  const actual = await vi.importActual<
+    typeof import('../../../features/cloud-projects/cloudProjects')
+  >('../../../features/cloud-projects/cloudProjects');
   return {
     ...actual,
     fetchCloudProjects: vi.fn().mockResolvedValue([
@@ -49,7 +49,8 @@ vi.mock('../../../features/cloud-projects/cloudProjects', async () => {
         id: 'photo-1',
         projectId: 'project-1',
         originalFilename: 'Laura 01.jpg',
-        storagePath: 'organizations/org-1/projects/project-1/originals/photo-1-Laura-01.jpg',
+        storagePath:
+          'organizations/org-1/projects/project-1/originals/photo-1-Laura-01.jpg',
         thumbnailPath: null,
         pickStatus: 'unreviewed',
         analysisStatus: 'pending',

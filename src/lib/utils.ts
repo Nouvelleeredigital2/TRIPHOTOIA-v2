@@ -34,24 +34,27 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
 export async function mapWithConcurrency<T, R>(
   items: readonly T[],
   limit: number,
-  fn: (item: T, index: number) => Promise<R>,
+  fn: (item: T, index: number) => Promise<R>
 ): Promise<R[]> {
   const results = new Array<R>(items.length);
   let cursor = 0;
-  const workers = Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, async () => {
-    while (cursor < items.length) {
-      const index = cursor;
-      cursor += 1;
-      results[index] = await fn(items[index], index);
+  const workers = Array.from(
+    { length: Math.max(1, Math.min(limit, items.length)) },
+    async () => {
+      while (cursor < items.length) {
+        const index = cursor;
+        cursor += 1;
+        results[index] = await fn(items[index], index);
+      }
     }
-  });
+  );
   await Promise.all(workers);
   return results;
 }
 
 function toHex(buffer: ArrayBuffer): string {
   return Array.from(new Uint8Array(buffer))
-    .map(b => b.toString(16).padStart(2, '0'))
+    .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 }
 
@@ -68,12 +71,20 @@ function toHex(buffer: ArrayBuffer): string {
  * limite le nombre de fichiers traités en parallèle).
  */
 export async function calculateFileHash(file: File): Promise<string> {
+  // P1-A : ne retourne jamais ''. En cas d'échec, on lève une erreur structurée
+  // pour que l'appelant rejette le fichier (un ID vide provoquerait des
+  // collisions d'identité entre photos).
   try {
     const buffer = await file.arrayBuffer();
     const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-    return toHex(hashBuffer);
+    const hex = toHex(hashBuffer);
+    if (!hex) {
+      throw new Error('digest vide');
+    }
+    return hex;
   } catch (error) {
-    console.error('Error calculating file hash:', error);
-    return '';
+    throw new Error(
+      `Échec du calcul d'empreinte pour « ${file.name} »: ${error instanceof Error ? error.message : 'erreur inconnue'}`
+    );
   }
 }

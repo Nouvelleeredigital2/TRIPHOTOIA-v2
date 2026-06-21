@@ -4,6 +4,10 @@
  * Évite de bloquer le thread principal pendant le traitement
  */
 
+// P0-C : dimension d'analyse maximale. On ne crée jamais un canvas à la
+// résolution native d'une photo HD : on redimensionne en conservant le ratio.
+const MAX_ANALYSIS_DIM = 1600;
+
 // Version simplifiée de ImageProcessor pour les Web Workers
 class WorkerImageProcessor {
   private canvas: OffscreenCanvas;
@@ -15,58 +19,60 @@ class WorkerImageProcessor {
   }
 
   async analyzeImage(file: File): Promise<PhotoAnalysis> {
+    // P0-C : createImageBitmap(file) directement (pas de copie
+    // ArrayBuffer -> Blob -> ImageBitmap) et fermeture systématique du bitmap.
+    let bitmap: ImageBitmap | undefined;
     try {
-      const image = await this.loadImage(file);
-      const imageData = this.getImageData(image);
+      bitmap = await createImageBitmap(file);
+
+      if (!bitmap.width || !bitmap.height) {
+        throw new Error("Dimensions d'image invalides");
+      }
+
+      const imageData = this.getImageData(bitmap);
+
+      // P0-C : la métrique de flou n'est calculée qu'une seule fois.
+      const blur = this.analyzeBlur(imageData);
 
       return {
-        isBlurry: this.analyzeBlur(imageData).isBlurry,
-        sharpnessScore: this.analyzeBlur(imageData).sharpnessScore,
+        isBlurry: blur.isBlurry,
+        sharpnessScore: blur.sharpnessScore,
         hasOpenEyes: this.detectEyes(imageData),
-        tags: this.generateTags(imageData),
+        tags: this.generateTags(imageData, bitmap.width, bitmap.height),
         perceptualHash: this.generatePerceptualHash(imageData),
         suggestedRetouch: {
           brightness: 1.0,
           contrast: 1.0,
-          saturation: 1.0
-        }
+          saturation: 1.0,
+        },
       };
     } catch (error) {
       console.error('Erreur dans WorkerImageProcessor:', error);
       throw error;
+    } finally {
+      bitmap?.close();
     }
   }
 
-  private loadImage(file: File): Promise<ImageBitmap> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          const arrayBuffer = e.target!.result as ArrayBuffer;
-          const blob = new Blob([arrayBuffer], { type: file.type });
-          const imageBitmap = await createImageBitmap(blob);
-          resolve(imageBitmap);
-        } catch (error) {
-          console.error('Erreur lors du chargement de l\'image:', error);
-          reject(error);
-        }
-      };
-      reader.onerror = (error) => {
-        console.error('Erreur FileReader:', error);
-        reject(error);
-      };
-      reader.readAsArrayBuffer(file);
-    });
-  }
-
   private getImageData(image: ImageBitmap): ImageData {
-    this.canvas.width = image.width;
-    this.canvas.height = image.height;
-    this.ctx.drawImage(image, 0, 0);
-    return this.ctx.getImageData(0, 0, image.width, image.height);
+    // Redimensionnement borné (ratio conservé) avant getImageData.
+    const scale = Math.min(
+      1,
+      MAX_ANALYSIS_DIM / Math.max(image.width, image.height)
+    );
+    const width = Math.max(1, Math.round(image.width * scale));
+    const height = Math.max(1, Math.round(image.height * scale));
+
+    this.canvas.width = width;
+    this.canvas.height = height;
+    this.ctx.drawImage(image, 0, 0, width, height);
+    return this.ctx.getImageData(0, 0, width, height);
   }
 
-  private analyzeBlur(imageData: ImageData): { isBlurry: boolean; sharpnessScore: number } {
+  private analyzeBlur(imageData: ImageData): {
+    isBlurry: boolean;
+    sharpnessScore: number;
+  } {
     const laplacianVariance = this.calculateLaplacianVariance(imageData);
     const sharpnessScore = Math.min(laplacianVariance / 1000, 1.0);
     const isBlurry = sharpnessScore < 0.3;
@@ -87,7 +93,11 @@ class WorkerImageProcessor {
           for (let kx = 0; kx < 3; kx++) {
             const pixelIndex = ((y + ky - 1) * width + (x + kx - 1)) * 4;
             const gray = this.getGrayValue(data, pixelIndex);
-            const kernel = [[0, -1, 0], [-1, 4, -1], [0, -1, 0]][ky][kx];
+            const kernel = [
+              [0, -1, 0],
+              [-1, 4, -1],
+              [0, -1, 0],
+            ][ky][kx];
             laplacianValue += gray * kernel;
           }
         }
@@ -99,7 +109,7 @@ class WorkerImageProcessor {
     }
 
     const mean = sum / count;
-    const variance = (sumSquared / count) - (mean * mean);
+    const variance = sumSquared / count - mean * mean;
     return variance;
   }
 
@@ -132,12 +142,17 @@ class WorkerImageProcessor {
       }
     }
 
-    return (darkPixels / totalPixels) > 0.1;
+    return darkPixels / totalPixels > 0.1;
   }
 
-  private generateTags(imageData: ImageData): string[] {
-    const { width, height } = imageData;
-    const aspectRatio = width / height;
+  private generateTags(
+    imageData: ImageData,
+    originalWidth: number,
+    originalHeight: number
+  ): string[] {
+    // Le ratio est préservé par le redimensionnement ; les tags de résolution
+    // s'appuient en revanche sur les dimensions natives du fichier.
+    const aspectRatio = imageData.width / imageData.height;
     const tags: string[] = [];
 
     if (aspectRatio > 1.5) {
@@ -148,9 +163,9 @@ class WorkerImageProcessor {
       tags.push('square');
     }
 
-    if (width > 2000 || height > 2000) {
+    if (originalWidth > 2000 || originalHeight > 2000) {
       tags.push('high-resolution');
-    } else if (width < 800 || height < 800) {
+    } else if (originalWidth < 800 || originalHeight < 800) {
       tags.push('low-resolution');
     }
 
@@ -176,7 +191,13 @@ class WorkerImageProcessor {
     return hash;
   }
 
-  private resizeImage(data: Uint8ClampedArray, srcWidth: number, srcHeight: number, dstWidth: number, dstHeight: number): Uint8ClampedArray {
+  private resizeImage(
+    data: Uint8ClampedArray,
+    srcWidth: number,
+    srcHeight: number,
+    dstWidth: number,
+    dstHeight: number
+  ): Uint8ClampedArray {
     const dstData = new Uint8ClampedArray(dstWidth * dstHeight * 4);
     const xRatio = srcWidth / dstWidth;
     const yRatio = srcHeight / dstHeight;
@@ -229,8 +250,8 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
         type: 'ANALYSIS_COMPLETE',
         payload: {
           id: payload.id,
-          result
-        }
+          result,
+        },
       };
 
       self.postMessage(response);
@@ -239,15 +260,11 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
         type: 'ANALYSIS_ERROR',
         payload: {
           id: payload.id,
-          error: error instanceof Error ? error.message : 'Erreur inconnue'
-        }
+          error: error instanceof Error ? error.message : 'Erreur inconnue',
+        },
       };
 
       self.postMessage(response);
     }
   }
 };
-
-
-
-

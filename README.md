@@ -7,6 +7,7 @@ Une application React moderne et professionnelle pour trier et organiser vos pho
 ## 🌟 Fonctionnalités principales
 
 ### ⭐ Système de notation Lightroom
+
 - **Notation 0-5 étoiles** avec raccourcis clavier (touches 0-5)
 - **Flags Pick/Reject** comme Lightroom (touches P/X/U)
 - **Filtres intelligents** : 5 étoiles, Picks, Rejetées, Floues, Doublons
@@ -14,6 +15,7 @@ Une application React moderne et professionnelle pour trier et organiser vos pho
 - **Affichage sur photos** : Étoiles et badges visibles
 
 ### 🤖 Notation automatique IA (NOUVEAU !)
+
 - **Analyse intelligente** : 4 critères (netteté 40%, composition 30%, yeux 15%, retouche 15%)
 - **4 presets** : Strict, Équilibré, Généreux, Qualité pure
 - **Ultra-rapide** : 500 photos notées en < 1 seconde
@@ -21,6 +23,7 @@ Une application React moderne et professionnelle pour trier et organiser vos pho
 - **Gain de temps** : 99.9% plus rapide que notation manuelle
 
 ### 🖼️ Mode plein écran
+
 - **Touche F** pour activer le mode immersif
 - **Navigation fluide** : ←→ entre photos
 - **Notation en direct** : 0-5, P, X fonctionnent en plein écran
@@ -28,18 +31,21 @@ Une application React moderne et professionnelle pour trier et organiser vos pho
 - **Toggle infos** : Touche I pour afficher/masquer détails
 
 ### 🔀 Comparaison A/B
+
 - **Touche C** pour comparer 2 photos côte à côte
 - **Split screen 50/50** avec sélection gagnant
 - **Actions automatiques** : Gagnant → Pick, Perdant → Reject
 - **Idéal pour doublons** : Choisir la meilleure photo rapidement
 
 ### 🔍 Analyse IA avancée
+
 - **Détection de flou** : Score de netteté précis (95% de précision)
 - **Détection de doublons** : Trouve les photos similaires (98% de précision)
 - **Détection yeux ouverts** : Pour les portraits (90% de précision)
 - **Suggestions de retouche** : Luminosité, contraste, saturation optimaux
 
 ### 📦 Organisation et export
+
 - **Collections** : Organisez vos photos par projets
 - **Export ZIP** : Avec retouches appliquées (JPEG, PNG, WebP)
 - **Développement** : Retouches professionnelles avec preview temps réel
@@ -48,6 +54,7 @@ Une application React moderne et professionnelle pour trier et organiser vos pho
 ## 🚀 Technologies
 
 ### Frontend
+
 - **React 19** - Framework UI moderne
 - **TypeScript** - Typage statique
 - **Vite** - Build tool ultra-rapide
@@ -55,21 +62,25 @@ Une application React moderne et professionnelle pour trier et organiser vos pho
 - **Framer Motion** - Animations fluides
 
 ### Gestion d'état
+
 - **Zustand** - Gestion d'état légère et performante
 - **TanStack Query** - Gestion des requêtes API et cache
 
 ### UI/UX
+
 - **Radix UI** - Composants accessibles headless
 - **React Hook Form** - Gestion des formulaires
 - **React Hot Toast** - Notifications non bloquantes
 
 ### Qualité de code
+
 - **ESLint** - Analyse statique du code
 - **Prettier** - Formatage automatique
 - **Vitest** - Framework de tests moderne
 - **React Testing Library** - Tests de composants
 
 ### IA
+
 - **Google Gemini AI** - Analyse intelligente des photos
 
 ## 📦 Installation
@@ -104,23 +115,24 @@ GEMINI_API_KEY=votre_cle_api_gemini
 
 ### ⌨️ Raccourcis clavier essentiels
 
-| Touche | Action |
-|--------|--------|
-| **0-5** | Noter 0-5 étoiles |
-| **P** | Marquer Pick (favori) |
-| **X** | Marquer Reject (à supprimer) |
-| **U** | Retirer tous les flags |
-| **←→** | Photo précédente/suivante |
-| **F** | Mode plein écran |
-| **C** | Comparaison A/B |
-| **D** | Ajouter à développement |
-| **I** | Toggle infos (plein écran) |
-| **+/-** | Zoom in/out (plein écran) |
-| **ESC** | Quitter mode actif |
+| Touche  | Action                       |
+| ------- | ---------------------------- |
+| **0-5** | Noter 0-5 étoiles            |
+| **P**   | Marquer Pick (favori)        |
+| **X**   | Marquer Reject (à supprimer) |
+| **U**   | Retirer tous les flags       |
+| **←→**  | Photo précédente/suivante    |
+| **F**   | Mode plein écran             |
+| **C**   | Comparaison A/B              |
+| **D**   | Ajouter à développement      |
+| **I**   | Toggle infos (plein écran)   |
+| **+/-** | Zoom in/out (plein écran)    |
+| **ESC** | Quitter mode actif           |
 
 ### 📊 Workflows professionnels
 
 #### Workflow 1 : Triage ultra-rapide avec IA
+
 ```
 Objectif: Trier 500 photos en 15 minutes
 
@@ -131,6 +143,7 @@ Gain: 87% plus rapide
 ```
 
 #### Workflow 2 : Élimination doublons
+
 ```
 Objectif: Nettoyer 50 groupes de doublons
 
@@ -144,6 +157,7 @@ Gain: 66% plus rapide
 ```
 
 #### Workflow 3 : Sélection portfolio
+
 ```
 Objectif: Choisir 20 meilleures photos parmi 200
 
@@ -161,6 +175,7 @@ Précision: 95%
 ## 🏗️ Architecture
 
 ### Structure Feature-Based
+
 ```
 src/
 ├── components/          # Composants UI partagés
@@ -179,6 +194,7 @@ src/
 ```
 
 ### Principes Architecturaux
+
 - **Séparation des responsabilités** : Composants "dumb" vs "smart"
 - **Hooks personnalisés** : Logique métier extraite des composants
 - **Gestion d'état centralisée** : Zustand pour un état global cohérent
@@ -227,6 +243,7 @@ npm run type-check
 ## 🎨 Personnalisation
 
 L'application utilise un système de design cohérent avec :
+
 - Variables CSS pour les couleurs et espacements
 - Composants réutilisables avec variants
 - Thème sombre/clair
@@ -242,18 +259,18 @@ L'application utilise un système de design cohérent avec :
 
 ## 🆚 Comparaison avec Lightroom
 
-| Fonctionnalité | Lightroom | TRIPHOTOIA v2.0 |
-|----------------|-----------|-----------------|
-| Notation 0-5 étoiles | ✅ | ✅ |
-| Flags Pick/Reject | ✅ | ✅ |
-| Raccourcis clavier | ✅ | ✅ |
-| Mode plein écran | ✅ | ✅ |
-| Comparaison A/B | ✅ | ✅ |
-| **Notation automatique IA** | ❌ | ✅ ⭐ |
-| **Détection flou IA** | ❌ | ✅ ⭐ |
-| **Détection doublons** | ❌ | ✅ ⭐ |
-| **Suggestions retouche IA** | ❌ | ✅ ⭐ |
-| Prix | 12€/mois | **Gratuit** ⭐ |
+| Fonctionnalité              | Lightroom | TRIPHOTOIA v2.0 |
+| --------------------------- | --------- | --------------- |
+| Notation 0-5 étoiles        | ✅        | ✅              |
+| Flags Pick/Reject           | ✅        | ✅              |
+| Raccourcis clavier          | ✅        | ✅              |
+| Mode plein écran            | ✅        | ✅              |
+| Comparaison A/B             | ✅        | ✅              |
+| **Notation automatique IA** | ❌        | ✅ ⭐           |
+| **Détection flou IA**       | ❌        | ✅ ⭐           |
+| **Détection doublons**      | ❌        | ✅ ⭐           |
+| **Suggestions retouche IA** | ❌        | ✅ ⭐           |
+| Prix                        | 12€/mois  | **Gratuit** ⭐  |
 
 **TRIPHOTOIA = Lightroom + IA + Gratuit** 🎊
 
@@ -261,12 +278,12 @@ L'application utilise un système de design cohérent avec :
 
 ### Gains de temps
 
-| Tâche | Manuel | TRIPHOTOIA | Gain |
-|-------|--------|------------|------|
-| Trier 500 photos | 2h | 15 min | **87%** |
-| Noter 500 photos | 1h | 1 sec | **99.9%** |
-| Éliminer 50 doublons | 15 min | 5 min | **66%** |
-| Sélection portfolio | 1h | 30 min | **50%** |
+| Tâche                | Manuel | TRIPHOTOIA | Gain      |
+| -------------------- | ------ | ---------- | --------- |
+| Trier 500 photos     | 2h     | 15 min     | **87%**   |
+| Noter 500 photos     | 1h     | 1 sec      | **99.9%** |
+| Éliminer 50 doublons | 15 min | 5 min      | **66%**   |
+| Sélection portfolio  | 1h     | 30 min     | **50%**   |
 
 ### Précision IA
 
@@ -278,6 +295,7 @@ L'application utilise un système de design cohérent avec :
 ## 🎯 Cas d'usage
 
 ### Photographe de mariage
+
 ```
 Problème: 2000 photos à trier en 1 journée
 Solution: Notation auto + révision 5⭐
@@ -285,6 +303,7 @@ Résultat: 2h au lieu de 8h (75% plus rapide)
 ```
 
 ### Photographe portrait
+
 ```
 Problème: Sélectionner photos yeux ouverts
 Solution: Détection IA + filtre automatique
@@ -292,6 +311,7 @@ Résultat: 100% des photos yeux fermés éliminées
 ```
 
 ### Photographe paysage
+
 ```
 Problème: Éliminer photos floues
 Solution: Détection flou + filtre "Floues"
@@ -299,6 +319,7 @@ Résultat: Toutes les photos floues identifiées
 ```
 
 ### Photographe événement
+
 ```
 Problème: Trouver les meilleurs moments
 Solution: Notation auto "Généreux" + Picks
@@ -322,6 +343,7 @@ Résultat: Top 15% identifié automatiquement
 ## 📱 Responsive
 
 Interface adaptative pour :
+
 - Desktop (1920px+)
 - Laptop (1024px+)
 - Tablet (768px+)

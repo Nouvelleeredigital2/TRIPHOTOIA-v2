@@ -9,7 +9,11 @@ interface HistogramProps {
 const DEFAULT_HEIGHT = 160;
 const DEFAULT_BUCKETS = 64;
 
-export const Histogram: React.FC<HistogramProps> = ({ imageUrl, height = DEFAULT_HEIGHT, buckets = DEFAULT_BUCKETS }) => {
+export const Histogram: React.FC<HistogramProps> = ({
+  imageUrl,
+  height = DEFAULT_HEIGHT,
+  buckets = DEFAULT_BUCKETS,
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -30,7 +34,11 @@ export const Histogram: React.FC<HistogramProps> = ({ imageUrl, height = DEFAULT
       ctx.fillStyle = 'rgba(255,255,255,0.4)';
       ctx.font = '12px Inter, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('Histogramme indisponible', canvas.width / 2, canvas.height / 2);
+      ctx.fillText(
+        'Histogramme indisponible',
+        canvas.width / 2,
+        canvas.height / 2
+      );
     };
 
     if (!imageUrl) {
@@ -44,7 +52,11 @@ export const Histogram: React.FC<HistogramProps> = ({ imageUrl, height = DEFAULT
       try {
         const offscreen = document.createElement('canvas');
         const maxDimension = 512;
-        const scale = Math.min(maxDimension / image.width, maxDimension / image.height, 1);
+        const scale = Math.min(
+          maxDimension / image.width,
+          maxDimension / image.height,
+          1
+        );
         offscreen.width = Math.max(1, Math.floor(image.width * scale));
         offscreen.height = Math.max(1, Math.floor(image.height * scale));
 
@@ -55,7 +67,12 @@ export const Histogram: React.FC<HistogramProps> = ({ imageUrl, height = DEFAULT
         }
 
         offCtx.drawImage(image, 0, 0, offscreen.width, offscreen.height);
-        const imageData = offCtx.getImageData(0, 0, offscreen.width, offscreen.height);
+        const imageData = offCtx.getImageData(
+          0,
+          0,
+          offscreen.width,
+          offscreen.height
+        );
         const histogram = new Array(buckets).fill(0);
         const bucketSize = 256 / buckets;
 
@@ -64,7 +81,10 @@ export const Histogram: React.FC<HistogramProps> = ({ imageUrl, height = DEFAULT
           const g = imageData.data[i + 1];
           const b = imageData.data[i + 2];
           const luminance = Math.round(0.2126 * r + 0.7152 * g + 0.0722 * b);
-          const bucketIndex = Math.min(buckets - 1, Math.floor(luminance / bucketSize));
+          const bucketIndex = Math.min(
+            buckets - 1,
+            Math.floor(luminance / bucketSize)
+          );
           histogram[bucketIndex] += 1;
         }
 

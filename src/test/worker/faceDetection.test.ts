@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
-  DISABLED_FACE_MODEL,
   FACE_EMBEDDING_DIMENSIONS,
   createDeterministicFaceDetector,
-  createDisabledFaceDetector,
   createFaceDetector,
 } from '../../../worker/faceDetection';
 
 describe('deterministic face detector', () => {
   it('detects at least one face with a 128-dim embedding and bounding box', async () => {
     const detector = createDeterministicFaceDetector();
-    const faces = await detector.detect({ storagePath: 'projects/p1/photo.jpg' });
+    const faces = await detector.detect({
+      storagePath: 'projects/p1/photo.jpg',
+    });
     expect(faces.length).toBeGreaterThanOrEqual(1);
     faces.forEach((face) => {
       expect(face.embedding).toHaveLength(FACE_EMBEDDING_DIMENSIONS);
@@ -34,7 +34,9 @@ describe('deterministic face detector', () => {
 
   it('never assigns a name or person to detected faces', async () => {
     const detector = createDeterministicFaceDetector();
-    const faces = await detector.detect({ storagePath: 'projects/p1/photo.jpg' });
+    const faces = await detector.detect({
+      storagePath: 'projects/p1/photo.jpg',
+    });
     faces.forEach((face) => {
       expect(face).not.toHaveProperty('personId');
       expect(face).not.toHaveProperty('displayName');
@@ -53,26 +55,14 @@ describe('createFaceDetector', () => {
   });
 
   it('throws on an unknown provider', () => {
-    expect(() => createFaceDetector({ FACE_PROVIDER: 'mystery' })).toThrow(/Unknown FACE_PROVIDER/);
+    expect(() => createFaceDetector({ FACE_PROVIDER: 'mystery' })).toThrow(
+      /Unknown FACE_PROVIDER/
+    );
   });
 
   it('reports the onnx provider as a not-yet-wired extension point', () => {
-    expect(() => createFaceDetector({ FACE_PROVIDER: 'onnx' })).toThrow(/not wired yet/);
-  });
-
-  it('supports a disabled provider that fabricates no faces', async () => {
-    const detector = createFaceDetector({ FACE_PROVIDER: 'disabled' });
-    expect(detector.model).toBe(DISABLED_FACE_MODEL);
-    // Returns zero faces for any input — and never errors, even on empty input.
-    await expect(detector.detect({ storagePath: 'projects/p1/photo.jpg' })).resolves.toEqual([]);
-    await expect(detector.detect({ storagePath: '' })).resolves.toEqual([]);
-  });
-});
-
-describe('disabled face detector', () => {
-  it('yields no faces and is honest about being off', async () => {
-    const detector = createDisabledFaceDetector();
-    expect(detector.model).toBe('disabled');
-    expect(await detector.detect({ storagePath: 'anything', photoId: 'p' })).toEqual([]);
+    expect(() => createFaceDetector({ FACE_PROVIDER: 'onnx' })).toThrow(
+      /not wired yet/
+    );
   });
 });

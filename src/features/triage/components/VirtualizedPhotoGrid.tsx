@@ -4,7 +4,11 @@ import { PhotoCard } from './PhotoCard';
 import { Photo, DuplicateGroup } from '../../../types';
 
 type VirtualizedItem =
-  | { type: 'group'; id: string; data: { group: DuplicateGroup; photos: Photo[] } }
+  | {
+      type: 'group';
+      id: string;
+      data: { group: DuplicateGroup; photos: Photo[] };
+    }
   | { type: 'photo'; id: string; data: Photo };
 
 interface VirtualizedPhotoGridProps {
@@ -61,11 +65,17 @@ export function VirtualizedPhotoGrid({
   const isMultiSelectMode = multiSelection.size > 0;
   const { groupedPhotos, standalonePhotos } = useMemo(() => {
     const groupedPhotoIds = new Set<string>();
-    const groups: Array<{ type: 'group'; group: DuplicateGroup; photos: Photo[] }> = [];
+    const groups: Array<{
+      type: 'group';
+      group: DuplicateGroup;
+      photos: Photo[];
+    }> = [];
     const standalone: Photo[] = [];
 
     duplicateGroups.forEach((group) => {
-      const groupPhotos = group.photos.filter((photo) => photos.some((entry) => entry.id === photo.id));
+      const groupPhotos = group.photos.filter((photo) =>
+        photos.some((entry) => entry.id === photo.id)
+      );
       if (groupPhotos.length > 0) {
         groupPhotos.forEach((photo) => groupedPhotoIds.add(photo.id));
         groups.push({ type: 'group', group, photos: groupPhotos });
@@ -131,7 +141,8 @@ export function VirtualizedPhotoGrid({
 
           if (item.type === 'group') {
             const { group, photos: groupPhotos } = item.data;
-            const bestPhotoId = bestPhotoOverrides[group.id] || group.bestPhotoId;
+            const bestPhotoId =
+              bestPhotoOverrides[group.id] || group.bestPhotoId;
 
             return (
               <div
@@ -148,10 +159,14 @@ export function VirtualizedPhotoGrid({
               >
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold">Groupe de doublons ({groupPhotos.length} photos)</h3>
-                    <div className="text-sm text-muted-foreground">Hash: {group.hash.substring(0, 8)}...</div>
+                    <h3 className="text-lg font-semibold">
+                      Groupe de doublons ({groupPhotos.length} photos)
+                    </h3>
+                    <div className="text-sm text-muted-foreground">
+                      Hash: {group.hash.substring(0, 8)}...
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
                     {groupPhotos.map((photo) => (
                       <PhotoCard
                         key={photo.id}
@@ -164,11 +179,17 @@ export function VirtualizedPhotoGrid({
                         onSetAsBest={() => onSetBestInGroup(group.id, photo.id)}
                         inCollection={collectionPhotoIds.has(photo.id)}
                         onToggleCollection={() => onToggleCollection(photo.id)}
-                        isInDevelopmentQueue={developmentSelection.has(photo.id)}
-                        onToggleDevelopment={() => onToggleDevelopment(photo.id)}
+                        isInDevelopmentQueue={developmentSelection.has(
+                          photo.id
+                        )}
+                        onToggleDevelopment={() =>
+                          onToggleDevelopment(photo.id)
+                        }
                         isMultiSelected={multiSelection.has(photo.id)}
                         isMultiSelectMode={isMultiSelectMode}
-                        onToggleMultiSelect={() => onToggleMultiSelect(photo.id)}
+                        onToggleMultiSelect={() =>
+                          onToggleMultiSelect(photo.id)
+                        }
                         showGroupInfo
                         group={group}
                       />
@@ -195,7 +216,7 @@ export function VirtualizedPhotoGrid({
               }}
               className="p-4"
             >
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
                 <PhotoCard
                   photo={photo}
                   isSelected={selectedPhotoId === photo.id}
@@ -228,5 +249,3 @@ export function VirtualizedPhotoGrid({
     </div>
   );
 }
-
-

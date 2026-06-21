@@ -13,13 +13,13 @@ Le mode **AutoFlow** présente les photos une à une, dans l'ordre `review → k
 
 Raccourcis clavier :
 
-| Touche | Action |
-| --- | --- |
-| → | Garder (pick) |
-| ← | Rejeter |
-| ↑ | Favori + 5 étoiles |
-| 1–5 | Noter sans avancer |
-| Échap | Retour au tableau de bord |
+| Touche | Action                    |
+| ------ | ------------------------- |
+| →      | Garder (pick)             |
+| ←      | Rejeter                   |
+| ↑      | Favori + 5 étoiles        |
+| 1–5    | Noter sans avancer        |
+| Échap  | Retour au tableau de bord |
 
 ## 3. Filtrer et chercher
 

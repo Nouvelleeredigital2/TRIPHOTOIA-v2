@@ -3,11 +3,17 @@ import { RetouchOptions, createDefaultRetouchOptions } from '../types';
 
 export const RETOUCH_HISTORY_LIMIT = 50;
 
-export const cloneRetouchOptions = (options: RetouchOptions): RetouchOptions => ({ ...options });
+export const cloneRetouchOptions = (
+  options: RetouchOptions
+): RetouchOptions => ({ ...options });
 
-export const getDefaultRetouchOptions = (): RetouchOptions => createDefaultRetouchOptions();
+export const getDefaultRetouchOptions = (): RetouchOptions =>
+  createDefaultRetouchOptions();
 
-export const RETOUCH_BOUNDS: Record<keyof RetouchOptions, { min: number; max: number }> = {
+export const RETOUCH_BOUNDS: Record<
+  keyof RetouchOptions,
+  { min: number; max: number }
+> = {
   temperature: { min: -100, max: 100 },
   tint: { min: -100, max: 100 },
   exposure: { min: -100, max: 100 },
@@ -25,7 +31,10 @@ export const RETOUCH_BOUNDS: Record<keyof RetouchOptions, { min: number; max: nu
   sharpness: { min: 0, max: 100 },
 };
 
-export const clampRetouchValue = (option: keyof RetouchOptions, value: number) => {
+export const clampRetouchValue = (
+  option: keyof RetouchOptions,
+  value: number
+) => {
   const bounds = RETOUCH_BOUNDS[option];
   if (!bounds) {
     return value;

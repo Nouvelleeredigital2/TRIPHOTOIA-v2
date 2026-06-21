@@ -45,7 +45,7 @@ export type JobProcessorMap = Partial<Record<WorkerJobType, JobProcessor>>;
 export interface SupabaseLikeClient {
   // Le query-builder Supabase est chaîné dynamiquement (.select().eq()...) ;
   // on garde un type minimal volontairement souple ici.
-
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   from: (table: string) => any;
 }
 
@@ -226,6 +226,19 @@ export async function markJobFailed(
   jobId: string,
   errorMessage: string
 ): Promise<void> {
+  // P1-E : on délègue à la RPC `fail_or_retry_job` qui réessaie avec un backoff
+  // exponentiel borné tant que `attempts < max_attempts`, puis bascule le job en
+  // `dead_letter`. Repli (environnement sans RPC, p. ex. tests) : échec terminal.
+  const rpcClient = client as Partial<RpcCapableClient>;
+  if (typeof rpcClient.rpc === 'function') {
+    const { error } = await rpcClient.rpc('fail_or_retry_job', {
+      p_job_id: jobId,
+      p_error: errorMessage,
+    });
+    if (error) throw error;
+    return;
+  }
+
   const { error } = await client
     .from('jobs')
     .update({
@@ -237,6 +250,22 @@ export async function markJobFailed(
     .eq('id', jobId);
 
   if (error) throw error;
+}
+
+/**
+ * P1-E : récupère les jobs bloqués en `processing` dont le lock a expiré (worker
+ * crashé). Renvoie le nombre de jobs remis en file. Best-effort : une erreur est
+ * journalisée sans interrompre la boucle.
+ */
+export async function reclaimStuckJobs(
+  client: RpcCapableClient,
+  leaseSeconds = 300
+): Promise<number> {
+  const { data, error } = await client.rpc('reclaim_stuck_jobs', {
+    p_lease_seconds: leaseSeconds,
+  });
+  if (error) throw error;
+  return typeof data === 'number' ? data : 0;
 }
 
 export async function applyWorkerResult(
@@ -289,12 +318,6 @@ export async function processWorkerJob(
   try {
     const processor =
       processors[job.job_type] ?? defaultJobProcessors[job.job_type];
-    // Garde-fou : un job_type inconnu doit échouer avec un message explicite
-    // (et non un « processor is not a function »), pour que error_message soit
-    // exploitable côté supervision.
-    if (typeof processor !== 'function') {
-      throw new Error(`Unknown job type "${job.job_type}"`);
-    }
     const workerResult = await processor(job);
     await applyWorkerResult(client, job, workerResult);
     await markJobCompleted(client, job.id, workerResult.result ?? {});

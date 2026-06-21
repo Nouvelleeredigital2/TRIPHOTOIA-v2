@@ -11,6 +11,7 @@
 TRIPHOTOIA intègre maintenant un **système de notation professionnel** identique à Adobe Lightroom !
 
 **Fonctionnalités** :
+
 - ✅ Notation 0-5 étoiles (touches 0-5)
 - ✅ Flags Pick/Reject (touches P/X)
 - ✅ Raccourcis clavier complets
@@ -26,6 +27,7 @@ TRIPHOTOIA intègre maintenant un **système de notation professionnel** identiq
 Visualisez vos photos en grand format avec navigation fluide.
 
 **Touche F** pour activer :
+
 - Navigation ←→ entre photos
 - Notation en direct (0-5, P, X)
 - Zoom +/- (100% à 400%)
@@ -41,6 +43,7 @@ Visualisez vos photos en grand format avec navigation fluide.
 Comparez 2 photos côte à côte pour choisir la meilleure.
 
 **Touche C** pour activer :
+
 - Split screen 50/50
 - Sélection gagnant (← ou →)
 - Actions automatiques (Pick/Reject)
@@ -55,16 +58,19 @@ Comparez 2 photos côte à côte pour choisir la meilleure.
 **NOUVEAU** : L'IA note automatiquement vos photos !
 
 **Comment ça marche** :
+
 - Analyse 4 critères (netteté, composition, yeux, retouche)
 - Attribue une note de 0 à 5 étoiles
 - 4 presets disponibles (Strict, Équilibré, Généreux, Qualité)
 
 **Performance** :
+
 - 500 photos notées en < 1 seconde
 - Précision : 82% d'accord avec notation manuelle
 - Gain de temps : 99.9% plus rapide
 
 **Workflow ultra-rapide** :
+
 ```
 1. Importer → 2. Analyser → 3. Notation auto → 4. Filtrer 5⭐ → 5. Développer
 ```
@@ -126,44 +132,47 @@ Comparez 2 photos côte à côte pour choisir la meilleure.
 ## ⌨️ Raccourcis clavier
 
 ### Notation
-| Touche | Action |
-|--------|--------|
+
+| Touche  | Action            |
+| ------- | ----------------- |
 | **0-5** | Noter 0-5 étoiles |
-| **P** | Marquer Pick |
-| **X** | Marquer Reject |
-| **U** | Retirer flags |
+| **P**   | Marquer Pick      |
+| **X**   | Marquer Reject    |
+| **U**   | Retirer flags     |
 
 ### Navigation
-| Touche | Action |
-|--------|--------|
+
+| Touche | Action                    |
+| ------ | ------------------------- |
 | **←→** | Photo précédente/suivante |
-| **F** | Mode plein écran |
-| **C** | Comparaison A/B |
-| **D** | Ajouter à développement |
+| **F**  | Mode plein écran          |
+| **C**  | Comparaison A/B           |
+| **D**  | Ajouter à développement   |
 
 ### Plein écran
-| Touche | Action |
-|--------|--------|
-| **F/ESC** | Quitter |
-| **I** | Toggle infos |
-| **+/-** | Zoom in/out |
+
+| Touche    | Action       |
+| --------- | ------------ |
+| **F/ESC** | Quitter      |
+| **I**     | Toggle infos |
+| **+/-**   | Zoom in/out  |
 
 ---
 
 ## 📊 Comparaison avec Lightroom
 
-| Fonctionnalité | Lightroom | TRIPHOTOIA v2.0 |
-|----------------|-----------|-----------------|
-| Notation 0-5 étoiles | ✅ | ✅ |
-| Flags Pick/Reject | ✅ | ✅ |
-| Raccourcis clavier | ✅ | ✅ |
-| Mode plein écran | ✅ | ✅ |
-| Comparaison A/B | ✅ | ✅ |
-| **Notation automatique IA** | ❌ | ✅ ⭐ |
-| **Détection flou IA** | ❌ | ✅ ⭐ |
-| **Détection doublons** | ❌ | ✅ ⭐ |
-| **Suggestions retouche IA** | ❌ | ✅ ⭐ |
-| Prix | 12€/mois | **Gratuit** ⭐ |
+| Fonctionnalité              | Lightroom | TRIPHOTOIA v2.0 |
+| --------------------------- | --------- | --------------- |
+| Notation 0-5 étoiles        | ✅        | ✅              |
+| Flags Pick/Reject           | ✅        | ✅              |
+| Raccourcis clavier          | ✅        | ✅              |
+| Mode plein écran            | ✅        | ✅              |
+| Comparaison A/B             | ✅        | ✅              |
+| **Notation automatique IA** | ❌        | ✅ ⭐           |
+| **Détection flou IA**       | ❌        | ✅ ⭐           |
+| **Détection doublons**      | ❌        | ✅ ⭐           |
+| **Suggestions retouche IA** | ❌        | ✅ ⭐           |
+| Prix                        | 12€/mois  | **Gratuit** ⭐  |
 
 **TRIPHOTOIA = Lightroom + IA + Gratuit** 🎊
 
@@ -173,11 +182,11 @@ Comparez 2 photos côte à côte pour choisir la meilleure.
 
 ### Gains de temps
 
-| Tâche | Avant | Après | Gain |
-|-------|-------|-------|------|
-| Trier 500 photos | 2h | 15 min | **87%** |
-| Noter 500 photos | 1h | 1 sec | **99.9%** |
-| Éliminer 50 doublons | 15 min | 5 min | **66%** |
+| Tâche                | Avant  | Après  | Gain      |
+| -------------------- | ------ | ------ | --------- |
+| Trier 500 photos     | 2h     | 15 min | **87%**   |
+| Noter 500 photos     | 1h     | 1 sec  | **99.9%** |
+| Éliminer 50 doublons | 15 min | 5 min  | **66%**   |
 
 ### Précision IA
 
@@ -193,12 +202,14 @@ Comparez 2 photos côte à côte pour choisir la meilleure.
 ### Avant/Après
 
 **Avant v2.0** :
+
 - Notation manuelle uniquement
 - Pas de mode plein écran
 - Pas de comparaison
 - Triage lent
 
 **Après v2.0** :
+
 - ✅ Notation manuelle + automatique
 - ✅ Mode plein écran immersif
 - ✅ Comparaison A/B
@@ -351,6 +362,7 @@ Pour chaque groupe de doublons:
 Merci à tous les utilisateurs qui ont testé et donné leur feedback !
 
 Cette version 2.0 représente :
+
 - **~1400 lignes de code**
 - **8 nouveaux composants**
 - **4 nouveaux guides**
@@ -362,12 +374,14 @@ Cette version 2.0 représente :
 ## 🚀 Prochaines versions
 
 ### v2.1 (optionnel)
+
 - Mode Loupe (zoom 100%, 200%, 400%)
 - Collections intelligentes automatiques
 - Métadonnées EXIF
 - Export par note
 
 ### v2.2 (optionnel)
+
 - Tri avancé (date, nom, netteté)
 - Historique des modifications
 - Thèmes personnalisables
@@ -394,6 +408,7 @@ MIT License - Gratuit et open source
 **TRIPHOTOIA v2.0 = Lightroom professionnel + IA automatique + Gratuit**
 
 Toutes les fonctionnalités essentielles de Lightroom sont maintenant disponibles, avec en plus :
+
 - ✅ Notation automatique IA (unique !)
 - ✅ Détection flou/doublons IA
 - ✅ Interface moderne

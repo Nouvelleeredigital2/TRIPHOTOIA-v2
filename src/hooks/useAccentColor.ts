@@ -15,13 +15,13 @@ export interface AccentOption {
 }
 
 export const ACCENT_OPTIONS: AccentOption[] = [
-  { id: 'violet',  label: 'Violet (défaut)', hue: 262, hex: '#8b5cf6' },
-  { id: 'blue',    label: 'Bleu',            hue: 217, hex: '#3b82f6' },
-  { id: 'cyan',    label: 'Cyan',            hue: 188, hex: '#06b6d4' },
-  { id: 'green',   label: 'Vert',            hue: 142, hex: '#22c55e' },
-  { id: 'orange',  label: 'Orange',          hue: 25,  hex: '#f97316' },
-  { id: 'rose',    label: 'Rose',            hue: 346, hex: '#f43f5e' },
-  { id: 'amber',   label: 'Ambre',           hue: 38,  hex: '#f59e0b' },
+  { id: 'violet', label: 'Violet (défaut)', hue: 262, hex: '#8b5cf6' },
+  { id: 'blue', label: 'Bleu', hue: 217, hex: '#3b82f6' },
+  { id: 'cyan', label: 'Cyan', hue: 188, hex: '#06b6d4' },
+  { id: 'green', label: 'Vert', hue: 142, hex: '#22c55e' },
+  { id: 'orange', label: 'Orange', hue: 25, hex: '#f97316' },
+  { id: 'rose', label: 'Rose', hue: 346, hex: '#f43f5e' },
+  { id: 'amber', label: 'Ambre', hue: 38, hex: '#f59e0b' },
 ];
 
 const STORAGE_KEY = 'treephoto-accent';
@@ -30,15 +30,15 @@ const DEFAULT_ACCENT = 'violet';
 function applyAccent(hue: number) {
   const r = document.documentElement;
   // Light mode primaries
-  r.style.setProperty('--primary',              `${hue} 83% 58%`);
-  r.style.setProperty('--primary-foreground',   '0 0% 100%');
-  r.style.setProperty('--secondary',            `${hue} 30% 95%`);
+  r.style.setProperty('--primary', `${hue} 83% 58%`);
+  r.style.setProperty('--primary-foreground', '0 0% 100%');
+  r.style.setProperty('--secondary', `${hue} 30% 95%`);
   r.style.setProperty('--secondary-foreground', `${hue} 50% 30%`);
-  r.style.setProperty('--accent',               `${hue} 83% 58%`);
-  r.style.setProperty('--accent-foreground',    '0 0% 100%');
-  r.style.setProperty('--ring',                 `${hue} 83% 58%`);
-  r.style.setProperty('--info',                 `${hue} 83% 58%`);
-  r.style.setProperty('--info-foreground',      '0 0% 100%');
+  r.style.setProperty('--accent', `${hue} 83% 58%`);
+  r.style.setProperty('--accent-foreground', '0 0% 100%');
+  r.style.setProperty('--ring', `${hue} 83% 58%`);
+  r.style.setProperty('--info', `${hue} 83% 58%`);
+  r.style.setProperty('--info-foreground', '0 0% 100%');
 }
 
 export function useAccentColor() {
@@ -48,7 +48,8 @@ export function useAccentColor() {
   });
 
   useEffect(() => {
-    const option = ACCENT_OPTIONS.find((o) => o.id === accentId) ?? ACCENT_OPTIONS[0];
+    const option =
+      ACCENT_OPTIONS.find((o) => o.id === accentId) ?? ACCENT_OPTIONS[0];
     applyAccent(option.hue);
     localStorage.setItem(STORAGE_KEY, accentId);
   }, [accentId]);

@@ -51,18 +51,18 @@ export class PhotoScorer {
     this.config = {
       weights: {
         sharpness: 0.25,
-        exposure: 0.20,
-        composition: 0.20,
+        exposure: 0.2,
+        composition: 0.2,
         expression: 0.15,
-        noise: 0.10,
-        color: 0.10
+        noise: 0.1,
+        color: 0.1,
       },
       enableFaceDetection: true,
       enableCompositionAnalysis: true,
       enableColorAnalysis: true,
       minScoreThreshold: 30,
       autoSelectThreshold: 70,
-      ...config
+      ...config,
     };
   }
 
@@ -80,15 +80,33 @@ export class PhotoScorer {
     const channels = this.separateChannels(imageData, width, height);
 
     // Calculer les scores individuels
-    const sharpness = await this.calculateSharpnessScore(grayscale, width, height);
+    const sharpness = await this.calculateSharpnessScore(
+      grayscale,
+      width,
+      height
+    );
     const exposure = this.calculateExposureScore(grayscale);
-    const composition = this.calculateCompositionScore(grayscale, width, height);
-    const expression = await this.calculateExpressionScore(imageData, width, height);
+    const composition = this.calculateCompositionScore(
+      grayscale,
+      width,
+      height
+    );
+    const expression = await this.calculateExpressionScore(
+      imageData,
+      width,
+      height
+    );
     const noise = this.calculateNoiseScore(grayscale, width, height);
     const color = this.calculateColorScore(channels);
 
     // Calculer les détails
-    const details = await this.calculateDetailedScores(imageData, width, height, grayscale, channels);
+    const details = await this.calculateDetailedScores(
+      imageData,
+      width,
+      height,
+      grayscale,
+      channels
+    );
 
     // Calculer le score global pondéré
     const overall = this.calculateOverallScore({
@@ -97,7 +115,7 @@ export class PhotoScorer {
       composition,
       expression,
       noise,
-      color
+      color,
     });
 
     return {
@@ -108,7 +126,7 @@ export class PhotoScorer {
       expression,
       noise,
       color,
-      details
+      details,
     };
   }
 
@@ -125,7 +143,15 @@ export class PhotoScorer {
     }>
   ): Promise<PhotoRanking[]> {
     const scores = await Promise.all(
-      photos.map(photo => this.scorePhoto(photo.id, photo.imageData, photo.width, photo.height, photo.metadata))
+      photos.map((photo) =>
+        this.scorePhoto(
+          photo.id,
+          photo.imageData,
+          photo.width,
+          photo.height,
+          photo.metadata
+        )
+      )
     );
 
     const rankings: PhotoRanking[] = photos.map((photo, index) => ({
@@ -133,7 +159,7 @@ export class PhotoScorer {
       score: scores[index],
       rank: 0,
       isRecommended: false,
-      reasons: []
+      reasons: [],
     }));
 
     // Trier par score global
@@ -142,7 +168,8 @@ export class PhotoScorer {
     // Assigner les rangs
     rankings.forEach((ranking, index) => {
       ranking.rank = index + 1;
-      ranking.isRecommended = ranking.score.overall >= this.config.autoSelectThreshold;
+      ranking.isRecommended =
+        ranking.score.overall >= this.config.autoSelectThreshold;
       ranking.reasons = this.generateRecommendationReasons(ranking.score);
     });
 
@@ -152,12 +179,16 @@ export class PhotoScorer {
   /**
    * Calcule le score de netteté
    */
-  private async calculateSharpnessScore(grayscale: number[], width: number, height: number): Promise<number> {
+  private async calculateSharpnessScore(
+    grayscale: number[],
+    width: number,
+    height: number
+  ): Promise<number> {
     // Utilise le filtre de Laplace pour détecter les bords
     const laplacianKernel = [
       [0, -1, 0],
       [-1, 4, -1],
-      [0, -1, 0]
+      [0, -1, 0],
     ];
 
     let sharpness = 0;
@@ -189,9 +220,15 @@ export class PhotoScorer {
     const histogram = this.calculateHistogram(grayscale);
 
     // Score basé sur la distribution de l'histogramme
-    const underExposed = histogram.slice(0, 64).reduce((sum, count) => sum + count, 0);
-    const wellExposed = histogram.slice(64, 192).reduce((sum, count) => sum + count, 0);
-    const overExposed = histogram.slice(192, 256).reduce((sum, count) => sum + count, 0);
+    const underExposed = histogram
+      .slice(0, 64)
+      .reduce((sum, count) => sum + count, 0);
+    const wellExposed = histogram
+      .slice(64, 192)
+      .reduce((sum, count) => sum + count, 0);
+    const overExposed = histogram
+      .slice(192, 256)
+      .reduce((sum, count) => sum + count, 0);
 
     const total = underExposed + wellExposed + overExposed;
     const wellExposedRatio = wellExposed / total;
@@ -207,7 +244,11 @@ export class PhotoScorer {
   /**
    * Calcule le score de composition
    */
-  private calculateCompositionScore(grayscale: number[], width: number, height: number): number {
+  private calculateCompositionScore(
+    grayscale: number[],
+    width: number,
+    height: number
+  ): number {
     let score = 50; // Score de base
 
     // Règle des tiers
@@ -232,11 +273,16 @@ export class PhotoScorer {
   /**
    * Calcule le score d'expression (simulation)
    */
-  private async calculateExpressionScore(imageData: Uint8Array, width: number, height: number): Promise<number> {
+  private async calculateExpressionScore(
+    imageData: Uint8Array,
+    width: number,
+    height: number
+  ): Promise<number> {
     // Simulation de détection d'expression
     // Dans une vraie implémentation, on utiliserait face-api.js ou TensorFlow
     const grayscale = this.convertToGrayscale(imageData, width, height);
-    const mean = grayscale.reduce((sum, value) => sum + value, 0) / grayscale.length;
+    const mean =
+      grayscale.reduce((sum, value) => sum + value, 0) / grayscale.length;
 
     // Simulation basée sur la luminosité et les variations
     const variance = this.calculateVariance(grayscale);
@@ -255,7 +301,11 @@ export class PhotoScorer {
   /**
    * Calcule le score de bruit
    */
-  private calculateNoiseScore(grayscale: number[], width: number, height: number): number {
+  private calculateNoiseScore(
+    grayscale: number[],
+    width: number,
+    height: number
+  ): number {
     // Estimation du bruit par analyse des variations locales
     let noiseLevel = 0;
     const offset = 1;
@@ -288,7 +338,11 @@ export class PhotoScorer {
   /**
    * Calcule le score de couleur
    */
-  private calculateColorScore(channels: { red: number[]; green: number[]; blue: number[] }): number {
+  private calculateColorScore(channels: {
+    red: number[];
+    green: number[];
+    blue: number[];
+  }): number {
     // Analyse de l'harmonie des couleurs
     const colorHarmony = this.analyzeColorHarmony(channels);
     const saturation = this.calculateSaturation(channels);
@@ -320,7 +374,7 @@ export class PhotoScorer {
       symmetry: this.analyzeSymmetry(grayscale, width, height),
       leadingLines: this.analyzeLeadingLines(grayscale, width, height),
       colorHarmony: this.analyzeColorHarmony(channels),
-      dynamicRange: this.calculateDynamicRange(grayscale)
+      dynamicRange: this.calculateDynamicRange(grayscale),
     };
   }
 
@@ -360,7 +414,8 @@ export class PhotoScorer {
     if (score.noise > 80) reasons.push('Très peu de bruit');
     if (score.color > 80) reasons.push('Couleurs harmonieuses');
 
-    if (score.details.ruleOfThirds > 0.7) reasons.push('Respecte la règle des tiers');
+    if (score.details.ruleOfThirds > 0.7)
+      reasons.push('Respecte la règle des tiers');
     if (score.details.symmetry > 0.7) reasons.push('Composition symétrique');
     if (score.details.faceDetection > 0.8) reasons.push('Visage bien détecté');
     if (score.details.eyeOpenness > 0.8) reasons.push('Yeux ouverts');
@@ -370,7 +425,11 @@ export class PhotoScorer {
   }
 
   // Méthodes utilitaires
-  private convertToGrayscale(imageData: Uint8Array, width: number, height: number): number[] {
+  private convertToGrayscale(
+    imageData: Uint8Array,
+    width: number,
+    height: number
+  ): number[] {
     const grayscale: number[] = [];
     const channelsCount = imageData.length / (width * height);
 
@@ -385,12 +444,20 @@ export class PhotoScorer {
     return grayscale;
   }
 
-  private separateChannels(imageData: Uint8Array, width: number, height: number): {
+  private separateChannels(
+    imageData: Uint8Array,
+    width: number,
+    height: number
+  ): {
     red: number[];
     green: number[];
     blue: number[];
   } {
-    const channels = { red: [] as number[], green: [] as number[], blue: [] as number[] };
+    const channels = {
+      red: [] as number[],
+      green: [] as number[],
+      blue: [] as number[],
+    };
     const channelsCount = imageData.length / (width * height);
 
     for (let i = 0; i < width * height; i++) {
@@ -405,18 +472,22 @@ export class PhotoScorer {
 
   private calculateHistogram(grayscale: number[]): number[] {
     const histogram = new Array(256).fill(0);
-    grayscale.forEach(value => histogram[Math.floor(value)]++);
+    grayscale.forEach((value) => histogram[Math.floor(value)]++);
     return histogram;
   }
 
   private calculateVariance(values: number[]): number {
     const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
-    const squaredDiffs = values.map(value => Math.pow(value - mean, 2));
+    const squaredDiffs = values.map((value) => Math.pow(value - mean, 2));
     return squaredDiffs.reduce((sum, diff) => sum + diff, 0) / values.length;
   }
 
   // Méthodes d'analyse de composition (simulations)
-  private analyzeRuleOfThirds(grayscale: number[], width: number, height: number): number {
+  private analyzeRuleOfThirds(
+    grayscale: number[],
+    width: number,
+    height: number
+  ): number {
     // Simulation de l'analyse de la règle des tiers
     const thirdWidth = width / 3;
     const thirdHeight = height / 3;
@@ -426,16 +497,23 @@ export class PhotoScorer {
       { x: thirdWidth, y: thirdHeight },
       { x: thirdWidth * 2, y: thirdHeight },
       { x: thirdWidth, y: thirdHeight * 2 },
-      { x: thirdWidth * 2, y: thirdHeight * 2 }
+      { x: thirdWidth * 2, y: thirdHeight * 2 },
     ];
 
     let score = 0;
-    points.forEach(point => {
+    points.forEach((point) => {
       const pixelIndex = Math.floor(point.y) * width + Math.floor(point.x);
       if (pixelIndex < grayscale.length) {
         // Plus la valeur est différente de la moyenne, plus c'est intéressant
         const value = grayscale[pixelIndex];
-        const localMean = this.calculateLocalMean(grayscale, width, height, point.x, point.y, 20);
+        const localMean = this.calculateLocalMean(
+          grayscale,
+          width,
+          height,
+          point.x,
+          point.y,
+          20
+        );
         score += Math.abs(value - localMean) / 255;
       }
     });
@@ -443,7 +521,11 @@ export class PhotoScorer {
     return Math.min(1, score / points.length);
   }
 
-  private analyzeSymmetry(grayscale: number[], width: number, height: number): number {
+  private analyzeSymmetry(
+    grayscale: number[],
+    width: number,
+    height: number
+  ): number {
     // Simulation de l'analyse de symétrie
     let symmetryScore = 0;
     const centerX = width / 2;
@@ -453,23 +535,36 @@ export class PhotoScorer {
         const leftPixel = grayscale[y * width + x];
         const rightPixel = grayscale[y * width + (width - 1 - x)];
         const difference = Math.abs(leftPixel - rightPixel);
-        symmetryScore += 1 - (difference / 255);
+        symmetryScore += 1 - difference / 255;
       }
     }
 
     return symmetryScore / (height * centerX);
   }
 
-  private analyzeLeadingLines(grayscale: number[], width: number, height: number): number {
+  private analyzeLeadingLines(
+    grayscale: number[],
+    width: number,
+    height: number
+  ): number {
     // Simulation de la détection de lignes directrices
     // Utilise un filtre de détection de bords simple
     let lineScore = 0;
-    const sobelX = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]];
-    const sobelY = [[-1, -2, -1], [0, 0, 0], [1, 2, 1]];
+    const sobelX = [
+      [-1, 0, 1],
+      [-2, 0, 2],
+      [-1, 0, 1],
+    ];
+    const sobelY = [
+      [-1, -2, -1],
+      [0, 0, 0],
+      [1, 2, 1],
+    ];
 
     for (let y = 1; y < height - 1; y++) {
       for (let x = 1; x < width - 1; x++) {
-        let gx = 0, gy = 0;
+        let gx = 0,
+          gy = 0;
 
         for (let ky = 0; ky < 3; ky++) {
           for (let kx = 0; kx < 3; kx++) {
@@ -481,7 +576,8 @@ export class PhotoScorer {
         }
 
         const magnitude = Math.sqrt(gx * gx + gy * gy);
-        if (magnitude > 50) { // Seuil pour détecter les bords
+        if (magnitude > 50) {
+          // Seuil pour détecter les bords
           lineScore += magnitude / 255;
         }
       }
@@ -490,30 +586,49 @@ export class PhotoScorer {
     return Math.min(1, lineScore / (width * height));
   }
 
-  private analyzeBalance(grayscale: number[], _width: number, _height: number): number {
+  private analyzeBalance(
+    grayscale: number[],
+    _width: number,
+    _height: number
+  ): number {
     // Simulation de l'analyse d'équilibre des masses
     const leftHalf = grayscale.slice(0, Math.floor(grayscale.length / 2));
     const rightHalf = grayscale.slice(Math.floor(grayscale.length / 2));
 
-    const leftMean = leftHalf.reduce((sum, value) => sum + value, 0) / leftHalf.length;
-    const rightMean = rightHalf.reduce((sum, value) => sum + value, 0) / rightHalf.length;
+    const leftMean =
+      leftHalf.reduce((sum, value) => sum + value, 0) / leftHalf.length;
+    const rightMean =
+      rightHalf.reduce((sum, value) => sum + value, 0) / rightHalf.length;
 
     const balance = 1 - Math.abs(leftMean - rightMean) / 255;
     return Math.max(0, balance);
   }
 
-  private analyzeColorHarmony(channels: { red: number[]; green: number[]; blue: number[] }): number {
+  private analyzeColorHarmony(channels: {
+    red: number[];
+    green: number[];
+    blue: number[];
+  }): number {
     // Simulation de l'analyse d'harmonie des couleurs
-    const rMean = channels.red.reduce((sum, value) => sum + value, 0) / channels.red.length;
-    const gMean = channels.green.reduce((sum, value) => sum + value, 0) / channels.green.length;
-    const bMean = channels.blue.reduce((sum, value) => sum + value, 0) / channels.blue.length;
+    const rMean =
+      channels.red.reduce((sum, value) => sum + value, 0) / channels.red.length;
+    const gMean =
+      channels.green.reduce((sum, value) => sum + value, 0) /
+      channels.green.length;
+    const bMean =
+      channels.blue.reduce((sum, value) => sum + value, 0) /
+      channels.blue.length;
 
     // Calculer la variance des couleurs (plus de variance = plus d'harmonie potentielle)
     const colorVariance = this.calculateVariance([rMean, gMean, bMean]);
     return Math.min(1, colorVariance / 10000);
   }
 
-  private calculateSaturation(channels: { red: number[]; green: number[]; blue: number[] }): number {
+  private calculateSaturation(channels: {
+    red: number[];
+    green: number[];
+    blue: number[];
+  }): number {
     let totalSaturation = 0;
     const pixelCount = channels.red.length;
 
@@ -532,7 +647,11 @@ export class PhotoScorer {
     return (totalSaturation / pixelCount) * 100;
   }
 
-  private calculateColorContrast(channels: { red: number[]; green: number[]; blue: number[] }): number {
+  private calculateColorContrast(channels: {
+    red: number[];
+    green: number[];
+    blue: number[];
+  }): number {
     // Simulation du calcul de contraste des couleurs
     const rVariance = this.calculateVariance(channels.red);
     const gVariance = this.calculateVariance(channels.green);
@@ -551,12 +670,27 @@ export class PhotoScorer {
     return (max - min) / 255;
   }
 
-  private calculateLocalMean(grayscale: number[], width: number, height: number, centerX: number, centerY: number, radius: number): number {
+  private calculateLocalMean(
+    grayscale: number[],
+    width: number,
+    height: number,
+    centerX: number,
+    centerY: number,
+    radius: number
+  ): number {
     let sum = 0;
     let count = 0;
 
-    for (let y = Math.max(0, centerY - radius); y < Math.min(height, centerY + radius); y++) {
-      for (let x = Math.max(0, centerX - radius); x < Math.min(width, centerX + radius); x++) {
+    for (
+      let y = Math.max(0, centerY - radius);
+      y < Math.min(height, centerY + radius);
+      y++
+    ) {
+      for (
+        let x = Math.max(0, centerX - radius);
+        x < Math.min(width, centerX + radius);
+        x++
+      ) {
         const pixelIndex = y * width + x;
         sum += grayscale[pixelIndex];
         count++;
@@ -567,18 +701,30 @@ export class PhotoScorer {
   }
 
   // Méthodes de détection (simulations)
-  private async detectFaces(_imageData: Uint8Array, _width: number, _height: number): Promise<number> {
+  private async detectFaces(
+    _imageData: Uint8Array,
+    _width: number,
+    _height: number
+  ): Promise<number> {
     // Simulation de détection de visages
     // Dans une vraie implémentation, on utiliserait face-api.js
     return Math.random() * 0.5 + 0.3; // Simulation
   }
 
-  private async detectEyeOpenness(_imageData: Uint8Array, _width: number, _height: number): Promise<number> {
+  private async detectEyeOpenness(
+    _imageData: Uint8Array,
+    _width: number,
+    _height: number
+  ): Promise<number> {
     // Simulation de détection d'ouverture des yeux
     return Math.random() * 0.4 + 0.6; // Simulation
   }
 
-  private async detectSmile(_imageData: Uint8Array, _width: number, _height: number): Promise<number> {
+  private async detectSmile(
+    _imageData: Uint8Array,
+    _width: number,
+    _height: number
+  ): Promise<number> {
     // Simulation de détection de sourire
     return Math.random() * 0.3 + 0.4; // Simulation
   }
@@ -593,7 +739,11 @@ export class PhotoScorer {
   /**
    * Obtient les statistiques de scoring
    */
-  getStats(): { totalPhotos: number; averageScore: number; recommendations: number } {
+  getStats(): {
+    totalPhotos: number;
+    averageScore: number;
+    recommendations: number;
+  } {
     // Cette méthode devrait être implémentée avec un système de persistance
     return { totalPhotos: 0, averageScore: 0, recommendations: 0 };
   }

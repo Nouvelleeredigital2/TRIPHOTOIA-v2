@@ -9,7 +9,11 @@ import { runWorkerOnce } from '../worker/index';
 const url = process.env.SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 console.log('[e2e] SUPABASE_URL =', url);
-console.log('[e2e] service key present =', Boolean(key), key ? `(len ${key.length})` : '');
+console.log(
+  '[e2e] service key present =',
+  Boolean(key),
+  key ? `(len ${key.length})` : ''
+);
 if (!url || !key) {
   console.error('[e2e] env manquante, abandon');
   process.exit(1);
@@ -20,7 +24,7 @@ const client = createClient(url, key, {
 });
 const processors = createDefaultJobProcessors(
   createEmbedder(process.env),
-  createFaceDetector(process.env),
+  createFaceDetector(process.env)
 );
 
 let processed = 0;

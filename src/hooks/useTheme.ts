@@ -8,7 +8,9 @@ function getInitialTheme(): Theme {
   if (typeof window === 'undefined') return 'light';
   const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
   if (stored === 'dark' || stored === 'light') return stored;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  return window.matchMedia('(prefers-color-scheme: dark)').matches
+    ? 'dark'
+    : 'light';
 }
 
 function applyTheme(theme: Theme) {
@@ -42,7 +44,8 @@ export function useTheme() {
     return () => mq.removeEventListener('change', handler);
   }, []);
 
-  const toggleTheme = () => setThemeState((t) => (t === 'dark' ? 'light' : 'dark'));
+  const toggleTheme = () =>
+    setThemeState((t) => (t === 'dark' ? 'light' : 'dark'));
   const setTheme = (t: Theme) => setThemeState(t);
 
   return { theme, toggleTheme, setTheme };

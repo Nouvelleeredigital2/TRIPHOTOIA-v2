@@ -29,15 +29,15 @@ function PresetRow({
   disabled?: boolean;
 }) {
   return (
-    <div className="group flex items-center gap-1 rounded-md px-2 py-1.5 hover:bg-muted/60 transition-colors">
+    <div className="group flex items-center gap-1 rounded-md px-2 py-1.5 transition-colors hover:bg-muted/60">
       <button
         onClick={onApply}
         disabled={disabled}
-        className="flex-1 text-left text-sm truncate disabled:opacity-50"
+        className="flex-1 truncate text-left text-sm disabled:opacity-50"
         title={preset.name}
       >
         {preset.isBuiltIn && (
-          <Star className="inline-block w-3 h-3 mr-1 text-amber-400 fill-amber-400 shrink-0" />
+          <Star className="mr-1 inline-block h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />
         )}
         {preset.name}
       </button>
@@ -48,17 +48,23 @@ function PresetRow({
             e.stopPropagation();
             onDelete();
           }}
-          className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-muted-foreground hover:text-destructive transition-all"
+          className="rounded p-0.5 text-muted-foreground opacity-0 transition-all hover:text-destructive group-hover:opacity-100"
           title="Supprimer"
         >
-          <Trash2 className="w-3.5 h-3.5" />
+          <Trash2 className="h-3.5 w-3.5" />
         </button>
       )}
     </div>
   );
 }
 
-export function PresetsPanel({ currentOptions, onApplyPreset, onApplyPresetToAll, selectedCount = 1, disabled }: PresetsPanelProps) {
+export function PresetsPanel({
+  currentOptions,
+  onApplyPreset,
+  onApplyPresetToAll,
+  selectedCount = 1,
+  disabled,
+}: PresetsPanelProps) {
   const { getAllPresets, savePreset, deletePreset } = usePresetsStore();
   const allPresets = getAllPresets();
   const builtInPresets = allPresets.filter((p) => p.isBuiltIn);
@@ -68,7 +74,9 @@ export function PresetsPanel({ currentOptions, onApplyPreset, onApplyPresetToAll
   const [userOpen, setUserOpen] = useState(true);
   const [saving, setSaving] = useState(false);
   const [presetName, setPresetName] = useState('');
-  const [presetToDelete, setPresetToDelete] = useState<RetouchPreset | null>(null);
+  const [presetToDelete, setPresetToDelete] = useState<RetouchPreset | null>(
+    null
+  );
 
   const handleSave = () => {
     const name = presetName.trim();
@@ -90,7 +98,9 @@ export function PresetsPanel({ currentOptions, onApplyPreset, onApplyPresetToAll
   const handleApplyToAll = (preset: RetouchPreset) => {
     if (onApplyPresetToAll) {
       onApplyPresetToAll(preset.options);
-      toast.success(`Preset « ${preset.name} » appliqué à ${selectedCount} photos`);
+      toast.success(
+        `Preset « ${preset.name} » appliqué à ${selectedCount} photos`
+      );
     }
   };
 
@@ -115,11 +125,11 @@ export function PresetsPanel({ currentOptions, onApplyPreset, onApplyPresetToAll
         <Button
           size="sm"
           variant="ghost"
-          className="h-6 px-2 text-xs gap-1"
+          className="h-6 gap-1 px-2 text-xs"
           onClick={() => setSaving((v) => !v)}
           disabled={disabled}
         >
-          <Save className="w-3 h-3" />
+          <Save className="h-3 w-3" />
           Sauvegarder
         </Button>
       </div>
@@ -134,11 +144,14 @@ export function PresetsPanel({ currentOptions, onApplyPreset, onApplyPresetToAll
             onChange={(e) => setPresetName(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleSave();
-              if (e.key === 'Escape') { setSaving(false); setPresetName(''); }
+              if (e.key === 'Escape') {
+                setSaving(false);
+                setPresetName('');
+              }
             }}
             className="h-7 text-sm"
           />
-          <Button size="sm" className="h-7 px-2 shrink-0" onClick={handleSave}>
+          <Button size="sm" className="h-7 shrink-0 px-2" onClick={handleSave}>
             OK
           </Button>
         </div>
@@ -147,12 +160,16 @@ export function PresetsPanel({ currentOptions, onApplyPreset, onApplyPresetToAll
       {/* Presets intégrés */}
       <div>
         <button
-          className="flex items-center gap-1 w-full text-xs text-muted-foreground hover:text-foreground py-0.5 transition-colors"
+          className="flex w-full items-center gap-1 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
           onClick={() => setBuiltInOpen((v) => !v)}
         >
-          {builtInOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+          {builtInOpen ? (
+            <ChevronDown className="h-3 w-3" />
+          ) : (
+            <ChevronRight className="h-3 w-3" />
+          )}
           Intégrés
-          <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1">
+          <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">
             {builtInPresets.length}
           </Badge>
         </button>
@@ -174,12 +191,16 @@ export function PresetsPanel({ currentOptions, onApplyPreset, onApplyPresetToAll
       {/* Presets utilisateur */}
       <div>
         <button
-          className="flex items-center gap-1 w-full text-xs text-muted-foreground hover:text-foreground py-0.5 transition-colors"
+          className="flex w-full items-center gap-1 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
           onClick={() => setUserOpen((v) => !v)}
         >
-          {userOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+          {userOpen ? (
+            <ChevronDown className="h-3 w-3" />
+          ) : (
+            <ChevronRight className="h-3 w-3" />
+          )}
           Mes presets
-          <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1">
+          <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">
             {userPresets.length}
           </Badge>
         </button>
@@ -187,13 +208,13 @@ export function PresetsPanel({ currentOptions, onApplyPreset, onApplyPresetToAll
         {userOpen && (
           <div className="mt-1 space-y-0.5">
             {userPresets.length === 0 ? (
-              <p className="text-xs text-muted-foreground px-2 py-1 italic">
+              <p className="px-2 py-1 text-xs italic text-muted-foreground">
                 Aucun preset — sauvegardez vos réglages ci-dessus
               </p>
             ) : (
               userPresets.map((preset) => (
                 <div key={preset.id} className="flex items-center gap-1">
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     <PresetRow
                       preset={preset}
                       onApply={() => handleApply(preset)}
@@ -205,7 +226,7 @@ export function PresetsPanel({ currentOptions, onApplyPreset, onApplyPresetToAll
                     <button
                       onClick={() => handleApplyToAll(preset)}
                       disabled={disabled}
-                      className="shrink-0 text-[10px] text-muted-foreground hover:text-foreground px-1 py-0.5 rounded border border-border hover:border-primary transition-colors disabled:opacity-50"
+                      className="shrink-0 rounded border border-border px-1 py-0.5 text-[10px] text-muted-foreground transition-colors hover:border-primary hover:text-foreground disabled:opacity-50"
                       title={`Appliquer à ${selectedCount} photos`}
                     >
                       ×{selectedCount}
@@ -213,7 +234,6 @@ export function PresetsPanel({ currentOptions, onApplyPreset, onApplyPresetToAll
                   )}
                 </div>
               ))
-
             )}
           </div>
         )}
@@ -221,7 +241,9 @@ export function PresetsPanel({ currentOptions, onApplyPreset, onApplyPresetToAll
 
       <ConfirmationDialog
         open={presetToDelete !== null}
-        onOpenChange={(o) => { if (!o) setPresetToDelete(null); }}
+        onOpenChange={(o) => {
+          if (!o) setPresetToDelete(null);
+        }}
         onConfirm={confirmDelete}
         title="Supprimer ce preset ?"
         description={`Le preset « ${presetToDelete?.name ?? ''} » sera définitivement supprimé. Cette action est irréversible.`}

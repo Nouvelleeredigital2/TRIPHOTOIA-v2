@@ -89,7 +89,10 @@ if (typeof Worker === 'undefined') {
 // ── Blob/File.arrayBuffer ───────────────────────────────────────────────────
 // jsdom n'implémente pas Blob.prototype.arrayBuffer — requis par la persistance
 // du catalogue (catalogue-persistence lit file.arrayBuffer()).
-if (typeof Blob !== 'undefined' && typeof Blob.prototype.arrayBuffer !== 'function') {
+if (
+  typeof Blob !== 'undefined' &&
+  typeof Blob.prototype.arrayBuffer !== 'function'
+) {
   Blob.prototype.arrayBuffer = function arrayBuffer(this: Blob) {
     return new Promise<ArrayBuffer>((resolve, reject) => {
       const reader = new FileReader();

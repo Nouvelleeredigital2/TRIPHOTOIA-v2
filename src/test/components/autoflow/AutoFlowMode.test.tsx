@@ -36,7 +36,7 @@ describe('AutoFlowMode', () => {
           initialPhotoIds={['visible-1']}
           onMutation={onMutation}
           onClose={vi.fn()}
-        />,
+        />
       );
 
       fireEvent.click(screen.getByRole('button', { name: /mode swipe/i }));
@@ -48,7 +48,10 @@ describe('AutoFlowMode', () => {
         vi.advanceTimersByTime(300);
       });
 
-      expect(onMutation).toHaveBeenCalledWith('visible-1', expect.objectContaining({ isPick: true }));
+      expect(onMutation).toHaveBeenCalledWith(
+        'visible-1',
+        expect.objectContaining({ isPick: true })
+      );
       expect(screen.queryByText('HIDDEN.JPG')).not.toBeInTheDocument();
     } finally {
       vi.useRealTimers();
@@ -63,13 +66,28 @@ describe('AutoFlowMode', () => {
       render(
         <AutoFlowMode
           photos={[
-            makePhoto({ id: 'keep-1', cls: 'keep', name: 'KEEP.JPG', score: 92 }),
-            makePhoto({ id: 'reject-1', cls: 'reject', name: 'REJECT.JPG', score: 35 }),
-            makePhoto({ id: 'review-1', cls: 'review', name: 'REVIEW.JPG', score: 64 }),
+            makePhoto({
+              id: 'keep-1',
+              cls: 'keep',
+              name: 'KEEP.JPG',
+              score: 92,
+            }),
+            makePhoto({
+              id: 'reject-1',
+              cls: 'reject',
+              name: 'REJECT.JPG',
+              score: 35,
+            }),
+            makePhoto({
+              id: 'review-1',
+              cls: 'review',
+              name: 'REVIEW.JPG',
+              score: 64,
+            }),
           ]}
           onMutation={onMutation}
           onClose={vi.fn()}
-        />,
+        />
       );
 
       fireEvent.click(screen.getByRole('button', { name: /mode swipe/i }));
@@ -79,14 +97,20 @@ describe('AutoFlowMode', () => {
       await act(async () => {
         vi.advanceTimersByTime(300);
       });
-      expect(onMutation).toHaveBeenCalledWith('review-1', expect.objectContaining({ isPick: true }));
+      expect(onMutation).toHaveBeenCalledWith(
+        'review-1',
+        expect.objectContaining({ isPick: true })
+      );
       expect(screen.getByText('KEEP.JPG')).toBeInTheDocument();
 
       fireEvent.keyDown(window, { key: 'ArrowLeft' });
       await act(async () => {
         vi.advanceTimersByTime(300);
       });
-      expect(onMutation).toHaveBeenCalledWith('keep-1', expect.objectContaining({ isRejected: true }));
+      expect(onMutation).toHaveBeenCalledWith(
+        'keep-1',
+        expect.objectContaining({ isRejected: true })
+      );
       expect(screen.getByText('REJECT.JPG')).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
@@ -105,7 +129,7 @@ describe('AutoFlowMode', () => {
           onMutation={onMutation}
           onDecision={onDecision}
           onClose={vi.fn()}
-        />,
+        />
       );
 
       fireEvent.click(screen.getByRole('button', { name: /mode swipe/i }));
@@ -116,7 +140,12 @@ describe('AutoFlowMode', () => {
 
       expect(onMutation).toHaveBeenCalledWith(
         'review-1',
-        expect.objectContaining({ isPick: true, isFavorite: true, rating: 5, cls: 'keep' }),
+        expect.objectContaining({
+          isPick: true,
+          isFavorite: true,
+          rating: 5,
+          cls: 'keep',
+        })
       );
       expect(onDecision).toHaveBeenCalledWith(
         'review-1',
@@ -127,7 +156,7 @@ describe('AutoFlowMode', () => {
           isFavorite: false,
           rating: 0,
           cls: 'review',
-        }),
+        })
       );
     } finally {
       vi.useRealTimers();
@@ -144,14 +173,17 @@ describe('AutoFlowMode', () => {
         onMutation={onMutation}
         onRating={onRating}
         onClose={vi.fn()}
-      />,
+      />
     );
 
     fireEvent.click(screen.getByRole('button', { name: /mode swipe/i }));
     fireEvent.keyDown(window, { key: '3' });
 
     await waitFor(() =>
-      expect(onMutation).toHaveBeenCalledWith('review-1', expect.objectContaining({ rating: 3 })),
+      expect(onMutation).toHaveBeenCalledWith(
+        'review-1',
+        expect.objectContaining({ rating: 3 })
+      )
     );
     expect(onRating).toHaveBeenCalledWith(
       'review-1',
@@ -162,7 +194,7 @@ describe('AutoFlowMode', () => {
         isFavorite: false,
         rating: 1,
         cls: 'review',
-      }),
+      })
     );
     expect(screen.getByText('DSC_0001.JPG')).toBeInTheDocument();
   });
@@ -176,13 +208,23 @@ describe('AutoFlowMode', () => {
       render(
         <AutoFlowMode
           photos={[
-            makePhoto({ id: 'review-1', cls: 'review', name: 'REVIEW.JPG', rating: 2 }),
-            makePhoto({ id: 'keep-1', cls: 'keep', name: 'KEEP.JPG', score: 92 }),
+            makePhoto({
+              id: 'review-1',
+              cls: 'review',
+              name: 'REVIEW.JPG',
+              rating: 2,
+            }),
+            makePhoto({
+              id: 'keep-1',
+              cls: 'keep',
+              name: 'KEEP.JPG',
+              score: 92,
+            }),
           ]}
           onMutation={onMutation}
           onDecision={onDecision}
           onClose={vi.fn()}
-        />,
+        />
       );
 
       fireEvent.click(screen.getByRole('button', { name: /mode swipe/i }));
@@ -203,7 +245,7 @@ describe('AutoFlowMode', () => {
           isFavorite: false,
           rating: 2,
           cls: 'review',
-        }),
+        })
       );
       expect(onDecision).toHaveBeenLastCalledWith(
         'review-1',
@@ -214,7 +256,7 @@ describe('AutoFlowMode', () => {
           isFavorite: false,
           rating: 2,
           cls: 'keep',
-        }),
+        })
       );
       expect(screen.getByText('REVIEW.JPG')).toBeInTheDocument();
     } finally {
@@ -228,11 +270,18 @@ describe('AutoFlowMode', () => {
 
     render(
       <AutoFlowMode
-        photos={[makePhoto({ id: 'picked-1', cls: 'keep', name: 'PICKED.JPG', isPick: true })]}
+        photos={[
+          makePhoto({
+            id: 'picked-1',
+            cls: 'keep',
+            name: 'PICKED.JPG',
+            isPick: true,
+          }),
+        ]}
         onMutation={onMutation}
         onDecision={onDecision}
         onClose={vi.fn()}
-      />,
+      />
     );
 
     fireEvent.click(screen.getByRole('button', { name: /voir les picks/i }));
@@ -241,7 +290,7 @@ describe('AutoFlowMode', () => {
 
     expect(onMutation).toHaveBeenCalledWith(
       'picked-1',
-      expect.objectContaining({ isPick: false, isRejected: false }),
+      expect.objectContaining({ isPick: false, isRejected: false })
     );
     expect(onDecision).toHaveBeenCalledWith(
       'picked-1',
@@ -251,7 +300,7 @@ describe('AutoFlowMode', () => {
         isRejected: false,
         isFavorite: false,
         cls: 'keep',
-      }),
+      })
     );
   });
 
@@ -283,7 +332,7 @@ describe('AutoFlowMode', () => {
         onMutation={onMutation}
         onDecision={onDecision}
         onClose={vi.fn()}
-      />,
+      />
     );
 
     fireEvent.click(screen.getByText('Doublons détectés'));
@@ -297,7 +346,7 @@ describe('AutoFlowMode', () => {
         isRejected: true,
         isFavorite: false,
         cls: 'review',
-      }),
+      })
     );
     expect(onDecision).toHaveBeenCalledWith(
       'right',
@@ -307,7 +356,7 @@ describe('AutoFlowMode', () => {
         isRejected: false,
         isFavorite: true,
         cls: 'review',
-      }),
+      })
     );
   });
 });

@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { UserMenu } from './components/auth/UserMenu';
 import { ShareView } from './components/ShareView';
+import { parseShareToken } from './lib/share-routing';
 import { ShareDialog } from './components/ShareDialog';
 import { useAuthStore } from './store/authStore';
 import { useCloudSync } from './hooks/useCloudSync';
@@ -69,8 +70,7 @@ const queryClient = new QueryClient({
 /** Détecte si l'URL est une page de partage (#/share/TOKEN) */
 function getShareToken(): string | null {
   const hash = typeof window !== 'undefined' ? window.location.hash : '';
-  const match = hash.match(/^#\/share\/([a-f0-9]+)$/);
-  return match ? match[1] : null;
+  return parseShareToken(hash);
 }
 
 function App() {
@@ -281,8 +281,8 @@ function App() {
 
   /** Apply an AutoFlow mutation back to the store */
   const handleAfMutation = (id: string, changes: Partial<AfPhoto>) => {
-    // Pass the store itself (not a snapshot) so applyAutoFlowMutation re-reads
-    // fresh state between interdependent toggles.
+    // Passe le store (pas un snapshot) : applyAutoFlowMutation re-lit l'état frais
+    // entre les toggles interdépendants (corrige pick/favorite sur photo rejetée).
     applyAutoFlowMutation(id, changes, usePhotoStore);
   };
 
@@ -657,7 +657,7 @@ function App() {
                     {accentPickerOpen && (
                       /* Popover : conteneur qui se ferme au survol sortant ; les options
                          à l'intérieur sont de vrais boutons, le trigger gère le clavier. */
-
+                      /* eslint-disable-next-line jsx-a11y/no-static-element-interactions */
                       <div
                         className="absolute right-0 top-full z-50 mt-2 flex min-w-[160px] flex-col gap-2 rounded-xl border border-border/60 bg-card p-3 shadow-xl"
                         onMouseLeave={() => setAccentPickerOpen(false)}

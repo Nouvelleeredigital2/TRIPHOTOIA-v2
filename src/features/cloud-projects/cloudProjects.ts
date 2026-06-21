@@ -2,7 +2,11 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 
 export type CloudPickStatus = 'unreviewed' | 'pick' | 'reject' | 'review';
-export type CloudAnalysisStatus = 'pending' | 'processing' | 'completed' | 'failed';
+export type CloudAnalysisStatus =
+  | 'pending'
+  | 'processing'
+  | 'completed'
+  | 'failed';
 
 export interface CloudProjectRow {
   id: string;
@@ -56,19 +60,30 @@ export interface CloudProjectSummary extends CloudProjectRow {
   stats: CloudProjectStats;
 }
 
-export function buildProjectStats(projectId: string, photos: CloudPhotoRow[]): CloudProjectStats {
-  const activePhotos = photos.filter((photo) => photo.project_id === projectId && !photo.is_deleted);
+export function buildProjectStats(
+  projectId: string,
+  photos: CloudPhotoRow[]
+): CloudProjectStats {
+  const activePhotos = photos.filter(
+    (photo) => photo.project_id === projectId && !photo.is_deleted
+  );
 
   return {
     totalPhotos: activePhotos.length,
-    analyzed: activePhotos.filter((photo) => photo.analysis_status === 'completed').length,
-    review: activePhotos.filter((photo) => photo.pick_status === 'review').length,
+    analyzed: activePhotos.filter(
+      (photo) => photo.analysis_status === 'completed'
+    ).length,
+    review: activePhotos.filter((photo) => photo.pick_status === 'review')
+      .length,
     picks: activePhotos.filter((photo) => photo.pick_status === 'pick').length,
-    rejected: activePhotos.filter((photo) => photo.pick_status === 'reject').length,
+    rejected: activePhotos.filter((photo) => photo.pick_status === 'reject')
+      .length,
   };
 }
 
-export function sortProjectsByRecentActivity(projects: CloudProjectRow[]): CloudProjectRow[] {
+export function sortProjectsByRecentActivity(
+  projects: CloudProjectRow[]
+): CloudProjectRow[] {
   return [...projects].sort((a, b) => {
     return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
   });
@@ -89,7 +104,9 @@ export function mapCloudPhotoRows(rows: CloudPhotoRow[]): CloudProjectPhoto[] {
     }));
 }
 
-function requireSupabase(client: SupabaseClient | null = supabase): SupabaseClient {
+function requireSupabase(
+  client: SupabaseClient | null = supabase
+): SupabaseClient {
   if (!client) {
     throw new Error('Supabase non configuré');
   }
@@ -108,25 +125,34 @@ export async function fetchCloudProjects(
 
   if (membershipError) throw membershipError;
 
-  const organizationIds = [...new Set((memberships ?? []).map((row) => row.organization_id as string))];
+  const organizationIds = [
+    ...new Set((memberships ?? []).map((row) => row.organization_id as string)),
+  ];
   if (organizationIds.length === 0) return [];
 
   const { data: projects, error: projectError } = await db
     .from('projects')
-    .select('id, organization_id, name, project_type, status, face_analysis_enabled, created_at, updated_at')
+    .select(
+      'id, organization_id, name, project_type, status, face_analysis_enabled, created_at, updated_at'
+    )
     .in('organization_id', organizationIds)
     .eq('status', 'active')
     .order('updated_at', { ascending: false });
 
   if (projectError) throw projectError;
 
-  const typedProjects = sortProjectsByRecentActivity((projects ?? []) as CloudProjectRow[]);
+  const typedProjects = sortProjectsByRecentActivity(
+    (projects ?? []) as CloudProjectRow[]
+  );
   if (typedProjects.length === 0) return [];
 
   const { data: photos, error: photoError } = await db
     .from('photos')
     .select('project_id, pick_status, analysis_status, is_deleted')
-    .in('project_id', typedProjects.map((project) => project.id));
+    .in(
+      'project_id',
+      typedProjects.map((project) => project.id)
+    );
 
   if (photoError) throw photoError;
 
@@ -172,7 +198,7 @@ export async function createCloudProject(
 export async function renameCloudProject(
   projectId: string,
   name: string,
-  client: SupabaseClient | null = supabase,
+  client: SupabaseClient | null = supabase
 ): Promise<CloudProjectRow> {
   const db = requireSupabase(client);
   const { data, error } = await db.rpc('rename_user_project', {
@@ -186,10 +212,12 @@ export async function renameCloudProject(
 /** A-39 : archiver un projet cloud (soft-delete — disparaît de la liste active). */
 export async function archiveCloudProject(
   projectId: string,
-  client: SupabaseClient | null = supabase,
+  client: SupabaseClient | null = supabase
 ): Promise<void> {
   const db = requireSupabase(client);
-  const { error } = await db.rpc('archive_user_project', { p_project_id: projectId });
+  const { error } = await db.rpc('archive_user_project', {
+    p_project_id: projectId,
+  });
   if (error) throw error;
 }
 
@@ -197,7 +225,7 @@ export async function archiveCloudProject(
 export async function setCloudPhotoDeleted(
   photoId: string,
   deleted: boolean,
-  client: SupabaseClient | null = supabase,
+  client: SupabaseClient | null = supabase
 ): Promise<void> {
   const db = requireSupabase(client);
   const { error } = await db.rpc('set_cloud_photo_deleted', {
@@ -213,8 +241,10 @@ export async function setCloudPhotoDeleted(
 export function describeCloudProjectError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
   if (message.includes('duplicate_name')) return 'Un projet porte déjà ce nom.';
-  if (message.includes('empty_name')) return 'Le nom du projet est obligatoire.';
-  if (message.includes('not_authorized')) return "Vous n'avez pas accès à ce projet.";
+  if (message.includes('empty_name'))
+    return 'Le nom du projet est obligatoire.';
+  if (message.includes('not_authorized'))
+    return "Vous n'avez pas accès à ce projet.";
   if (message.includes('project_not_found')) return 'Projet introuvable.';
   if (message.includes('photo_not_found')) return 'Photo introuvable.';
   return message;
@@ -227,7 +257,9 @@ export async function fetchCloudProjectPhotos(
   const db = requireSupabase(client);
   const { data, error } = await db
     .from('photos')
-    .select('id, project_id, original_filename, storage_path, thumbnail_path, pick_status, analysis_status, is_deleted, created_at')
+    .select(
+      'id, project_id, original_filename, storage_path, thumbnail_path, pick_status, analysis_status, is_deleted, created_at'
+    )
     .eq('project_id', projectId)
     .eq('is_deleted', false)
     .order('created_at', { ascending: false });

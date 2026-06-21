@@ -1,6 +1,7 @@
 # 🤖 Notation automatique IA - TRIPHOTOIA
 
 ## Date: 2025-10-01
+
 ## Statut: ✅ 100% IMPLÉMENTÉ
 
 ---
@@ -10,6 +11,7 @@
 **Notation automatique intelligente** basée sur l'analyse IA de chaque photo.
 
 L'algorithme évalue 4 critères principaux :
+
 1. **Netteté** (40%) - Le plus important
 2. **Composition** (30%) - Règle des tiers, symétrie
 3. **Yeux ouverts** (15%) - Pour les portraits
@@ -81,6 +83,7 @@ Score < 0.20  → ☆          (0 étoile - À rejeter)
 **Description** : Seules les meilleures photos obtiennent 5 étoiles
 
 **Distribution** :
+
 - 5% → ⭐⭐⭐⭐⭐ (5 étoiles)
 - 15% → ⭐⭐⭐⭐ (4 étoiles)
 - 30% → ⭐⭐⭐ (3 étoiles)
@@ -94,6 +97,7 @@ Score < 0.20  → ☆          (0 étoile - À rejeter)
 **Description** : Distribution équilibrée des notes
 
 **Distribution** :
+
 - 10% → ⭐⭐⭐⭐⭐ (5 étoiles)
 - 20% → ⭐⭐⭐⭐ (4 étoiles)
 - 30% → ⭐⭐⭐ (3 étoiles)
@@ -107,6 +111,7 @@ Score < 0.20  → ☆          (0 étoile - À rejeter)
 **Description** : Plus de photos avec notes élevées
 
 **Distribution** :
+
 - 15% → ⭐⭐⭐⭐⭐ (5 étoiles)
 - 25% → ⭐⭐⭐⭐ (4 étoiles)
 - 30% → ⭐⭐⭐ (3 étoiles)
@@ -155,6 +160,7 @@ Score < 0.20  → ☆          (0 étoile - À rejeter)
 ### Emplacement
 
 **Onglet Ingestion** :
+
 - Après AnalysisStats
 - Avant DuplicateDetector
 - Visible uniquement si photos analysées
@@ -180,7 +186,7 @@ Score < 0.20  → ☆          (0 étoile - À rejeter)
 
 ```typescript
 // Dans n'importe quel composant
-const autoRatePhoto = usePhotoStore(state => state.autoRatePhoto);
+const autoRatePhoto = usePhotoStore((state) => state.autoRatePhoto);
 
 // Noter une photo
 autoRatePhoto(photoId);
@@ -191,13 +197,13 @@ autoRatePhoto(photoId);
 ### Méthode 3 : Notation par lots programmatique
 
 ```typescript
-const autoRateAllPhotos = usePhotoStore(state => state.autoRateAllPhotos);
+const autoRateAllPhotos = usePhotoStore((state) => state.autoRateAllPhotos);
 
 // Avec preset
-autoRateAllPhotos('strict');    // 5% de 5 étoiles
-autoRateAllPhotos('balanced');  // 10% de 5 étoiles
-autoRateAllPhotos('generous');  // 15% de 5 étoiles
-autoRateAllPhotos('quality');   // Distribution naturelle
+autoRateAllPhotos('strict'); // 5% de 5 étoiles
+autoRateAllPhotos('balanced'); // 10% de 5 étoiles
+autoRateAllPhotos('generous'); // 15% de 5 étoiles
+autoRateAllPhotos('quality'); // Distribution naturelle
 ```
 
 ---
@@ -207,11 +213,13 @@ autoRateAllPhotos('quality');   // Distribution naturelle
 ### Exemple 1 : 100 photos mariage (Preset Généreux)
 
 **Avant** :
+
 ```
 100 photos non notées
 ```
 
 **Après** :
+
 ```
 ⭐⭐⭐⭐⭐ : 15 photos (15%) - Moments clés
 ⭐⭐⭐⭐   : 25 photos (25%) - Excellentes
@@ -221,6 +229,7 @@ autoRateAllPhotos('quality');   // Distribution naturelle
 ```
 
 **Console** :
+
 ```
 🤖 Auto-rating: 100 photos notées (preset: generous)
 📊 Distribution: { 0: 0, 1: 10, 2: 20, 3: 30, 4: 25, 5: 15 }
@@ -229,11 +238,13 @@ autoRateAllPhotos('quality');   // Distribution naturelle
 ### Exemple 2 : 50 photos paysage (Preset Strict)
 
 **Avant** :
+
 ```
 50 photos non notées
 ```
 
 **Après** :
+
 ```
 ⭐⭐⭐⭐⭐ : 3 photos (5%) - Chefs-d'œuvre
 ⭐⭐⭐⭐   : 8 photos (15%) - Excellentes
@@ -245,11 +256,13 @@ autoRateAllPhotos('quality');   // Distribution naturelle
 ### Exemple 3 : 200 photos vacances (Preset Équilibré)
 
 **Avant** :
+
 ```
 200 photos non notées
 ```
 
 **Après** :
+
 ```
 ⭐⭐⭐⭐⭐ : 20 photos (10%) - Excellentes
 ⭐⭐⭐⭐   : 40 photos (20%) - Très bonnes
@@ -333,6 +346,7 @@ Qualité: Professionnelle
 ### Tests effectués
 
 **Test 1: 100 photos mixtes**
+
 ```
 Accord avec notation manuelle: 82%
 Écart moyen: 0.5 étoile
@@ -340,6 +354,7 @@ Temps: < 1 seconde vs 20 minutes
 ```
 
 **Test 2: 50 photos portraits**
+
 ```
 Accord: 88% (yeux ouverts aide)
 Écart moyen: 0.3 étoile
@@ -347,6 +362,7 @@ Temps: < 1 seconde vs 10 minutes
 ```
 
 **Test 3: 200 photos paysages**
+
 ```
 Accord: 78% (composition plus subjective)
 Écart moyen: 0.7 étoile
@@ -356,16 +372,19 @@ Temps: < 1 seconde vs 40 minutes
 ### Facteurs de précision
 
 **Excellente précision** (90%+) :
+
 - ✅ Photos nettes vs floues
 - ✅ Portraits yeux ouverts/fermés
 - ✅ Photos bien/mal exposées
 
 **Bonne précision** (75-90%) :
+
 - ✅ Composition générale
 - ✅ Besoin de retouche
 - ✅ Qualité technique
 
 **Précision moyenne** (60-75%) :
+
 - ⚠️ Émotion/expression
 - ⚠️ Moment décisif
 - ⚠️ Créativité artistique
@@ -422,6 +441,7 @@ autoRatePhoto(photoId);
 ```
 
 **Processus** :
+
 1. Vérifie que photo a une analyse
 2. Calcule score selon 4 critères
 3. Convertit en étoiles (0-5)
@@ -440,6 +460,7 @@ autoRateAllPhotos('balanced');
 ```
 
 **Processus** :
+
 1. Filtre photos analysées
 2. Calcule score pour chacune
 3. Trie par score décroissant
@@ -495,12 +516,12 @@ Précision: 98%
 
 ## 📊 COMPARAISON PRESETS
 
-| Preset | 5⭐ | 4⭐ | 3⭐ | Usage |
-|--------|-----|-----|-----|-------|
-| **Strict** | 5% | 15% | 30% | Portfolio pro |
-| **Équilibré** | 10% | 20% | 30% | Usage général |
-| **Généreux** | 15% | 25% | 30% | Événements |
-| **Qualité** | Variable | Variable | Variable | Tests |
+| Preset        | 5⭐      | 4⭐      | 3⭐      | Usage         |
+| ------------- | -------- | -------- | -------- | ------------- |
+| **Strict**    | 5%       | 15%      | 30%      | Portfolio pro |
+| **Équilibré** | 10%      | 20%      | 30%      | Usage général |
+| **Généreux**  | 15%      | 25%      | 30%      | Événements    |
+| **Qualité**   | Variable | Variable | Variable | Tests         |
 
 ---
 
@@ -549,11 +570,13 @@ Précision: 98%
 ### Productivité
 
 **Gain de temps** :
+
 - 500 photos : 2h → 15 min (87% plus rapide)
 - 100 photos : 30 min → 5 min (83% plus rapide)
 - 50 photos : 15 min → 3 min (80% plus rapide)
 
 **Cohérence** :
+
 - ✅ Critères objectifs constants
 - ✅ Pas de fatigue
 - ✅ Reproductible
@@ -561,11 +584,13 @@ Précision: 98%
 ### Qualité
 
 **Précision** :
+
 - 82% accord avec notation manuelle
 - 95% avec révision top 20%
 - Excellent pour tri initial
 
 **Objectivité** :
+
 - ✅ Basé sur analyse technique
 - ✅ Pas de biais subjectif
 - ✅ Critères mesurables
@@ -634,6 +659,7 @@ Précision: 98%
 **Notation automatique IA : 100% FONCTIONNELLE** ✨
 
 **Fonctionnalités** :
+
 - ✅ 4 presets (Strict, Équilibré, Généreux, Qualité)
 - ✅ Algorithme intelligent (4 critères)
 - ✅ Notation individuelle ou par lots
@@ -654,6 +680,7 @@ Précision: 98%
 ## 🎉 TRIPHOTOIA = LIGHTROOM + IA
 
 L'application dispose maintenant de :
+
 - ✅ Notation manuelle (0-5, P, X)
 - ✅ **Notation automatique IA** ← NOUVEAU
 - ✅ Filtres intelligents

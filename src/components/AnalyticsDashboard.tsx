@@ -69,7 +69,7 @@ export function AnalyticsDashboard({ open, onClose }: AnalyticsDashboardProps) {
 
   return (
     // Backdrop de modale : fermeture au clic extérieur (le clavier ferme via Escape).
-
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
       onClick={(e) => {

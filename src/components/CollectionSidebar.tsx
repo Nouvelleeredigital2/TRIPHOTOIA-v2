@@ -4,7 +4,13 @@ import { usePhotoStore } from '../store/photoStore';
 import { useSmartCollections } from '../store/smartCollectionsSelector';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from './ui/dialog';
 import { Input } from './ui/input';
 import {
   FolderOpen,
@@ -28,7 +34,10 @@ interface CollectionSidebarProps {
   onMobileClose?: () => void;
 }
 
-export function CollectionSidebar({ mobileOpen = false, onMobileClose }: CollectionSidebarProps) {
+export function CollectionSidebar({
+  mobileOpen = false,
+  onMobileClose,
+}: CollectionSidebarProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState('');
@@ -37,20 +46,32 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
   const [creationMessage, setCreationMessage] = useState('');
   const [renameMessage, setRenameMessage] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [collectionToDelete, setCollectionToDelete] = useState<string | null>(null);
-  const [hoveredCollection, setHoveredCollection] = useState<string | null>(null);
+  const [collectionToDelete, setCollectionToDelete] = useState<string | null>(
+    null
+  );
+  const [hoveredCollection, setHoveredCollection] = useState<string | null>(
+    null
+  );
 
   const collections = usePhotoStore((state) => state.collections);
   const collectionOrder = usePhotoStore((state) => state.collectionOrder);
   const activeCollectionId = usePhotoStore((state) => state.activeCollectionId);
-  const activeSmartCollectionId = usePhotoStore((state) => state.activeSmartCollectionId);
+  const activeSmartCollectionId = usePhotoStore(
+    (state) => state.activeSmartCollectionId
+  );
   const createCollection = usePhotoStore((state) => state.createCollection);
-  const applyWeddingTemplate = usePhotoStore((state) => state.applyWeddingTemplate);
+  const applyWeddingTemplate = usePhotoStore(
+    (state) => state.applyWeddingTemplate
+  );
   const renameCollection = usePhotoStore((state) => state.renameCollection);
   const deleteCollection = usePhotoStore((state) => state.deleteCollection);
   const undo = usePhotoStore((state) => state.undo);
-  const setActiveCollection = usePhotoStore((state) => state.setActiveCollection);
-  const setActiveSmartCollection = usePhotoStore((state) => state.setActiveSmartCollection);
+  const setActiveCollection = usePhotoStore(
+    (state) => state.setActiveCollection
+  );
+  const setActiveSmartCollection = usePhotoStore(
+    (state) => state.setActiveSmartCollection
+  );
   const smartCollections = useSmartCollections();
 
   const handleCreateCollection = () => {
@@ -60,7 +81,9 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
       return;
     }
 
-    const existingNames = new Set(collectionOrder.map((id) => collections[id]?.name?.toLowerCase() ?? ''));
+    const existingNames = new Set(
+      collectionOrder.map((id) => collections[id]?.name?.toLowerCase() ?? '')
+    );
     if (existingNames.has(trimmed.toLowerCase())) {
       setCreationMessage('Une collection porte déjà ce nom.');
       return;
@@ -80,8 +103,14 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
       return;
     }
 
-    const existingNames = new Set(collectionOrder.map((id) => collections[id]?.name?.toLowerCase() ?? ''));
-    if (existingNames.has(trimmed.toLowerCase()) && collections[renameCollectionId]?.name.toLowerCase() !== trimmed.toLowerCase()) {
+    const existingNames = new Set(
+      collectionOrder.map((id) => collections[id]?.name?.toLowerCase() ?? '')
+    );
+    if (
+      existingNames.has(trimmed.toLowerCase()) &&
+      collections[renameCollectionId]?.name.toLowerCase() !==
+        trimmed.toLowerCase()
+    ) {
       setRenameMessage('Une autre collection utilise déjà ce nom.');
       return;
     }
@@ -108,17 +137,23 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
       deleteCollection(collectionToDelete);
       setCollectionToDelete(null);
       // A-08 : suppression annulable.
-      toast((t) => (
-        <span className="flex items-center gap-3">
-          Collection supprimée
-          <button
-            onClick={() => { undo(); toast.dismiss(t.id); }}
-            className="px-2 py-0.5 rounded bg-primary/15 hover:bg-primary/25 text-xs font-medium"
-          >
-            Annuler
-          </button>
-        </span>
-      ), { duration: 6000 });
+      toast(
+        (t) => (
+          <span className="flex items-center gap-3">
+            Collection supprimée
+            <button
+              onClick={() => {
+                undo();
+                toast.dismiss(t.id);
+              }}
+              className="rounded bg-primary/15 px-2 py-0.5 text-xs font-medium hover:bg-primary/25"
+            >
+              Annuler
+            </button>
+          </span>
+        ),
+        { duration: 6000 }
+      );
     }
   };
 
@@ -145,13 +180,13 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
       animate={{ x: 0 }}
       exit={{ x: -288 }}
       transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-      className="w-72 bg-card border-r border-border/50 flex flex-col h-full"
+      className="flex h-full w-72 flex-col border-r border-border/50 bg-card"
     >
       {/* Header */}
-      <div className="p-4 border-b border-border/50">
-        <div className="flex items-center justify-between mb-3">
+      <div className="border-b border-border/50 p-4">
+        <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FolderOpen className="w-5 h-5 text-primary" />
+            <FolderOpen className="h-5 w-5 text-primary" />
             <h2 className="font-semibold text-foreground">Collections</h2>
           </div>
           <div className="flex items-center gap-1">
@@ -163,21 +198,26 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
                 className="h-7 w-7 p-0 lg:hidden"
                 onClick={onMobileClose}
               >
-                <X className="w-4 h-4" />
+                <X className="h-4 w-4" />
               </Button>
             )}
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <Dialog
+              open={isCreateDialogOpen}
+              onOpenChange={setIsCreateDialogOpen}
+            >
               <DialogTrigger asChild>
                 <Button
                   size="sm"
                   variant="ghost"
                   className="h-7 w-7 p-0"
                   onClick={() => {
-                    setNewCollectionName(`Collection ${collectionOrder.length + 1}`);
+                    setNewCollectionName(
+                      `Collection ${collectionOrder.length + 1}`
+                    );
                     setCreationMessage('');
                   }}
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="h-4 w-4" />
                 </Button>
               </DialogTrigger>
               <DialogContent description="Formulaire de création d'une nouvelle collection.">
@@ -197,7 +237,9 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
                     autoFocus
                   />
                   {creationMessage && (
-                    <p className="text-sm text-destructive">{creationMessage}</p>
+                    <p className="text-sm text-destructive">
+                      {creationMessage}
+                    </p>
                   )}
                   <div className="flex justify-end gap-2">
                     <Button
@@ -206,9 +248,7 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
                     >
                       Annuler
                     </Button>
-                    <Button onClick={handleCreateCollection}>
-                      Créer
-                    </Button>
+                    <Button onClick={handleCreateCollection}>Créer</Button>
                   </div>
                 </div>
               </DialogContent>
@@ -222,175 +262,186 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
           className="w-full justify-start gap-2"
           onClick={handleApplyWeddingTemplate}
         >
-          <Sparkles className="w-4 h-4" />
+          <Sparkles className="h-4 w-4" />
           Template mariage
         </Button>
       </div>
 
       {/* Collections List */}
-        <div className="flex-1 overflow-y-auto p-2">
-          {/* Smart Collections */}
-          <div className="mb-3">
-            <div className="flex items-center gap-1 px-2 py-1 mb-1">
-              <Zap className="w-3 h-3 text-amber-500" />
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                Collections dynamiques
-              </span>
-            </div>
-            {smartCollections.map((sc) => {
-              const isActive = activeSmartCollectionId === sc.id;
-              // Detect color-label collections by id prefix
-              const colorKey = sc.id.startsWith('sc-') ? sc.id.slice(3) : null;
-              const colorMeta = colorKey && colorKey in COLOR_LABEL_META
+      <div className="flex-1 overflow-y-auto p-2">
+        {/* Smart Collections */}
+        <div className="mb-3">
+          <div className="mb-1 flex items-center gap-1 px-2 py-1">
+            <Zap className="h-3 w-3 text-amber-500" />
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Collections dynamiques
+            </span>
+          </div>
+          {smartCollections.map((sc) => {
+            const isActive = activeSmartCollectionId === sc.id;
+            // Detect color-label collections by id prefix
+            const colorKey = sc.id.startsWith('sc-') ? sc.id.slice(3) : null;
+            const colorMeta =
+              colorKey && colorKey in COLOR_LABEL_META
                 ? COLOR_LABEL_META[colorKey as keyof typeof COLOR_LABEL_META]
                 : null;
 
-              return (
+            return (
+              <div
+                key={sc.id}
+                className={`mb-0.5 flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 transition-all duration-200 ${
+                  isActive
+                    ? 'bg-amber-500/15 font-medium text-amber-700 dark:text-amber-400'
+                    : 'text-foreground hover:bg-muted'
+                } `}
+                role="button"
+                tabIndex={0}
+                onClick={() =>
+                  setActiveSmartCollection(isActive ? null : sc.id)
+                }
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setActiveSmartCollection(isActive ? null : sc.id);
+                  }
+                }}
+              >
+                {colorMeta ? (
+                  <span
+                    className="h-3.5 w-3.5 shrink-0 rounded-full border border-white/30"
+                    style={{ backgroundColor: colorMeta.dot }}
+                  />
+                ) : (
+                  <span className="w-4 text-center text-sm">{sc.icon}</span>
+                )}
+                <span className="flex-1 truncate text-sm">{sc.name}</span>
+                <Badge
+                  variant={isActive ? 'default' : 'secondary'}
+                  className={`flex h-5 min-w-[28px] items-center justify-center text-xs font-semibold ${isActive ? 'bg-amber-500 text-white' : ''}`}
+                >
+                  {sc.count}
+                </Badge>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Séparateur */}
+        <div className="mb-1 flex items-center gap-2 px-2 py-1">
+          <Folder className="h-3 w-3 text-muted-foreground" />
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Mes collections
+          </span>
+        </div>
+
+        <AnimatePresence>
+          {collectionOrder.map((collectionId) => {
+            const collection = collections[collectionId];
+            const photoCount = collection?.photoIds?.length || 0;
+            const isActive = activeCollectionId === collectionId;
+            const isHovered = hoveredCollection === collectionId;
+
+            return (
+              <motion.div
+                key={collectionId}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="mb-1"
+              >
                 <div
-                  key={sc.id}
-                  className={`
-                    flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer
-                    transition-all duration-200 mb-0.5
-                    ${isActive
-                      ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 font-medium'
-                      : 'hover:bg-muted text-foreground'
-                    }
-                  `}
+                  className={`group relative flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 transition-all duration-200 ${
+                    isActive
+                      ? 'bg-primary/10 font-medium text-primary'
+                      : 'text-foreground hover:bg-muted'
+                  } `}
                   role="button"
                   tabIndex={0}
-                  onClick={() => setActiveSmartCollection(isActive ? null : sc.id)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveSmartCollection(isActive ? null : sc.id); } }}
+                  onClick={() => setActiveCollection(collectionId)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setActiveCollection(collectionId);
+                    }
+                  }}
+                  onMouseEnter={() => setHoveredCollection(collectionId)}
+                  onMouseLeave={() => setHoveredCollection(null)}
                 >
-                  {colorMeta ? (
-                    <span
-                      className="w-3.5 h-3.5 rounded-full shrink-0 border border-white/30"
-                      style={{ backgroundColor: colorMeta.dot }}
-                    />
-                  ) : (
-                    <span className="text-sm w-4 text-center">{sc.icon}</span>
-                  )}
-                  <span className="flex-1 text-sm truncate">{sc.name}</span>
+                  {/* Icon */}
+                  <Folder
+                    className={`h-4 w-4 flex-shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`}
+                  />
+
+                  {/* Name */}
+                  <span className="flex-1 truncate text-sm">
+                    {collection?.name || 'Collection sans nom'}
+                  </span>
+
+                  {/* Badge */}
                   <Badge
                     variant={isActive ? 'default' : 'secondary'}
-                    className={`text-xs font-semibold h-5 min-w-[28px] flex items-center justify-center ${isActive ? 'bg-amber-500 text-white' : ''}`}
+                    className="flex h-5 min-w-[28px] items-center justify-center text-xs font-semibold"
                   >
-                    {sc.count}
+                    {photoCount}
                   </Badge>
+
+                  {/* Actions (visible on hover) */}
+                  {(isHovered || isActive) && collectionOrder.length > 1 && (
+                    <div className="ml-1 flex items-center gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0 opacity-0 transition-opacity group-hover:opacity-100"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openRenameDialog(
+                            collectionId,
+                            collection?.name || ''
+                          );
+                        }}
+                      >
+                        <Edit2 className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0 text-destructive opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteCollection(collectionId);
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              );
-            })}
-          </div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+      </div>
 
-          {/* Séparateur */}
-          <div className="flex items-center gap-2 px-2 py-1 mb-1">
-            <Folder className="w-3 h-3 text-muted-foreground" />
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              Mes collections
-            </span>
-          </div>
-
-          <AnimatePresence>
-            {collectionOrder.map((collectionId) => {
-              const collection = collections[collectionId];
-              const photoCount = collection?.photoIds?.length || 0;
-              const isActive = activeCollectionId === collectionId;
-              const isHovered = hoveredCollection === collectionId;
-
-              return (
-                <motion.div
-                  key={collectionId}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="mb-1"
-                >
-                  <div
-                    className={`
-                      group relative flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer
-                      transition-all duration-200
-                      ${isActive
-                        ? 'bg-primary/10 text-primary font-medium'
-                        : 'hover:bg-muted text-foreground'
-                      }
-                    `}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setActiveCollection(collectionId)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveCollection(collectionId); } }}
-                    onMouseEnter={() => setHoveredCollection(collectionId)}
-                    onMouseLeave={() => setHoveredCollection(null)}
-                  >
-                    {/* Icon */}
-                    <Folder
-                      className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`}
-                    />
-
-                    {/* Name */}
-                    <span className="flex-1 text-sm truncate">
-                      {collection?.name || 'Collection sans nom'}
-                    </span>
-
-                    {/* Badge */}
-                    <Badge
-                      variant={isActive ? "default" : "secondary"}
-                      className="text-xs font-semibold h-5 min-w-[28px] flex items-center justify-center"
-                    >
-                      {photoCount}
-                    </Badge>
-
-                    {/* Actions (visible on hover) */}
-                    {(isHovered || isActive) && collectionOrder.length > 1 && (
-                      <div className="flex items-center gap-1 ml-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openRenameDialog(collectionId, collection?.name || '');
-                          }}
-                        >
-                          <Edit2 className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteCollection(collectionId);
-                          }}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
+      {/* Footer Stats */}
+      <div className="border-t border-border/50 p-4 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <ImageIcon className="h-4 w-4" />
+          <span>
+            {collectionOrder.reduce(
+              (acc, id) => acc + (collections[id]?.photoIds?.length || 0),
+              0
+            )}{' '}
+            photos au total
+          </span>
         </div>
-
-        {/* Footer Stats */}
-        <div className="p-4 border-t border-border/50 text-xs text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <ImageIcon className="w-4 h-4" />
-            <span>
-              {collectionOrder.reduce((acc, id) => acc + (collections[id]?.photoIds?.length || 0), 0)} photos au total
-            </span>
-          </div>
-        </div>
-      </motion.aside>
-
+      </div>
+    </motion.aside>
   );
 
   return (
     <>
       {/* Desktop: static sidebar */}
-      <div className="hidden lg:block h-full shrink-0">
-        {sidebarContent}
-      </div>
+      <div className="hidden h-full shrink-0 lg:block">{sidebarContent}</div>
 
       {/* Mobile: overlay drawer */}
       <AnimatePresence>
@@ -413,17 +464,24 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
               animate={{ x: 0 }}
               exit={{ x: -288 }}
               transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-              className="fixed inset-y-0 left-0 z-50 lg:hidden h-full w-72 bg-card border-r border-border/50 flex flex-col"
+              className="fixed inset-y-0 left-0 z-50 flex h-full w-72 flex-col border-r border-border/50 bg-card lg:hidden"
             >
               {/* Header */}
-              <div className="p-4 border-b border-border/50 shrink-0">
-                <div className="flex items-center justify-between mb-3">
+              <div className="shrink-0 border-b border-border/50 p-4">
+                <div className="mb-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <FolderOpen className="w-5 h-5 text-primary" />
-                    <h2 className="font-semibold text-foreground">Collections</h2>
+                    <FolderOpen className="h-5 w-5 text-primary" />
+                    <h2 className="font-semibold text-foreground">
+                      Collections
+                    </h2>
                   </div>
-                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={onMobileClose}>
-                    <X className="w-4 h-4" />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 w-7 p-0"
+                    onClick={onMobileClose}
+                  >
+                    <X className="h-4 w-4" />
                   </Button>
                 </div>
                 <Button
@@ -436,54 +494,104 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
                     onMobileClose?.();
                   }}
                 >
-                  <Sparkles className="w-4 h-4" />
+                  <Sparkles className="h-4 w-4" />
                   Template mariage
                 </Button>
               </div>
               {/* Scrollable body — same as desktop */}
               <div className="flex-1 overflow-y-auto p-2">
                 <div className="mb-3">
-                  <div className="flex items-center gap-1 px-2 py-1 mb-1">
-                    <Zap className="w-3 h-3 text-amber-500" />
-                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Collections dynamiques</span>
+                  <div className="mb-1 flex items-center gap-1 px-2 py-1">
+                    <Zap className="h-3 w-3 text-amber-500" />
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Collections dynamiques
+                    </span>
                   </div>
                   {smartCollections.map((sc) => {
                     const isActive2 = activeSmartCollectionId === sc.id;
                     const ck = sc.id.startsWith('sc-') ? sc.id.slice(3) : null;
-                    const cm = ck && ck in COLOR_LABEL_META ? COLOR_LABEL_META[ck as keyof typeof COLOR_LABEL_META] : null;
+                    const cm =
+                      ck && ck in COLOR_LABEL_META
+                        ? COLOR_LABEL_META[ck as keyof typeof COLOR_LABEL_META]
+                        : null;
                     return (
-                      <div key={sc.id}
-                        className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-all duration-200 mb-0.5 ${isActive2 ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 font-medium' : 'hover:bg-muted text-foreground'}`}
+                      <div
+                        key={sc.id}
+                        className={`mb-0.5 flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 transition-all duration-200 ${isActive2 ? 'bg-amber-500/15 font-medium text-amber-700 dark:text-amber-400' : 'text-foreground hover:bg-muted'}`}
                         role="button"
                         tabIndex={0}
-                        onClick={() => { setActiveSmartCollection(isActive2 ? null : sc.id); onMobileClose?.(); }}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveSmartCollection(isActive2 ? null : sc.id); onMobileClose?.(); } }}
+                        onClick={() => {
+                          setActiveSmartCollection(isActive2 ? null : sc.id);
+                          onMobileClose?.();
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setActiveSmartCollection(isActive2 ? null : sc.id);
+                            onMobileClose?.();
+                          }
+                        }}
                       >
-                        {cm ? <span className="w-3.5 h-3.5 rounded-full shrink-0 border border-white/30" style={{ backgroundColor: cm.dot }} /> : <span className="text-sm w-4 text-center">{sc.icon}</span>}
-                        <span className="flex-1 text-sm truncate">{sc.name}</span>
-                        <Badge variant={isActive2 ? 'default' : 'secondary'} className={`text-xs font-semibold h-5 min-w-[28px] flex items-center justify-center ${isActive2 ? 'bg-amber-500 text-white' : ''}`}>{sc.count}</Badge>
+                        {cm ? (
+                          <span
+                            className="h-3.5 w-3.5 shrink-0 rounded-full border border-white/30"
+                            style={{ backgroundColor: cm.dot }}
+                          />
+                        ) : (
+                          <span className="w-4 text-center text-sm">
+                            {sc.icon}
+                          </span>
+                        )}
+                        <span className="flex-1 truncate text-sm">
+                          {sc.name}
+                        </span>
+                        <Badge
+                          variant={isActive2 ? 'default' : 'secondary'}
+                          className={`flex h-5 min-w-[28px] items-center justify-center text-xs font-semibold ${isActive2 ? 'bg-amber-500 text-white' : ''}`}
+                        >
+                          {sc.count}
+                        </Badge>
                       </div>
                     );
                   })}
                 </div>
-                <div className="flex items-center gap-2 px-2 py-1 mb-1">
-                  <Folder className="w-3 h-3 text-muted-foreground" />
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Mes collections</span>
+                <div className="mb-1 flex items-center gap-2 px-2 py-1">
+                  <Folder className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Mes collections
+                  </span>
                 </div>
                 {collectionOrder.map((cid) => {
                   const col = collections[cid];
                   const isActive2 = activeCollectionId === cid;
                   return (
-                    <div key={cid}
-                      className={`flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition-all duration-200 mb-1 ${isActive2 ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted text-foreground'}`}
+                    <div
+                      key={cid}
+                      className={`mb-1 flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 transition-all duration-200 ${isActive2 ? 'bg-primary/10 font-medium text-primary' : 'text-foreground hover:bg-muted'}`}
                       role="button"
                       tabIndex={0}
-                      onClick={() => { setActiveCollection(cid); onMobileClose?.(); }}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveCollection(cid); onMobileClose?.(); } }}
+                      onClick={() => {
+                        setActiveCollection(cid);
+                        onMobileClose?.();
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setActiveCollection(cid);
+                          onMobileClose?.();
+                        }
+                      }}
                     >
-                      <Folder className={`w-4 h-4 flex-shrink-0 ${isActive2 ? 'text-primary' : 'text-muted-foreground'}`} />
-                      <span className="flex-1 text-sm truncate">{col?.name || 'Collection sans nom'}</span>
-                      <Badge variant={isActive2 ? 'default' : 'secondary'} className="text-xs font-semibold h-5 min-w-[28px] flex items-center justify-center">
+                      <Folder
+                        className={`h-4 w-4 flex-shrink-0 ${isActive2 ? 'text-primary' : 'text-muted-foreground'}`}
+                      />
+                      <span className="flex-1 truncate text-sm">
+                        {col?.name || 'Collection sans nom'}
+                      </span>
+                      <Badge
+                        variant={isActive2 ? 'default' : 'secondary'}
+                        className="flex h-5 min-w-[28px] items-center justify-center text-xs font-semibold"
+                      >
                         {col?.photoIds?.length || 0}
                       </Badge>
                       {/* A-10 : actions toujours visibles sur mobile (pas de hover au tactile) */}
@@ -492,26 +600,26 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="h-7 w-7 p-0 shrink-0"
+                            className="h-7 w-7 shrink-0 p-0"
                             aria-label={`Renommer ${col?.name || 'la collection'}`}
                             onClick={(e) => {
                               e.stopPropagation();
                               openRenameDialog(cid, col?.name || '');
                             }}
                           >
-                            <Edit2 className="w-3.5 h-3.5" />
+                            <Edit2 className="h-3.5 w-3.5" />
                           </Button>
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="h-7 w-7 p-0 shrink-0 text-destructive hover:text-destructive"
+                            className="h-7 w-7 shrink-0 p-0 text-destructive hover:text-destructive"
                             aria-label={`Supprimer ${col?.name || 'la collection'}`}
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDeleteCollection(cid);
                             }}
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </>
                       )}
@@ -519,10 +627,17 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
                   );
                 })}
               </div>
-              <div className="p-4 border-t border-border/50 text-xs text-muted-foreground shrink-0">
+              <div className="shrink-0 border-t border-border/50 p-4 text-xs text-muted-foreground">
                 <div className="flex items-center gap-2">
-                  <ImageIcon className="w-4 h-4" />
-                  <span>{collectionOrder.reduce((acc, id) => acc + (collections[id]?.photoIds?.length || 0), 0)} photos au total</span>
+                  <ImageIcon className="h-4 w-4" />
+                  <span>
+                    {collectionOrder.reduce(
+                      (acc, id) =>
+                        acc + (collections[id]?.photoIds?.length || 0),
+                      0
+                    )}{' '}
+                    photos au total
+                  </span>
                 </div>
               </div>
             </motion.div>
@@ -558,9 +673,7 @@ export function CollectionSidebar({ mobileOpen = false, onMobileClose }: Collect
               >
                 Annuler
               </Button>
-              <Button onClick={handleRenameCollection}>
-                Renommer
-              </Button>
+              <Button onClick={handleRenameCollection}>Renommer</Button>
             </div>
           </div>
         </DialogContent>

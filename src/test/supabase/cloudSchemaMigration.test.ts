@@ -2,7 +2,12 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const migrationPath = join(process.cwd(), 'supabase', 'migrations', '20260528102000_treephoto_cloud_v1.sql');
+const migrationPath = join(
+  process.cwd(),
+  'supabase',
+  'migrations',
+  '20260528102000_treephoto_cloud_v1.sql'
+);
 
 describe('TreePhoto cloud schema migration', () => {
   const sql = readFileSync(migrationPath, 'utf8').toLowerCase();
@@ -23,9 +28,13 @@ describe('TreePhoto cloud schema migration', () => {
   });
 
   it('declares the V1 status constraints used by AutoFlow', () => {
-    expect(sql).toContain("pick_status in ('unreviewed', 'pick', 'reject', 'review')");
+    expect(sql).toContain(
+      "pick_status in ('unreviewed', 'pick', 'reject', 'review')"
+    );
     expect(sql).toContain("autoflow_class in ('keep', 'review', 'reject')");
-    expect(sql).toContain("status in ('pending', 'processing', 'completed', 'failed')");
+    expect(sql).toContain(
+      "status in ('pending', 'processing', 'completed', 'failed')"
+    );
   });
 
   it('enables RLS and member policies on each table', () => {
@@ -39,7 +48,9 @@ describe('TreePhoto cloud schema migration', () => {
       'collection_photos',
       'jobs',
     ].forEach((table) => {
-      expect(sql).toContain(`alter table public.${table} enable row level security`);
+      expect(sql).toContain(
+        `alter table public.${table} enable row level security`
+      );
       expect(sql).toContain(`create policy "${table}_members_select"`);
     });
   });
@@ -52,10 +63,14 @@ describe('TreePhoto cloud schema migration', () => {
   });
 
   it('creates the private project photos storage bucket and policies', () => {
-    expect(sql).toContain("insert into storage.buckets");
+    expect(sql).toContain('insert into storage.buckets');
     expect(sql).toContain("'project-photos'");
     expect(sql).toContain('public.can_access_project_storage_object');
-    expect(sql).toContain('create policy "project_photos_members_insert" on storage.objects');
-    expect(sql).toContain('create policy "project_photos_members_select" on storage.objects');
+    expect(sql).toContain(
+      'create policy "project_photos_members_insert" on storage.objects'
+    );
+    expect(sql).toContain(
+      'create policy "project_photos_members_select" on storage.objects'
+    );
   });
 });

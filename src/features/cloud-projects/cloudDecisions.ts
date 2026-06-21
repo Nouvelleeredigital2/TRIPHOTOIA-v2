@@ -54,16 +54,15 @@ interface PersistCloudAutoFlowRatingParams<TPrevious> {
   previous: TPrevious;
   activeProject: CloudDecisionProjectRef | null;
   getCloudPhotoId: (localPhotoId: string) => string | undefined;
-  updateRating?: (params: {
-    photoId: string;
-    rating: number;
-  }) => Promise<void>;
+  updateRating?: (params: { photoId: string; rating: number }) => Promise<void>;
   onPersisted?: (projectId: string) => void | PromiseLike<void>;
   onRollback: (localPhotoId: string, previous: TPrevious) => void;
   onError?: (message: string) => void;
 }
 
-export function buildCloudDecisionPatch(decision: CloudAutoFlowDecision): CloudDecisionPatch {
+export function buildCloudDecisionPatch(
+  decision: CloudAutoFlowDecision
+): CloudDecisionPatch {
   if (decision === 'reject') {
     return {
       pick_status: 'reject',
@@ -154,7 +153,9 @@ export async function persistCloudAutoFlowDecision<TPrevious>({
     await onPersisted?.(activeProject.id);
   } catch (error) {
     onRollback(localPhotoId, previous);
-    onError?.(error instanceof Error ? error.message : 'Décision cloud non sauvegardée');
+    onError?.(
+      error instanceof Error ? error.message : 'Décision cloud non sauvegardée'
+    );
   }
 }
 
@@ -183,6 +184,8 @@ export async function persistCloudAutoFlowRating<TPrevious>({
     await onPersisted?.(activeProject.id);
   } catch (error) {
     onRollback(localPhotoId, previous);
-    onError?.(error instanceof Error ? error.message : 'Note cloud non sauvegardée');
+    onError?.(
+      error instanceof Error ? error.message : 'Note cloud non sauvegardée'
+    );
   }
 }

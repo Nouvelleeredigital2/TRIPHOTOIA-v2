@@ -9,20 +9,24 @@ Toutes les fonctionnalités de notation façon Lightroom sont maintenant **100% 
 ## 📋 FONCTIONNALITÉS DISPONIBLES
 
 ### ✅ Notation par étoiles (0-5)
+
 - Cliquez sur les étoiles dans PhotoCard
 - Ou utilisez les touches **0-5** du clavier
 - Re-cliquez pour retirer la note
 
 ### ✅ Flags Lightroom
+
 - **P** : Marquer comme Pick (🎯)
 - **X** : Marquer comme Reject (❌)
 - **U** : Retirer tous les flags
 
 ### ✅ Navigation rapide
+
 - **→** : Photo suivante
 - **←** : Photo précédente
 
 ### ✅ Filtres intelligents
+
 - **⭐ 5 étoiles** : Meilleures photos
 - **🎯 Picks** : Photos marquées
 - **❌ Rejetées** : Photos à supprimer
@@ -30,6 +34,7 @@ Toutes les fonctionnalités de notation façon Lightroom sont maintenant **100% 
 - **Doublons** : Groupes similaires
 
 ### ✅ Actions rapides
+
 - **D** : Ajouter à développement
 - Boutons P/X au survol des photos
 
@@ -52,14 +57,14 @@ Toutes les fonctionnalités de notation façon Lightroom sont maintenant **100% 
 1. Aller dans Triage
 2. Cliquer première photo
 3. Trier avec clavier:
-   
+
    Photo excellente    → [5] ⭐⭐⭐⭐⭐
    Photo très bonne    → [4] ⭐⭐⭐⭐
    Photo bonne         → [3] ⭐⭐⭐
    Photo moyenne       → [2] ⭐⭐
    Photo faible        → [1] ⭐
    Photo à supprimer   → [X] ❌
-   
+
 4. Marquer favoris    → [P] 🎯
 5. Photo suivante     → [→]
 6. Photo précédente   → [←]
@@ -109,11 +114,13 @@ Toutes les fonctionnalités de notation façon Lightroom sont maintenant **100% 
 ### Interactions
 
 **Cliquer sur étoiles** :
+
 - 1 clic = Noter
 - Re-clic = Retirer note
 - Hover = Preview
 
 **Boutons au survol** :
+
 - **P** : Toggle Pick (🎯)
 - **X** : Toggle Reject (❌)
 - **+** : Ajouter à collection
@@ -123,32 +130,36 @@ Toutes les fonctionnalités de notation façon Lightroom sont maintenant **100% 
 ## ⌨️ RACCOURCIS CLAVIER COMPLETS
 
 ### Notation
-| Touche | Action | Feedback |
-|--------|--------|----------|
-| **0** | Retirer note | "Note retirée" |
-| **1** | 1 étoile ⭐ | "1 étoile" |
-| **2** | 2 étoiles ⭐⭐ | "2 étoiles" |
-| **3** | 3 étoiles ⭐⭐⭐ | "3 étoiles" |
-| **4** | 4 étoiles ⭐⭐⭐⭐ | "4 étoiles" |
-| **5** | 5 étoiles ⭐⭐⭐⭐⭐ | "5 étoiles" |
+
+| Touche | Action               | Feedback       |
+| ------ | -------------------- | -------------- |
+| **0**  | Retirer note         | "Note retirée" |
+| **1**  | 1 étoile ⭐          | "1 étoile"     |
+| **2**  | 2 étoiles ⭐⭐       | "2 étoiles"    |
+| **3**  | 3 étoiles ⭐⭐⭐     | "3 étoiles"    |
+| **4**  | 4 étoiles ⭐⭐⭐⭐   | "4 étoiles"    |
+| **5**  | 5 étoiles ⭐⭐⭐⭐⭐ | "5 étoiles"    |
 
 ### Flags
-| Touche | Action | Feedback |
-|--------|--------|----------|
-| **P** | Toggle Pick | "🎯 Marqué comme Pick" |
-| **X** | Toggle Reject | "❌ Photo rejetée" |
-| **U** | Retirer flags | "⚪ Flags retirés" |
+
+| Touche | Action        | Feedback               |
+| ------ | ------------- | ---------------------- |
+| **P**  | Toggle Pick   | "🎯 Marqué comme Pick" |
+| **X**  | Toggle Reject | "❌ Photo rejetée"     |
+| **U**  | Retirer flags | "⚪ Flags retirés"     |
 
 ### Navigation
-| Touche | Action |
-|--------|--------|
-| **→** | Photo suivante |
-| **←** | Photo précédente |
+
+| Touche | Action           |
+| ------ | ---------------- |
+| **→**  | Photo suivante   |
+| **←**  | Photo précédente |
 
 ### Actions
-| Touche | Action | Feedback |
-|--------|--------|----------|
-| **D** | Développement | "Ajouté à la sélection" |
+
+| Touche | Action        | Feedback                |
+| ------ | ------------- | ----------------------- |
+| **D**  | Développement | "Ajouté à la sélection" |
 
 ---
 
@@ -173,6 +184,7 @@ Photo 10.jpg  → [5]      ⭐⭐⭐⭐⭐ (Excellente)
 ### Résultats
 
 **Statistiques** :
+
 - 3 photos 5 étoiles (15%)
 - 3 Picks (15%)
 - 3 Rejetées (15%)
@@ -204,15 +216,15 @@ Photo 10.jpg  → [5]      ⭐⭐⭐⭐⭐ (Excellente)
 ```
 1. Premier passage:
    - [X] pour floues/doublons
-   
+
 2. Deuxième passage:
    - [5] pour excellentes
    - [4] pour très bonnes
    - [3] pour bonnes
-   
+
 3. Troisième passage:
    - [P] pour favoris (dans 4-5 étoiles)
-   
+
 4. Filtrer et développer
 ```
 
@@ -221,23 +233,23 @@ Photo 10.jpg  → [5]      ⭐⭐⭐⭐⭐ (Excellente)
 ```
 1. Élimination:
    - [X] floues, mal cadrées, doublons
-   
+
 2. Notation complète:
    - [5] chefs-d'œuvre
    - [4] excellentes
    - [3] bonnes
    - [2] moyennes
    - [1] faibles
-   
+
 3. Sélection finale:
    - [P] sur 5 étoiles pour portfolio
    - [P] sur 4 étoiles pour réseaux sociaux
-   
+
 4. Organisation:
    - Collection "Portfolio" (Picks 5 étoiles)
    - Collection "Instagram" (Picks 4-5 étoiles)
    - Collection "Archives" (3 étoiles)
-   
+
 5. Développement par lots:
    - Filtrer par note
    - Développer avec presets
@@ -250,12 +262,14 @@ Photo 10.jpg  → [5]      ⭐⭐⭐⭐⭐ (Excellente)
 ### 1. Triage en deux passes
 
 **Première passe** : Élimination rapide
+
 ```
 Parcourir toutes → [X] pour mauvaises
 Temps: 2 min pour 50 photos
 ```
 
 **Deuxième passe** : Notation détaillée
+
 ```
 Photos restantes → Noter 1-5
 Temps: 5 min pour 30 photos
@@ -305,6 +319,7 @@ Paysage:
 ### Adapter à votre style
 
 **Photographe portrait** :
+
 ```
 5 étoiles = Expression parfaite
 4 étoiles = Bonne expression
@@ -315,6 +330,7 @@ X = Yeux fermés, flou
 ```
 
 **Photographe paysage** :
+
 ```
 5 étoiles = Lumière exceptionnelle
 4 étoiles = Bonne lumière
@@ -325,6 +341,7 @@ X = Surexposée, sous-exposée
 ```
 
 **Photographe événement** :
+
 ```
 5 étoiles + P = Moments clés
 4 étoiles + P = Moments importants
@@ -355,16 +372,19 @@ L'interface affiche automatiquement :
 ## ✅ CHECKLIST COMPLÈTE
 
 ### Avant de commencer
+
 - [ ] Photos importées
 - [ ] Analyse terminée
 - [ ] Onglet Triage ouvert
 
 ### Pendant le triage
+
 - [ ] Photo sélectionnée (clic)
 - [ ] Raccourcis clavier actifs
 - [ ] Toasts de confirmation visibles
 
 ### Après le triage
+
 - [ ] Filtrer "⭐ 5 étoiles"
 - [ ] Vérifier Picks
 - [ ] Supprimer Rejetées
@@ -442,11 +462,13 @@ R: Non, ils sont mutuellement exclusifs
 TRIPHOTOIA dispose maintenant d'un **système de notation professionnel** identique à Lightroom !
 
 **Workflow ultra-rapide** :
+
 - Trier 100 photos en 10 minutes
 - Filtrer instantanément
 - Développer les meilleures
 
 **Prochaines améliorations possibles** :
+
 - Mode plein écran (F)
 - Comparaison A/B (C)
 - Collections intelligentes auto

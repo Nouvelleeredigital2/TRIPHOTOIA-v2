@@ -13,6 +13,7 @@ npm install
 ```
 
 Cette commande installera les nouvelles dépendances ajoutées:
+
 - `jszip` - Pour l'export ZIP
 - `react-hook-form` - Pour la gestion des formulaires
 - `zod` - Pour la validation des schémas
@@ -32,6 +33,7 @@ L'application sera accessible sur `http://localhost:5173`
 ### ✅ 1. Export Réel (CRITIQUE)
 
 **Comment tester:**
+
 1. Charger des photos dans l'onglet "1. Ingestion"
 2. Attendre que l'analyse IA se termine
 3. Aller dans l'onglet "3. Exportation"
@@ -51,6 +53,7 @@ L'application sera accessible sur `http://localhost:5173`
 #### A. Suppression de Collection
 
 **Comment tester:**
+
 1. Créer plusieurs collections
 2. Cliquer sur l'icône poubelle 🗑️ d'une collection
 3. **Résultat attendu:** Dialog de confirmation s'affiche
@@ -60,6 +63,7 @@ L'application sera accessible sur `http://localhost:5173`
 #### B. Reset Réglages Retouche
 
 **Comment tester:**
+
 1. Aller dans l'onglet "2. Triage"
 2. Sélectionner des photos
 3. Cliquer sur "Développer les photos sélectionnées"
@@ -75,19 +79,24 @@ L'application sera accessible sur `http://localhost:5173`
 **Comment tester:**
 
 #### Première méthode (Navigation privée)
+
 1. Ouvrir l'application en navigation privée
 2. **Résultat attendu:** Le tour guidé s'affiche automatiquement après 1 seconde
 
 #### Deuxième méthode (Effacer localStorage)
+
 1. Ouvrir les DevTools (F12)
 2. Console → Taper:
+
 ```javascript
 localStorage.removeItem('triphotoia-onboarding-completed');
 location.reload();
 ```
+
 3. **Résultat attendu:** Le tour guidé s'affiche
 
 #### Fonctionnalités à tester:
+
 - ✅ 7 étapes guidées
 - ✅ Barre de progression
 - ✅ Navigation "Suivant" / "Précédent"
@@ -109,10 +118,11 @@ import { Tooltip } from './components/ui/tooltip';
 
 <Tooltip content="Description de l'action" side="top">
   <Button>Mon Bouton</Button>
-</Tooltip>
+</Tooltip>;
 ```
 
 **Props:**
+
 - `content`: string - Texte du tooltip
 - `side`: 'top' | 'right' | 'bottom' | 'left' - Position
 - `className`: string (optionnel) - Classes CSS additionnelles
@@ -123,7 +133,7 @@ import { Tooltip } from './components/ui/tooltip';
 // Dans un composant existant
 <Tooltip content="Télécharger les photos sélectionnées" side="bottom">
   <Button onClick={handleExport}>
-    <Download className="w-4 h-4" />
+    <Download className="h-4 w-4" />
   </Button>
 </Tooltip>
 ```
@@ -159,12 +169,14 @@ Nouvelles classes Tailwind disponibles:
 ```
 
 **Variantes disponibles:**
+
 - `bg-success` / `text-success` / `border-success`
 - `bg-warning` / `text-warning` / `border-warning`
 - `bg-info` / `text-info` / `border-info`
 - `bg-error` / `text-error` / `border-error`
 
 **Avec foreground:**
+
 - `bg-success text-success-foreground`
 - `bg-warning text-warning-foreground`
 - `bg-info text-info-foreground`
@@ -177,6 +189,7 @@ Nouvelles classes Tailwind disponibles:
 ### Erreur: Cannot find module 'jszip'
 
 **Solution:**
+
 ```bash
 npm install
 ```
@@ -184,6 +197,7 @@ npm install
 ### Erreur: Cannot find module 'react-hook-form' ou 'zod'
 
 **Solution:**
+
 ```bash
 npm install
 ```
@@ -191,7 +205,9 @@ npm install
 ### L'onboarding ne s'affiche pas
 
 **Solutions:**
+
 1. Effacer localStorage:
+
 ```javascript
 localStorage.removeItem('triphotoia-onboarding-completed');
 location.reload();
@@ -202,6 +218,7 @@ location.reload();
 ### L'export ne fonctionne pas
 
 **Vérifications:**
+
 1. Vérifier que jszip est installé: `npm list jszip`
 2. Vérifier la console pour erreurs
 3. Tester avec quelques photos d'abord (pas 1000+)
@@ -290,7 +307,7 @@ function MyComponent() {
   return (
     <Tooltip content="Supprimer la photo" side="top">
       <Button variant="destructive" size="icon">
-        <Trash2 className="w-4 h-4" />
+        <Trash2 className="h-4 w-4" />
       </Button>
     </Tooltip>
   );
@@ -313,9 +330,7 @@ function MyComponent() {
 
   return (
     <>
-      <Button onClick={() => setIsOpen(true)}>
-        Supprimer
-      </Button>
+      <Button onClick={() => setIsOpen(true)}>Supprimer</Button>
 
       <ConfirmationDialog
         open={isOpen}
@@ -351,11 +366,7 @@ function StatusBadge({ status }: { status: string }) {
     }
   };
 
-  return (
-    <Badge className={getStatusClass()}>
-      {status}
-    </Badge>
-  );
+  return <Badge className={getStatusClass()}>{status}</Badge>;
 }
 ```
 
@@ -364,6 +375,7 @@ function StatusBadge({ status }: { status: string }) {
 ## 📚 DOCUMENTATION COMPLÈTE
 
 Pour plus de détails, consultez:
+
 - `AUDIT_UI_UX.md` - Audit complet de l'application
 - `AMELIORATIONS_IMPLEMENTEES.md` - Détails des améliorations
 - `README.md` - Documentation générale du projet
@@ -373,9 +385,11 @@ Pour plus de détails, consultez:
 ## 🆘 SUPPORT
 
 En cas de problème:
+
 1. Vérifier que `npm install` a été exécuté
 2. Vérifier la version de Node.js (>= 18)
 3. Effacer `node_modules` et réinstaller:
+
 ```bash
 rm -rf node_modules package-lock.json
 npm install

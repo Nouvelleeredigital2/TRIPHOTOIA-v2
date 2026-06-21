@@ -31,12 +31,23 @@ describe('AutoFlowDupCompare', () => {
     render(
       <AutoFlowDupCompare
         photos={[
-          makePhoto({ id: 'left', name: 'LEFT.JPG', isRejected: true, score: 80 }),
-          makePhoto({ id: 'right', name: 'RIGHT.JPG', isPick: true, isFavorite: true, score: 90 }),
+          makePhoto({
+            id: 'left',
+            name: 'LEFT.JPG',
+            isRejected: true,
+            score: 80,
+          }),
+          makePhoto({
+            id: 'right',
+            name: 'RIGHT.JPG',
+            isPick: true,
+            isFavorite: true,
+            score: 90,
+          }),
         ]}
         onDecision={onDecision}
         onBack={onBack}
-      />,
+      />
     );
 
     expect(screen.getByText('LEFT.JPG')).toBeInTheDocument();
@@ -51,7 +62,7 @@ describe('AutoFlowDupCompare', () => {
         isRejected: false,
         isFavorite: false,
         cls: 'keep',
-      }),
+      })
     );
     expect(onDecision).toHaveBeenCalledWith(
       'right',
@@ -60,7 +71,7 @@ describe('AutoFlowDupCompare', () => {
         isRejected: true,
         isFavorite: false,
         cls: 'reject',
-      }),
+      })
     );
     expect(onBack).toHaveBeenCalled();
   });
@@ -77,18 +88,22 @@ describe('AutoFlowDupCompare', () => {
         ]}
         onDecision={onDecision}
         onBack={onBack}
-      />,
+      />
     );
 
     fireEvent.keyDown(window, { key: 'ArrowRight' });
 
     expect(onDecision).toHaveBeenCalledWith(
       'right',
-      expect.objectContaining({ isPick: true, isRejected: false, cls: 'keep' }),
+      expect.objectContaining({ isPick: true, isRejected: false, cls: 'keep' })
     );
     expect(onDecision).toHaveBeenCalledWith(
       'left',
-      expect.objectContaining({ isPick: false, isRejected: true, cls: 'reject' }),
+      expect.objectContaining({
+        isPick: false,
+        isRejected: true,
+        cls: 'reject',
+      })
     );
     expect(onBack).toHaveBeenCalled();
   });
@@ -105,7 +120,7 @@ describe('AutoFlowDupCompare', () => {
         ]}
         onDecision={onDecision}
         onBack={onBack}
-      />,
+      />
     );
 
     fireEvent.keyDown(window, { key: 'Enter' });

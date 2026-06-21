@@ -36,11 +36,12 @@ export const PerformanceDebugDialog: React.FC = () => {
 
   // `metrics` est un déclencheur de recalcul volontaire : il est mis à jour à
   // chaque tick de polling pour rafraîchir les stats (lues depuis le tracker).
-
+  /* eslint-disable react-hooks/exhaustive-deps */
   const stats = useMemo(
     () => performanceTracker.getPerformanceStats(),
     [metrics]
   );
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   useEffect(() => {
     if (!open) {

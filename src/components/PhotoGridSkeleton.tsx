@@ -11,7 +11,7 @@ function PhotoCardSkeleton() {
       {/* Miniature */}
       <Skeleton className="aspect-square w-full rounded-none" />
       {/* Infos */}
-      <div className="p-3 space-y-2">
+      <div className="space-y-2 p-3">
         <Skeleton className="h-4 w-3/4" />
         <Skeleton className="h-3 w-1/3" />
         <div className="flex gap-1 pt-1">
@@ -34,7 +34,10 @@ interface PhotoGridSkeletonProps {
  * Grille de cartes skeleton — utilisée lors du chargement paresseux des onglets
  * ou pendant l'analyse d'un batch de photos.
  */
-export function PhotoGridSkeleton({ count = 12, label }: PhotoGridSkeletonProps) {
+export function PhotoGridSkeleton({
+  count = 12,
+  label,
+}: PhotoGridSkeletonProps) {
   return (
     <div className="space-y-4">
       {/* Barre de filtres skeleton */}
@@ -46,14 +49,14 @@ export function PhotoGridSkeleton({ count = 12, label }: PhotoGridSkeletonProps)
       </div>
 
       {/* Grille de cartes */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {Array.from({ length: count }).map((_, i) => (
           <PhotoCardSkeleton key={i} />
         ))}
       </div>
 
       {label && (
-        <p className="text-center text-sm text-muted-foreground animate-pulse">
+        <p className="animate-pulse text-center text-sm text-muted-foreground">
           {label}
         </p>
       )}
@@ -68,11 +71,11 @@ export function AnalyzingBadgeSkeleton() {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px]">
       {/* Shimmer ring */}
-      <div className="relative w-10 h-10">
+      <div className="relative h-10 w-10">
         <div className="absolute inset-0 rounded-full border-2 border-primary/30" />
-        <div className="absolute inset-0 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        <div className="absolute inset-0 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
-      <span className="mt-2 text-xs text-white font-medium">Analyse…</span>
+      <span className="mt-2 text-xs font-medium text-white">Analyse…</span>
     </div>
   );
 }

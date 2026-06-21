@@ -36,19 +36,43 @@ const baseConfig = {
     'react/no-unescaped-entities': 'off',
     'no-unused-vars': 'off',
     'no-undef': 'off',
-    '@typescript-eslint/no-unused-vars': 'off',
-    '@typescript-eslint/no-explicit-any': 'off',
-    'react-hooks/exhaustive-deps': 'off',
-    'jsx-a11y/anchor-is-valid': 'off',
-    'jsx-a11y/click-events-have-key-events': 'off',
-    'jsx-a11y/label-has-associated-control': 'off',
+    // P2-4 (audit) : réactivation progressive. ACTIFS : no-unused-vars,
+    // no-explicit-any (exceptions ciblées pour transformers.js + query-builder
+    // Supabase), react-hooks/exhaustive-deps (exceptions pour effets à ref +
+    // recalculs volontaires).
+    // Accessibilité : règles actives. Les vrais éléments interactifs ont reçu
+    // role/tabIndex/clavier ; les surfaces de geste/backdrop/wrapper ont des
+    // exceptions ciblées documentées au cas par cas.
+    '@typescript-eslint/no-unused-vars': [
+      'error',
+      {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrors: 'none',
+      },
+    ],
+    '@typescript-eslint/no-explicit-any': 'error',
+    'react-hooks/exhaustive-deps': 'error',
+    'jsx-a11y/anchor-is-valid': 'error',
+    'jsx-a11y/click-events-have-key-events': 'error',
+    'jsx-a11y/label-has-associated-control': 'error',
+    // no-autofocus laissé off : autofocus volontaire (champs de modale
+    // création/renommage) — UX assumée plutôt que désactivations dispersées.
     'jsx-a11y/no-autofocus': 'off',
-    'jsx-a11y/no-static-element-interactions': 'off',
+    'jsx-a11y/no-static-element-interactions': 'error',
   },
 };
 
 export default [
-  { ignores: ['dist/', 'node_modules/', 'coverage/', 'src/lib/computer-vision/', 'components/', 'App.tsx', 'index.tsx', 'services/', 'test-cv.js', 'supabase/'] },
+  {
+    ignores: [
+      'dist/',
+      'node_modules/',
+      'coverage/',
+      'index.tsx',
+      'supabase/functions/',
+    ],
+  },
   js.configs.recommended,
   {
     ...baseConfig,

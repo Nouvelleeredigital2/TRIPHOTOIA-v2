@@ -385,7 +385,7 @@ export function FullscreenViewer({
 
         {/* Image principale — zone zoom + pan. Surface de geste (molette/drag),
             pas un bouton ; le zoom clavier (+/-) est géré par l'effet keydown global. */}
-        {}
+        {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
         <div
           ref={containerRef}
           className="absolute inset-0 flex items-center justify-center overflow-hidden p-16"

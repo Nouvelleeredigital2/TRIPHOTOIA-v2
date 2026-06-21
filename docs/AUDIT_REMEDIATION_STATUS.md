@@ -1,0 +1,199 @@
+# Statut de remédiation — TreePhoto
+
+Suivi des corrections P0/P1 du prompt maître de remédiation. Mis à jour à la fin
+de chaque phase. Aucune commande n'est marquée « verte » sans exécution réelle.
+
+## Légende statut
+
+- ✅ terminé et vérifié
+- 🟡 en cours / partiel
+- ⬜ non commencé
+
+## Environnement
+
+- Gestionnaire de paquets : `pnpm@10.22.0`.
+- **Contamination workspace** : un `pnpm-workspace.yaml` parasite dans le dossier
+  personnel (`C:/Users/<user>/`) faisait remonter pnpm hors du projet et installait
+  les dépendances dans le `node_modules` du dossier personnel → toolchain local
+  cassé (vitest/eslint/tsc introuvables par intermittence). Contourné via
+  `pnpm install --ignore-workspace`. Action recommandée : supprimer ou isoler ce
+  workspace parasite côté poste.
+- **Lockfile désynchronisé (préexistant)** : `pnpm-lock.yaml` épinglait
+  `@types/react`/`@types/react-dom` en `^18.x` alors que `package.json` déclare
+  `^19.0.0`. Réconcilié (install non-frozen ciblé, aucune montée de version
+  applicative). `pnpm-lock.yaml` est donc modifié.
+- `.npmrc` ajouté (`node-linker=hoisted`) pour fiabiliser l'installation sous
+  Windows (évite les liens symboliques non matérialisés).
+
+## P0 — Bloquants
+
+### P0-A — Unifier le graphe de code actif ✅
+
+| Élément                                                                      | Statut                                               |
+| ---------------------------------------------------------------------------- | ---------------------------------------------------- |
+| Imports `src/` → ancien dossier racine `services/` supprimés                 | ✅                                                   |
+| Façade unique `src/services/geminiService.ts` (local only)                   | ✅                                                   |
+| Providers `replicate`/`clarifai`/`huggingface` retirés de l'union et de l'UI | ✅                                                   |
+| Champ clé API frontend retiré (`ApiSelector`)                                | ✅                                                   |
+| Suppression racine `services/`, `components/`, `App.tsx`, `types.ts`         | ✅                                                   |
+| `tsconfig.json` / `eslint.config.js` nettoyés des chemins supprimés          | ✅                                                   |
+| Test garde-fou anti-import hors `src/`                                       | ✅ `src/test/architecture/no-legacy-imports.test.ts` |
+| `.gitignore` : ajout `coverage`                                              | ✅                                                   |
+
+Fichiers modifiés : `src/services/geminiService.ts`, `src/services/localAnalysisService.ts`,
+`src/services/simpleAnalysisService.ts`, `src/hooks/usePhotoAnalysis.ts`,
+`src/components/ApiSelector.tsx`, `src/test/hooks/usePhotoAnalysis.test.tsx`,
+`tsconfig.json`, `eslint.config.js`, `.gitignore`. Supprimés : `services/`,
+`components/`, `App.tsx`, `types.ts`.
+
+Vérifs : `pnpm type-check` exit 0 ; greps d'acceptation (services racine, stubs
+Replicate/Clarifai/hf_demo, `api-inference.huggingface.co`) → 0 occurrence.
+
+### P0-B — Supprimer les simulations et tracer la provenance ✅
+
+| Élément                                                                                | Statut        |
+| -------------------------------------------------------------------------------------- | ------------- |
+| Suppression du worker simulé `src/workers/simpleImageWorker.ts`                        | ✅ supprimé   |
+| Suppression du fallback silencieux vers scores fabriqués (worker simple)               | ✅            |
+| `Math.random()` retiré des chemins d'analyse (`src/services`, `src/workers`, `worker`) | ✅ (grep = 0) |
+| Résultat par fichier (`Promise.allSettled`, fallback local réel par photo)             | ✅            |
+| Modèle de provenance (`AnalysisMode` / `AnalysisProvenance` dans `src/types`)          | ✅            |
+| Provenance attachée par le moteur local réel (`local-pixel`, `confidence: null`)       | ✅            |
+| Validation Zod à la frontière (`validateAnalysisResult` dans la façade)                | ✅            |
+| Rejet NaN/Infinity/hors plage + sans provenance → erreur structurée                    | ✅ (tests)    |
+| Mode `demo` interdit en production / providers distants non sélectionnables            | ✅ (tests)    |
+
+Tests : `src/test/services/analysisProvenance.test.ts` (6 cas).
+
+### P0-C — Réduire mémoire et CPU du pipeline image ✅
+
+| Élément                                                                  | Statut            |
+| ------------------------------------------------------------------------ | ----------------- |
+| `createImageBitmap(file)` direct (plus de copie ArrayBuffer→Blob)        | ✅                |
+| Fermeture du bitmap dans `finally`                                       | ✅                |
+| Redimensionnement borné (≤ 1600 px, ratio conservé) avant `getImageData` | ✅                |
+| `OffscreenCanvas` dans le worker                                         | ✅ (déjà présent) |
+| Calcul du flou une seule fois                                            | ✅                |
+| Garde dimensions nulles / invalides                                      | ✅                |
+| Pool borné `max(1, min(4, cœurs-1))`                                     | ✅                |
+| Remplacement d'un worker fautif à l'index, sans croissance du pool       | ✅                |
+| Timeout isolé à une photo + terminaison du worker bloqué                 | ✅                |
+| `dispose()` (termine tout, rejette les tâches en attente)                | ✅                |
+| Annulation `AbortSignal` (photo annulée → erreur, pas de fallback/score) | ✅ (tests)        |
+
+Tests : `src/test/services/workerAnalysisService.test.ts` (pool borné,
+remplacement sans croissance, `dispose`). Échantillonnage pixel + fermeture
+bitmap couverts par revue de code (worker non instrumentable sous jsdom).
+
+## P1 — Critiques
+
+- P1-A Politique d'import unique ✅ — `src/lib/import-policy.ts` (extension +
+  taille + signature magic bytes + refus RAW + cap lot, motifs de refus
+  détaillés), branchée sur le puits commun `handleFilesSelected` (Studio Grid +
+  AutoFlow) ; `calculateFileHash` ne retourne plus jamais `''` (lève → fichier
+  rejeté) ; URL blob créée seulement pour une photo unique (pas de fuite sur
+  refus/doublon). Tests : `src/test/lib/import-policy.test.ts`.
+- P1-B Retrait API IA / secrets navigateur ✅ — HF/3rd-party retiré (P0-A) ;
+  CSP `vercel.json` déjà minimale (pas de `*`, scope `self` + `*.supabase.co`) ;
+  `.env.example` distingue clairement `VITE_*` client et vars serveur ;
+  `readSupabaseConfig` lève si une clé service-role `VITE_*` est présente ;
+  garde statique `src/test/architecture/no-server-env-in-src.test.ts`.
+- P1-C Partage client privé et révocable ✅ (comportement sûr §10.8) — migration
+  `20260617120000_treephoto_private_shared_bucket` **appliquée sur le projet
+  live** : bucket `shared-photos` passé en privé (`public=false`, vérifié) +
+  policy `shared_photos_owner_select` (lecture propriétaire authentifié pour
+  URLs signées). Frontend : `getSharedPhotoUrl` n'émet plus d'URL publique
+  durable (retourne `null` → la galerie affiche un placeholder) ;
+  `getSignedSharedPhotoUrl` ajoutée (URL signée courte, propriétaire).
+  **Conséquence : le partage anonyme par image est désactivé** tant qu'une edge
+  function ne valide pas le token serveur pour émettre des URLs signées. Reste :
+  dérivé JPEG/WebP avec strip EXIF + purge planifiée des objets expirés/orphelins
+  (nécessitent une edge function/cron).
+- P1-D Upload cloud compensé ✅ — compensation Storage si l'enregistrement DB
+  échoue (`cloudUpload.ts`) ; chemin déjà validé serveur par `register_cloud_photo`.
+  Test de compensation ajouté.
+- P1-E Reprise des jobs cloud ✅ — migration
+  `20260617130000_treephoto_job_retry_dlq` **appliquée sur le live** :
+  `max_attempts` (défaut 5), statut `dead_letter`, RPC atomiques
+  `fail_or_retry_job` (backoff exponentiel borné à 1 h, puis DLQ) et
+  `reclaim_stuck_jobs` (lock expiré → requeue). Worker rebranché :
+  `markJobFailed` délègue à `fail_or_retry_job`, la boucle appelle
+  `reclaim_stuck_jobs` (lease 300 s) à intervalle borné. Le claim atomique
+  `FOR UPDATE SKIP LOCKED` existant est conservé. Tests :
+  `src/test/worker/jobRetry.test.ts`.
+- P1-F Validation runtime et mémoire durable 🟡 (cœur fait) — `undoStack`
+  plafonné (`UNDO_STACK_LIMIT = 30`) avec libération des URL blob des
+  `DELETE_PHOTO` évincés ; validation Zod des résultats worker (P0-B) ;
+  sanitation Zod des analyses relues depuis IndexedDB
+  (`sanitizeLoadedAnalysis`). Reste : validation Zod systématique des réponses
+  RPC Supabase et des paramètres d'import/export catalogue.
+  Tests : `src/test/store/undoStackCap.test.ts`,
+  `src/test/lib/catalogue-sanitize.test.ts`.
+
+## P2 — Industrialisation minimale 🟡 (partiel)
+
+- ✅ **CI GitHub Actions** (`.github/workflows/ci.yml`) : job `verify`
+  (`pnpm install --frozen-lockfile`, `format:check`, `lint`, `type-check`,
+  `vitest run`, `build`), job `secrets-scan` (gitleaks), job `audit`
+  (`pnpm audit --prod`, non bloquant).
+- ✅ **Format reproductible** : `prettier --write` sur l'ensemble du dépôt
+  (`format:check` désormais vert — pré-requis CI). Deux directives
+  (`@ts-expect-error`, `eslint-disable`) désalignées par le reflow ont été
+  remplacées par des formes robustes (cast typé local, bloc `disable/enable`).
+- ✅ **Nettoyage dépôt** : artefact `C:Tempvitest_output.txt` retiré du suivi
+  git (logs/zip déjà couverts par `.gitignore`).
+- ✅ **Fallback domaine** : `triphotoia.vercel.app` codé en dur retiré de
+  `ShareDialog` (repli vide hors navigateur). Le reste des occurrences
+  `triphotoia` est la table de migration de clés legacy (`storage-migration.ts`),
+  conservée volontairement.
+- ✅ **Routing hash `#/share/<token>`** : déjà pris en compte sans rechargement
+  (listener `hashchange`, `App.tsx`). Parsing isolé en fonction pure testable
+  `parseShareToken` (`src/lib/share-routing.ts`) + test
+  `src/test/lib/share-routing.test.ts`.
+- ✅ **Version SemVer** : `package.json` passé de `0.0.0` à `2.1.0` (aligné sur
+  les notes de version v2).
+- ✅ **Affirmations de précision** : aucun claim chiffré (`xx % de précision`)
+  dans le code actif `src/` (rien à retirer).
+- 🟡 **`strict` progressif** : `strict: true` global = 22 erreurs (mesuré, donc
+  non activé en bloc pour ne pas affaiblir/rougir la CI). Activés sans erreur :
+  `noImplicitThis`, `strictBindCallApply`, `useUnknownInCatchVariables`,
+  `alwaysStrict`. Restent par lots : `strictNullChecks` (22), `noImplicitAny`
+  (49), `strictFunctionTypes` (1), `strictPropertyInitialization` (1).
+- ✅ **Standardisation Radix Dialog** : le wrapper `src/components/ui/dialog.tsx`
+  (Radix : focus trap, Échap, `aria-modal`, restauration du focus,
+  `aria-describedby`) est le standard. `ShareDialog` — seul dialogue modal
+  construit à la main (backdrop `motion.div`, sans focus trap ni Échap) — a été
+  migré dessus (`Dialog`/`DialogContent`/`DialogHeader`/`DialogTitle`). Les
+  confirmations (`confirmation-dialog`) et `DevelopmentTab` l'utilisaient déjà.
+
+## Vérifications exécutées (toolchain local réparé)
+
+| Commande                                  | Résultat                |
+| ----------------------------------------- | ----------------------- |
+| `pnpm type-check` (`tsc --noEmit`)        | ✅ exit 0               |
+| `pnpm lint` (`eslint . --max-warnings 0`) | ✅ exit 0               |
+| `pnpm exec vitest run` (suite complète)   | ✅ 290/290, 54 fichiers |
+| `pnpm build` (`vite build`)               | ✅ built in ~17 s       |
+| `prettier --check` (fichiers modifiés)    | ✅ clean                |
+| Greps d'acceptation P0-A/P0-B             | ✅ 0 occurrence         |
+| Scan bundle `dist/assets` (stubs/secrets) | ✅ 0 occurrence         |
+
+## Risques ouverts (P0/P1 restants)
+
+- **P0-B** : ✅ traité (provenance + validation Zod à la frontière d'analyse).
+- **P0-C** : ✅ traité (mémoire/pool/lifecycle + `AbortSignal`).
+- **P1-A** : politique d'import unifiée (magic bytes, rejet RAW, hash non vide)
+  non traitée. Sévérité : haute.
+- **P1-B** : CSP minimale `vercel.json`, `.env.example` audité, garde « variable
+  serveur dans `src/` » non traités (le retrait des appels HF/secrets navigateur
+  est fait en P0-A).
+- **P1-C** : bucket rendu privé ✅ (exposition durable supprimée). Reste : strip
+  EXIF du dérivé + edge function de validation token → URL signée + purge cron.
+  Sévérité résiduelle : moyenne (partage anonyme désactivé en attendant).
+- **P1-D** : ✅ traité (compensation upload).
+- **P1-E** : ✅ traité (retry/backoff/DLQ + récupération de lock).
+- **P1-F** : ✅ cœur traité (undo borné + blob + sanitation IDB) ; reste la
+  validation Zod systématique RPC/export.
+- **P2** : non traité.
+
+Voir le rapport de session pour la décision de release.

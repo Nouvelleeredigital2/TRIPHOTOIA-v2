@@ -152,7 +152,7 @@ export function PhotoCard({
             {/* Notation par étoiles */}
             {hasAnalysis && (
               /* Wrapper qui stoppe la propagation ; le contrôle réel est StarRating. */
-
+              /* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */
               <div
                 className="rounded-md bg-black/60 px-2 py-1 backdrop-blur-sm"
                 onClick={(e) => e.stopPropagation()}

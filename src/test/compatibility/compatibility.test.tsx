@@ -33,7 +33,11 @@ describe('Compatibility Tests', () => {
     ];
 
     for (const userAgent of userAgents) {
-      Object.defineProperty(navigator, 'userAgent', { configurable: true, writable: true, value: userAgent });
+      Object.defineProperty(navigator, 'userAgent', {
+        configurable: true,
+        writable: true,
+        value: userAgent,
+      });
 
       await renderApp();
       expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
@@ -44,7 +48,11 @@ describe('Compatibility Tests', () => {
     const platforms = ['Win32', 'MacIntel', 'Linux x86_64'];
 
     for (const platform of platforms) {
-      Object.defineProperty(navigator, 'platform', { configurable: true, writable: true, value: platform });
+      Object.defineProperty(navigator, 'platform', {
+        configurable: true,
+        writable: true,
+        value: platform,
+      });
 
       await renderApp();
       expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
@@ -55,7 +63,11 @@ describe('Compatibility Tests', () => {
     const languages = ['en-US', 'fr-FR', 'es-ES', 'de-DE'];
 
     for (const language of languages) {
-      Object.defineProperty(navigator, 'language', { configurable: true, writable: true, value: language });
+      Object.defineProperty(navigator, 'language', {
+        configurable: true,
+        writable: true,
+        value: language,
+      });
 
       await renderApp();
       expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
@@ -63,13 +75,20 @@ describe('Compatibility Tests', () => {
   });
 
   it('should work with different time zones', async () => {
-    const timeZones = ['America/New_York', 'Europe/London', 'Asia/Tokyo', 'Australia/Sydney'];
+    const timeZones = [
+      'America/New_York',
+      'Europe/London',
+      'Asia/Tokyo',
+      'Australia/Sydney',
+    ];
 
     for (const timeZone of timeZones) {
       const originalDateTimeFormat = Intl.DateTimeFormat;
-      const spy = vi.spyOn(Intl, 'DateTimeFormat').mockImplementation((locales, options) => {
-        return new originalDateTimeFormat(locales, { ...options, timeZone });
-      });
+      const spy = vi
+        .spyOn(Intl, 'DateTimeFormat')
+        .mockImplementation((locales, options) => {
+          return new originalDateTimeFormat(locales, { ...options, timeZone });
+        });
 
       await renderApp();
       expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
@@ -102,7 +121,7 @@ describe('Compatibility Tests', () => {
   it('should work with different accessibility settings', async () => {
     // Test with reduced motion
     Object.defineProperty(window, 'matchMedia', {
-      value: vi.fn().mockImplementation(query => ({
+      value: vi.fn().mockImplementation((query) => ({
         matches: query === '(prefers-reduced-motion: reduce)',
         media: query,
         onchange: null,
@@ -119,7 +138,7 @@ describe('Compatibility Tests', () => {
 
     // Test with high contrast
     Object.defineProperty(window, 'matchMedia', {
-      value: vi.fn().mockImplementation(query => ({
+      value: vi.fn().mockImplementation((query) => ({
         matches: query === '(prefers-contrast: high)',
         media: query,
         onchange: null,
@@ -137,13 +156,21 @@ describe('Compatibility Tests', () => {
 
   it('should work with different network conditions', async () => {
     // Test offline mode
-    Object.defineProperty(navigator, 'onLine', { configurable: true, writable: true, value: false });
+    Object.defineProperty(navigator, 'onLine', {
+      configurable: true,
+      writable: true,
+      value: false,
+    });
 
     await renderApp();
     expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
 
     // Test online mode
-    Object.defineProperty(navigator, 'onLine', { configurable: true, writable: true, value: true });
+    Object.defineProperty(navigator, 'onLine', {
+      configurable: true,
+      writable: true,
+      value: true,
+    });
 
     await renderApp();
     expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
@@ -151,13 +178,21 @@ describe('Compatibility Tests', () => {
 
   it('should work with different memory constraints', async () => {
     // Mock low memory device
-    Object.defineProperty(navigator, 'deviceMemory', { configurable: true, writable: true, value: 2 });
+    Object.defineProperty(navigator, 'deviceMemory', {
+      configurable: true,
+      writable: true,
+      value: 2,
+    });
 
     await renderApp();
     expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();
 
     // Mock high memory device
-    Object.defineProperty(navigator, 'deviceMemory', { configurable: true, writable: true, value: 8 });
+    Object.defineProperty(navigator, 'deviceMemory', {
+      configurable: true,
+      writable: true,
+      value: 8,
+    });
 
     await renderApp();
     expect(screen.getAllByText('Tree Photo IA')[0]).toBeInTheDocument();

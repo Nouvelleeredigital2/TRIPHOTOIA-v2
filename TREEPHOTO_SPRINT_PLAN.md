@@ -25,17 +25,17 @@ Transformer l'application locale actuelle TRIPHOTOIA en TreePhoto, une plateform
 
 ## Definition des jalons
 
-| Jalon | Resultat attendu |
-| --- | --- |
-| M0 | Base locale stabilisee et documentee |
-| M1 | Socle Supabase minimal branche sans casser le mode local |
-| M2 | Projets cloud utilisables |
-| M3 | Upload Storage fonctionnel |
-| M4 | Triage cloud persistant |
-| M5 | Jobs visibles et worker minimal |
-| M6 | Smart collections cloud |
-| M7 | Recherche et IA avancee |
-| M8 | Workflow mariage vendable en V1 |
+| Jalon | Resultat attendu                                         |
+| ----- | -------------------------------------------------------- |
+| M0    | Base locale stabilisee et documentee                     |
+| M1    | Socle Supabase minimal branche sans casser le mode local |
+| M2    | Projets cloud utilisables                                |
+| M3    | Upload Storage fonctionnel                               |
+| M4    | Triage cloud persistant                                  |
+| M5    | Jobs visibles et worker minimal                          |
+| M6    | Smart collections cloud                                  |
+| M7    | Recherche et IA avancee                                  |
+| M8    | Workflow mariage vendable en V1                          |
 
 ## Sprint 0 - Audit et stabilisation
 

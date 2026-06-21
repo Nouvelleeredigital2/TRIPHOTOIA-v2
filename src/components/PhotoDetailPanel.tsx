@@ -323,7 +323,7 @@ export function PhotoDetailPanel({ photo, onClose }: PhotoDetailPanelProps) {
             {/* Actions rapides */}
             <div className="flex items-center gap-1.5 py-2">
               {/* Wrapper qui stoppe la propagation ; le contrôle réel est StarRating. */}
-              {}
+              {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
               <div onClick={(e) => e.stopPropagation()}>
                 <StarRating
                   rating={analysis?.rating ?? 0}

@@ -28,7 +28,9 @@ describe('removePhoto cleans collections (A-23)', () => {
     expect(s.collections[colId].photoIds).not.toContain('p1');
     expect(s.collections[colId].photoIds).toContain('p2');
     // La collection active (par défaut) ne référence plus p1 non plus.
-    Object.values(s.collections).forEach((c) => expect(c.photoIds).not.toContain('p1'));
+    Object.values(s.collections).forEach((c) =>
+      expect(c.photoIds).not.toContain('p1')
+    );
   });
 });
 
@@ -41,7 +43,9 @@ describe('undo restores a deleted photo (A-22)', () => {
     const colId = store.createCollection('Portraits', ['p1']);
 
     usePhotoStore.getState().removePhoto('p1');
-    expect(usePhotoStore.getState().photos.some((p) => p.id === 'p1')).toBe(false);
+    expect(usePhotoStore.getState().photos.some((p) => p.id === 'p1')).toBe(
+      false
+    );
 
     usePhotoStore.getState().undo();
 

@@ -145,7 +145,7 @@ const PileCard: React.FC<PileCardProps> = ({
 
   return (
     // Anneau de stat décoratif : effet de survol uniquement, pas un contrôle.
-
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}

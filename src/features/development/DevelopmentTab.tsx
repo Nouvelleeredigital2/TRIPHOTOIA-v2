@@ -249,6 +249,7 @@ export function DevelopmentTab() {
     return getRetouchOptions(retouchActivePhotoId);
     // lastUpdated est un déclencheur de recalcul volontaire (les options sont
     // lues via getRetouchOptions et changent quand la retouche est mise à jour).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     getRetouchOptions,
     retouchActivePhotoId,
@@ -262,6 +263,7 @@ export function DevelopmentTab() {
     return getRetouchedPreviewUrl(retouchActivePhotoId);
     // lastUpdated : déclencheur de recalcul volontaire (la preview change quand
     // la retouche est mise à jour).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     getRetouchedPreviewUrl,
     retouchActivePhotoId,

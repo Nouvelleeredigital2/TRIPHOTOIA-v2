@@ -14,8 +14,8 @@ export function AnalysisStats() {
   const allPhotos = usePhotoStore((state) => state.photos);
 
   // Calculer les valeurs dérivées avec useMemo
-  const activeCollection = useMemo(() =>
-    collections[activeCollectionId],
+  const activeCollection = useMemo(
+    () => collections[activeCollectionId],
     [collections, activeCollectionId]
   );
 
@@ -29,18 +29,23 @@ export function AnalysisStats() {
       .filter((photo): photo is Photo => Boolean(photo));
   }, [activeCollection, allPhotos]);
 
-  const photosWithAnalysis = activePhotos.filter((photo) => photo.analysis && !photo.analysis.error);
-  const photosWithErrors = activePhotos.filter((photo) => photo.analysis?.error);
+  const photosWithAnalysis = activePhotos.filter(
+    (photo) => photo.analysis && !photo.analysis.error
+  );
+  const photosWithErrors = activePhotos.filter(
+    (photo) => photo.analysis?.error
+  );
   const photosWithoutAnalysis = activePhotos.filter((photo) => !photo.analysis);
   const totalPhotos = activePhotos.length;
   const processedCount = photosWithAnalysis.length;
 
-  const progressPercentage = totalPhotos > 0 ? Math.round((processedCount / totalPhotos) * 100) : 0;
+  const progressPercentage =
+    totalPhotos > 0 ? Math.round((processedCount / totalPhotos) * 100) : 0;
 
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-lg">
           📊 Statistiques d&apos;Analyse
           {isProcessing && (
             <Badge variant="default" className="animate-pulse">
@@ -54,11 +59,13 @@ export function AnalysisStats() {
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span>Progression</span>
-            <span>{processedCount} / {totalPhotos} ({progressPercentage}%)</span>
+            <span>
+              {processedCount} / {totalPhotos} ({progressPercentage}%)
+            </span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="h-2 w-full rounded-full bg-gray-200">
             <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              className="h-2 rounded-full bg-blue-600 transition-all duration-300"
               style={{ width: `${progressPercentage}%` }}
             />
           </div>
@@ -79,7 +86,9 @@ export function AnalysisStats() {
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-yellow-600">⏳ En attente</span>
-              <span className="font-semibold">{photosWithoutAnalysis.length}</span>
+              <span className="font-semibold">
+                {photosWithoutAnalysis.length}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-blue-600">🔄 En cours</span>
@@ -90,14 +99,15 @@ export function AnalysisStats() {
 
         {/* Messages d&apos;erreur */}
         {photosWithErrors.length > 0 && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <h4 className="text-sm font-semibold text-red-800 mb-2">
+          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3">
+            <h4 className="mb-2 text-sm font-semibold text-red-800">
               Erreurs d&apos;Analyse ({photosWithErrors.length})
             </h4>
-            <div className="space-y-1 max-h-32 overflow-y-auto">
-              {photosWithErrors.slice(0, 5).map(photo => (
+            <div className="max-h-32 space-y-1 overflow-y-auto">
+              {photosWithErrors.slice(0, 5).map((photo) => (
                 <div key={photo.id} className="text-xs text-red-700">
-                  <span className="font-medium">{photo.file.name}:</span> {photo.analysis?.error}
+                  <span className="font-medium">{photo.file.name}:</span>{' '}
+                  {photo.analysis?.error}
                 </div>
               ))}
               {photosWithErrors.length > 5 && (
@@ -111,27 +121,30 @@ export function AnalysisStats() {
 
         {/* État de l&apos;analyse */}
         {isProcessing && (
-          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
             <div className="flex items-center gap-2 text-blue-800">
-              <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full" />
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
               <span className="text-sm font-medium">
-                Analyse en cours... {analyzingPhotoIds.size} photo(s) en traitement
+                Analyse en cours... {analyzingPhotoIds.size} photo(s) en
+                traitement
               </span>
             </div>
           </div>
         )}
 
         {/* Message de fin */}
-        {!isProcessing && totalPhotos > 0 && photosWithoutAnalysis.length === 0 && (
-          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-            <div className="flex items-center gap-2 text-green-800">
-              <span className="text-lg">🎉</span>
-              <span className="text-sm font-medium">
-                Analyse terminée ! Toutes les photos ont été traitées.
-              </span>
+        {!isProcessing &&
+          totalPhotos > 0 &&
+          photosWithoutAnalysis.length === 0 && (
+            <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3">
+              <div className="flex items-center gap-2 text-green-800">
+                <span className="text-lg">🎉</span>
+                <span className="text-sm font-medium">
+                  Analyse terminée ! Toutes les photos ont été traitées.
+                </span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
       </CardContent>
     </Card>
   );

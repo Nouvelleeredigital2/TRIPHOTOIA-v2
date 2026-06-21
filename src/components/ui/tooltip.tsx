@@ -25,7 +25,7 @@ export function Tooltip({
 
   return (
     // Wrapper de tooltip : accessible au clavier via focus/blur ; pas un contrôle.
-
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
       className="relative inline-block"
       onMouseEnter={() => setIsVisible(true)}

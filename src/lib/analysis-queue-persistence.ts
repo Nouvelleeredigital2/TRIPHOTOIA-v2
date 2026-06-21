@@ -25,7 +25,8 @@ const isIndexedDBSupported = (): boolean => typeof indexedDB !== 'undefined';
 const requestToPromise = <T>(request: IDBRequest<T>): Promise<T> =>
   new Promise<T>((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error('IndexedDB request failed'));
+    request.onerror = () =>
+      reject(request.error ?? new Error('IndexedDB request failed'));
   });
 
 const openDatabase = (): Promise<IDBDatabase> =>
@@ -48,17 +49,23 @@ const openDatabase = (): Promise<IDBDatabase> =>
     };
 
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error('IndexedDB open failed'));
+    request.onerror = () =>
+      reject(request.error ?? new Error('IndexedDB open failed'));
   });
 
 const transactionComplete = (tx: IDBTransaction): Promise<void> =>
   new Promise<void>((resolve, reject) => {
     tx.oncomplete = () => resolve();
-    tx.onabort = () => reject(tx.error ?? new Error('IndexedDB transaction aborted'));
-    tx.onerror = () => reject(tx.error ?? new Error('IndexedDB transaction failed'));
+    tx.onabort = () =>
+      reject(tx.error ?? new Error('IndexedDB transaction aborted'));
+    tx.onerror = () =>
+      reject(tx.error ?? new Error('IndexedDB transaction failed'));
   });
 
-const filterPendingForPersistence = (photos: readonly Photo[], queue: readonly string[]): Photo[] => {
+const filterPendingForPersistence = (
+  photos: readonly Photo[],
+  queue: readonly string[]
+): Photo[] => {
   if (queue.length === 0) {
     return [];
   }
@@ -67,7 +74,10 @@ const filterPendingForPersistence = (photos: readonly Photo[], queue: readonly s
   return photos.filter((photo) => !photo.analysis && queueSet.has(photo.id));
 };
 
-export const loadAnalysisState = async (): Promise<{ photos: Photo[]; queue: string[] }> => {
+export const loadAnalysisState = async (): Promise<{
+  photos: Photo[];
+  queue: string[];
+}> => {
   try {
     const db = await openDatabase();
     const tx = db.transaction([PHOTO_STORE, META_STORE], 'readonly');
@@ -103,19 +113,28 @@ export const loadAnalysisState = async (): Promise<{ photos: Photo[]; queue: str
 
     const rawQueue = Array.isArray(meta?.value) ? meta!.value : [];
     const queueSet = new Set(rawQueue);
-    const validQueue = rawQueue.filter((id) => queueSet.has(id) && reconstructedPhotos.some((photo) => photo.id === id));
+    const validQueue = rawQueue.filter(
+      (id) =>
+        queueSet.has(id) && reconstructedPhotos.some((photo) => photo.id === id)
+    );
 
     return {
       photos: reconstructedPhotos,
       queue: validQueue,
     };
   } catch (error) {
-    console.warn('[analysis-queue-persistence] loadAnalysisState failed', error);
+    console.warn(
+      '[analysis-queue-persistence] loadAnalysisState failed',
+      error
+    );
     return { photos: [], queue: [] };
   }
 };
 
-export const saveAnalysisState = async (photos: Photo[], queue: string[]): Promise<void> => {
+export const saveAnalysisState = async (
+  photos: Photo[],
+  queue: string[]
+): Promise<void> => {
   if (!isIndexedDBSupported()) {
     return;
   }
@@ -157,7 +176,10 @@ export const saveAnalysisState = async (photos: Photo[], queue: string[]): Promi
 
     await transactionComplete(tx);
   } catch (error) {
-    console.warn('[analysis-queue-persistence] saveAnalysisState failed', error);
+    console.warn(
+      '[analysis-queue-persistence] saveAnalysisState failed',
+      error
+    );
   }
 };
 
@@ -171,10 +193,15 @@ export const clearAnalysisState = async (): Promise<void> => {
     const tx = db.transaction([PHOTO_STORE, META_STORE], 'readwrite');
     await Promise.all([
       requestToPromise(tx.objectStore(PHOTO_STORE).clear()),
-      requestToPromise(tx.objectStore(META_STORE).delete(META_KEY)).catch(() => undefined),
+      requestToPromise(tx.objectStore(META_STORE).delete(META_KEY)).catch(
+        () => undefined
+      ),
     ]);
     await transactionComplete(tx);
   } catch (error) {
-    console.warn('[analysis-queue-persistence] clearAnalysisState failed', error);
+    console.warn(
+      '[analysis-queue-persistence] clearAnalysisState failed',
+      error
+    );
   }
 };

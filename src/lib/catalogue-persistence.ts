@@ -5,7 +5,30 @@
  * Au rechargement : le catalogue complet est restauré, blobs URL recréés.
  */
 
-import { Photo, PhotoAnalysis, PhotoCollection, DuplicateGroup } from '../types';
+import {
+  Photo,
+  PhotoAnalysis,
+  PhotoCollection,
+  DuplicateGroup,
+} from '../types';
+import { photoAnalysisSchema } from './validators';
+
+/**
+ * P1-F : valide une analyse relue depuis IndexedDB. Les données persistées
+ * peuvent être corrompues (NaN, scores hors plage, structure inconnue) ; plutôt
+ * que de les réinjecter telles quelles dans l'app, on les remplace par une
+ * erreur structurée. Une analyse valide est conservée intacte (y compris ses
+ * champs utilisateur : note, pick, label…).
+ */
+export function sanitizeLoadedAnalysis(
+  analysis: PhotoAnalysis | null
+): PhotoAnalysis | null {
+  if (!analysis) return null;
+  if (analysis.error) return analysis;
+  return photoAnalysisSchema.safeParse(analysis).success
+    ? analysis
+    : { error: 'Analyse rejetée au chargement (données corrompues)' };
+}
 
 const DB_NAME = 'treephoto-catalogue';
 const DB_VERSION = 1;
@@ -70,7 +93,10 @@ async function openDb(): Promise<IDBDatabase> {
 
     req.onsuccess = () => {
       _db = req.result;
-      _db.onversionchange = () => { _db?.close(); _db = null; };
+      _db.onversionchange = () => {
+        _db?.close();
+        _db = null;
+      };
       resolve(_db);
     };
     req.onerror = () => reject(req.error ?? new Error('IDB open failed'));
@@ -176,19 +202,24 @@ export async function loadFullCatalogue(): Promise<CatalogueState | null> {
 
     const [persistedPhotos, metaRecord] = await Promise.all([
       idbReq<PersistedPhoto[]>(photoStore.getAll()),
-      idbReq<{ key: string; value: CatalogueMeta } | undefined>(metaStore.get(META_KEY_CATALOGUE)),
+      idbReq<{ key: string; value: CatalogueMeta } | undefined>(
+        metaStore.get(META_KEY_CATALOGUE)
+      ),
     ]);
 
     if (!persistedPhotos.length && !metaRecord) return null;
 
     // Reconstruire les photos
     const photos: Photo[] = persistedPhotos.map((p) => {
-      const file = new File([p.data], p.name, { type: p.type, lastModified: p.lastModified });
+      const file = new File([p.data], p.name, {
+        type: p.type,
+        lastModified: p.lastModified,
+      });
       return {
         id: p.id,
         file,
         previewUrl: URL.createObjectURL(file),
-        analysis: p.analysis,
+        analysis: sanitizeLoadedAnalysis(p.analysis),
         name: p.name,
         size: p.size,
         type: p.type,
@@ -213,7 +244,9 @@ export async function loadFullCatalogue(): Promise<CatalogueState | null> {
     const photoById = new Map(photos.map((p) => [p.id, p]));
     const duplicateGroups: DuplicateGroup[] = meta.duplicateGroups
       .map((sg) => {
-        const groupPhotos = sg.photoIds.map((id) => photoById.get(id)).filter((p): p is Photo => Boolean(p));
+        const groupPhotos = sg.photoIds
+          .map((id) => photoById.get(id))
+          .filter((p): p is Photo => Boolean(p));
         if (groupPhotos.length < 2) return null;
         return {
           id: sg.id,

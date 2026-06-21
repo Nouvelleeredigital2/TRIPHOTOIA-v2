@@ -17,7 +17,10 @@ export interface ExportPreset {
 }
 
 function genId(): string {
-  const c = typeof globalThis !== 'undefined' ? (globalThis as { crypto?: Crypto }).crypto : undefined;
+  const c =
+    typeof globalThis !== 'undefined'
+      ? (globalThis as { crypto?: Crypto }).crypto
+      : undefined;
   if (c?.randomUUID) return c.randomUUID();
   if (c?.getRandomValues) {
     const buf = new Uint32Array(2);
@@ -66,6 +69,6 @@ export function deletePreset(id: string): void {
 }
 
 export function updatePreset(id: string, data: ExportFormData): void {
-  const presets = loadPresets().map((p) => p.id === id ? { ...p, data } : p);
+  const presets = loadPresets().map((p) => (p.id === id ? { ...p, data } : p));
   savePresets(presets);
 }

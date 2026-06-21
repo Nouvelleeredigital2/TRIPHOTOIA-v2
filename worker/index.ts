@@ -7,17 +7,23 @@ import {
   createDefaultJobProcessors,
   JobProcessorMap,
   processWorkerJob,
+  reclaimStuckJobs,
   RpcCapableClient,
 } from './jobRunner';
 
-const sleep = (ms: number): Promise<void> => new Promise((resolve) => {
-  setTimeout(resolve, ms);
-});
+// P1-E : intervalle minimal entre deux balayages de récupération de locks.
+const RECLAIM_INTERVAL_MS = 60_000;
+const STUCK_JOB_LEASE_SECONDS = 300;
+
+const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 
 export async function runWorkerOnce(
   client: RpcCapableClient,
   workerId: string,
-  processors?: JobProcessorMap,
+  processors?: JobProcessorMap
 ): Promise<boolean> {
   // P0-3 : réclamation atomique (FOR UPDATE SKIP LOCKED via RPC). Plus de course
   // possible entre workers, plus d'erreur sur la prise de job.
@@ -34,7 +40,7 @@ export async function runWorkerLoop(): Promise<void> {
   assertProvidersAllowed(process.env);
   const processors = createDefaultJobProcessors(
     createEmbedder(process.env),
-    createFaceDetector(process.env),
+    createFaceDetector(process.env)
   );
   const client = createClient(config.supabaseUrl, config.serviceRoleKey, {
     auth: {
@@ -46,18 +52,45 @@ export async function runWorkerLoop(): Promise<void> {
   // Boucle résiliente : une erreur sur une itération (réseau, claim, traitement)
   // est journalisée et suivie d'un backoff, sans jamais arrêter le process.
   let consecutiveErrors = 0;
+  let lastReclaim = 0;
   while (true) {
     try {
-      const processed = await runWorkerOnce(client, config.workerId, processors);
+      const processed = await runWorkerOnce(
+        client,
+        config.workerId,
+        processors
+      );
       consecutiveErrors = 0;
       if (!processed) {
+        // P1-E : à intervalle borné, récupérer les jobs bloqués en `processing`
+        // dont le lock a expiré (worker crashé), pour qu'ils soient repris.
+        const now = Date.now();
+        if (now - lastReclaim >= RECLAIM_INTERVAL_MS) {
+          lastReclaim = now;
+          try {
+            const reclaimed = await reclaimStuckJobs(
+              client,
+              STUCK_JOB_LEASE_SECONDS
+            );
+            if (reclaimed > 0) {
+              console.warn(
+                `[worker] ${reclaimed} job(s) bloqué(s) récupéré(s)`
+              );
+            }
+          } catch (reclaimError) {
+            console.error('[worker] reclaim_stuck_jobs a échoué', reclaimError);
+          }
+        }
         await sleep(config.pollIntervalMs);
       }
     } catch (error) {
       consecutiveErrors += 1;
       console.error(`[worker] erreur itération (#${consecutiveErrors})`, error);
       // Backoff exponentiel plafonné à 60 s pour ne pas marteler en cas de panne.
-      const backoff = Math.min(config.pollIntervalMs * 2 ** consecutiveErrors, 60_000);
+      const backoff = Math.min(
+        config.pollIntervalMs * 2 ** consecutiveErrors,
+        60_000
+      );
       await sleep(backoff);
     }
   }

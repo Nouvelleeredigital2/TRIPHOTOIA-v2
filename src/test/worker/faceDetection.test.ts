@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DISABLED_FACE_MODEL,
   FACE_EMBEDDING_DIMENSIONS,
   createDeterministicFaceDetector,
+  createDisabledFaceDetector,
   createFaceDetector,
 } from '../../../worker/faceDetection';
 
@@ -64,5 +66,25 @@ describe('createFaceDetector', () => {
     expect(() => createFaceDetector({ FACE_PROVIDER: 'onnx' })).toThrow(
       /not wired yet/
     );
+  });
+
+  it('supports a disabled provider that fabricates no faces', async () => {
+    const detector = createFaceDetector({ FACE_PROVIDER: 'disabled' });
+    expect(detector.model).toBe(DISABLED_FACE_MODEL);
+    await expect(
+      detector.detect({ storagePath: 'projects/p1/photo.jpg' })
+    ).resolves.toEqual([]);
+    // Never errors, even on empty input — it is simply off.
+    await expect(detector.detect({ storagePath: '' })).resolves.toEqual([]);
+  });
+});
+
+describe('disabled face detector', () => {
+  it('yields no faces and is honest about being off', async () => {
+    const detector = createDisabledFaceDetector();
+    expect(detector.model).toBe('disabled');
+    expect(
+      await detector.detect({ storagePath: 'anything', photoId: 'p' })
+    ).toEqual([]);
   });
 });

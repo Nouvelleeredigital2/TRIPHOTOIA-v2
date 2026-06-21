@@ -188,6 +188,27 @@ describe('worker job runner', () => {
     );
   });
 
+  it('fails an unknown job type with an explicit error_message (never stuck)', async () => {
+    const update = vi.fn().mockReturnThis();
+    const eq = vi.fn().mockResolvedValue({ data: null, error: null });
+    const client = { from: vi.fn().mockReturnValue({ update, eq }) };
+
+    await expect(
+      processWorkerJob(
+        client,
+        makeJob({ job_type: 'totally_unknown' as WorkerJob['job_type'] }),
+        {},
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'failed',
+        error_message: 'Unknown job type "totally_unknown"',
+      }),
+    );
+  });
+
   it('marks a failed job with an error message', async () => {
     const update = vi.fn().mockReturnThis();
     const eq = vi.fn().mockResolvedValue({ data: null, error: null });

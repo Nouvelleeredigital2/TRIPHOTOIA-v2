@@ -63,6 +63,16 @@ describe('worker config', () => {
       ).not.toThrow();
     });
 
+    it('allows a disabled face provider in production (off is not simulated)', () => {
+      expect(() =>
+        assertProvidersAllowed({
+          WORKER_ENV: 'production',
+          EMBEDDING_PROVIDER: 'clip',
+          FACE_PROVIDER: 'disabled',
+        })
+      ).not.toThrow();
+    });
+
     it('honours the ALLOW_SIMULATED_PROVIDERS escape hatch', () => {
       expect(() =>
         assertProvidersAllowed({

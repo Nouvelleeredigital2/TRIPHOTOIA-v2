@@ -318,6 +318,12 @@ export async function processWorkerJob(
   try {
     const processor =
       processors[job.job_type] ?? defaultJobProcessors[job.job_type];
+    // Garde-fou : un job_type inconnu doit échouer avec un message explicite
+    // (et non un « processor is not a function »), pour que error_message soit
+    // exploitable côté supervision — sans jamais laisser le job bloqué.
+    if (typeof processor !== 'function') {
+      throw new Error(`Unknown job type "${job.job_type}"`);
+    }
     const workerResult = await processor(job);
     await applyWorkerResult(client, job, workerResult);
     await markJobCompleted(client, job.id, workerResult.result ?? {});

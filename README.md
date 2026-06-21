@@ -327,6 +327,17 @@ Interface adaptative pour :
 - Tablet (768px+)
 - Mobile (320px+)
 
+## 📚 Documentation
+
+- [docs/LOCAL_MODE.md](docs/LOCAL_MODE.md) — installation et flux local complet
+- [docs/CLOUD_MODE.md](docs/CLOUD_MODE.md) — activer Supabase (auth, projets, persistance)
+- [docs/WORKER_DEPLOYMENT.md](docs/WORKER_DEPLOYMENT.md) — déployer le worker sur un VPS
+- [docs/BETA_WEDDING_SCENARIO.md](docs/BETA_WEDDING_SCENARIO.md) — parcours de recette
+- [docs/SECURITY.md](docs/SECURITY.md) — frontières de sécurité (RLS, secrets, faces)
+- [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) — checklist de release
+- [docs/USER_GUIDE.md](docs/USER_GUIDE.md) — guide utilisateur (version courte)
+- [supabase/README.md](supabase/README.md) · [worker/README.md](worker/README.md)
+
 ## 🤝 Contribution
 
 1. Fork le projet

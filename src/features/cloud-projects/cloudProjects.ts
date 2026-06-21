@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
+import { parseCloudProjectRow } from '../../lib/cloud-validators';
 
 export type CloudPickStatus = 'unreviewed' | 'pick' | 'reject' | 'review';
 export type CloudAnalysisStatus =
@@ -185,8 +186,8 @@ export async function createCloudProject(
 
   if (error) throw error;
 
-  const project = Array.isArray(data) ? data[0] : data;
-  const projectRow = project as CloudProjectRow;
+  // P1-7 : validation Zod de la réponse RPC (plus de cast silencieux).
+  const projectRow = parseCloudProjectRow(data);
 
   return {
     ...projectRow,
@@ -206,7 +207,7 @@ export async function renameCloudProject(
     p_name: name.trim(),
   });
   if (error) throw error;
-  return (Array.isArray(data) ? data[0] : data) as CloudProjectRow;
+  return parseCloudProjectRow(data);
 }
 
 /** A-39 : archiver un projet cloud (soft-delete — disparaît de la liste active). */

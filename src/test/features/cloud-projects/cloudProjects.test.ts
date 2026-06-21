@@ -93,9 +93,19 @@ describe('cloud project helpers', () => {
   });
 
   it('renames a project via the SECURITY DEFINER RPC (A-39)', async () => {
-    const rpc = vi
-      .fn()
-      .mockResolvedValue({ data: { id: 'p1', name: 'Nouveau' }, error: null });
+    const rpc = vi.fn().mockResolvedValue({
+      // La RPC renvoie la ligne projet complète (validée par Zod, P1-7).
+      data: {
+        id: 'p1',
+        organization_id: 'o1',
+        name: 'Nouveau',
+        project_type: 'wedding',
+        status: 'active',
+        created_at: '2026-06-22T00:00:00Z',
+        updated_at: '2026-06-22T00:00:00Z',
+      },
+      error: null,
+    });
     const row = await renameCloudProject('p1', '  Nouveau  ', mockClient(rpc));
     expect(rpc).toHaveBeenCalledWith('rename_user_project', {
       p_project_id: 'p1',

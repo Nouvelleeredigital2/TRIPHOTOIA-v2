@@ -27,9 +27,9 @@ const seedThreePhotos = () => {
   usePhotoStore
     .getState()
     .addPhotos([makePhoto('p-pick'), makePhoto('p-reject'), makePhoto('p-fav')]);
-  applyAutoFlowMutation('p-pick', DECISION_CHANGES.pick, usePhotoStore.getState());
-  applyAutoFlowMutation('p-reject', DECISION_CHANGES.reject, usePhotoStore.getState());
-  applyAutoFlowMutation('p-fav', DECISION_CHANGES.favorite, usePhotoStore.getState());
+  applyAutoFlowMutation('p-pick', DECISION_CHANGES.pick, usePhotoStore);
+  applyAutoFlowMutation('p-reject', DECISION_CHANGES.reject, usePhotoStore);
+  applyAutoFlowMutation('p-fav', DECISION_CHANGES.favorite, usePhotoStore);
 };
 
 describe('Local AutoFlow → Export handoff (no cloud project)', () => {
@@ -71,10 +71,30 @@ describe('Local AutoFlow → Export handoff (no cloud project)', () => {
     expect(exported.sort()).toEqual(['p-fav', 'p-pick']);
   });
 
+  it('recovers a rejected photo when picked or favorited (no stale-snapshot regression)', () => {
+    usePhotoStore.getState().addPhotos([makePhoto('p-a'), makePhoto('p-b')]);
+    // Put both photos into the rejected state first.
+    applyAutoFlowMutation('p-a', DECISION_CHANGES.reject, usePhotoStore);
+    applyAutoFlowMutation('p-b', DECISION_CHANGES.reject, usePhotoStore);
+
+    // Now change the decision: pick p-a, favorite p-b — both currently rejected.
+    applyAutoFlowMutation('p-a', DECISION_CHANGES.pick, usePhotoStore);
+    applyAutoFlowMutation('p-b', DECISION_CHANGES.favorite, usePhotoStore);
+
+    const byId = (id: string) =>
+      usePhotoStore.getState().photos.find((p) => p.id === id)!.analysis!;
+
+    // The decision must win — the prior reject must be fully cleared.
+    expect(byId('p-a')).toMatchObject({ isPick: true, isRejected: false });
+    expect(byId('p-b')).toMatchObject({ isPick: true, isRejected: false, rating: 5 });
+    expect(usePhotoStore.getState().rejectedPhotoIds.has('p-a')).toBe(false);
+    expect(usePhotoStore.getState().rejectedPhotoIds.has('p-b')).toBe(false);
+  });
+
   it('keeps decisions idempotent when the same decision is applied twice', () => {
     seedThreePhotos();
     // Re-applying the identical pick decision must not flip the flag back off.
-    applyAutoFlowMutation('p-pick', DECISION_CHANGES.pick, usePhotoStore.getState());
+    applyAutoFlowMutation('p-pick', DECISION_CHANGES.pick, usePhotoStore);
 
     const pick = usePhotoStore.getState().photos.find((p) => p.id === 'p-pick')!.analysis!;
     expect(pick).toMatchObject({ isPick: true, isRejected: false });

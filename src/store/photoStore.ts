@@ -1063,7 +1063,13 @@ export const usePhotoStore = create<PhotoState>()(
                 },
               });
               photo.analysis.isPick = !photo.analysis.isPick;
-              if (photo.analysis.isPick) photo.analysis.isRejected = false;
+              if (photo.analysis.isPick) {
+                photo.analysis.isRejected = false;
+                // Garder rejectedPhotoIds cohérent avec analysis.isRejected :
+                // sinon une photo rejetée puis pickée resterait « rejetée » pour
+                // l'export (exportSelection lit aussi rejectedPhotoIds).
+                state.rejectedPhotoIds.delete(photoId);
+              }
             }
           }),
 
@@ -1385,6 +1391,13 @@ export const usePhotoStore = create<PhotoState>()(
                 if (photo?.analysis) {
                   photo.analysis.isPick = previousPick;
                   photo.analysis.isRejected = previousRejected;
+                  // Restaurer rejectedPhotoIds en miroir de previousRejected
+                  // (le pick a pu retirer la photo du set ; l'undo doit le rétablir).
+                  if (previousRejected) {
+                    state.rejectedPhotoIds.add(photoId);
+                  } else {
+                    state.rejectedPhotoIds.delete(photoId);
+                  }
                 }
                 break;
               }

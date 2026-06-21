@@ -150,38 +150,48 @@ export function toAfPhotos(photos: Photo[], duplicateGroups: DuplicateGroup[]): 
 
 /**
  * Minimal photoStore surface needed to commit an AutoFlow decision locally.
- * Kept decoupled from the store module so this helper stays unit-testable.
+ * Exposed as `getState()` (not a captured snapshot) so each read sees fresh
+ * state: `togglePhotoPick`/`togglePhotoReject` have interdependent side effects
+ * (picking clears rejected and vice-versa), so the idempotency checks MUST read
+ * the post-mutation state between steps. Decoupled from the store module to stay
+ * unit-testable — pass the zustand store (which already has `getState`).
  */
-export interface AutoFlowStoreBridge {
+export interface AutoFlowStoreState {
   photos: Photo[];
   togglePhotoPick: (photoId: string) => void;
   togglePhotoReject: (photoId: string) => void;
   setPhotoRating: (photoId: string, rating: number) => void;
 }
 
+export interface AutoFlowStoreBridge {
+  getState: () => AutoFlowStoreState;
+}
+
 /**
  * Applies an AutoFlow mutation (AfPhoto changes) back onto the local photo store.
  * This is the local-mode persistence path: every swipe/gallery/dup decision flows
  * through here so that `analysis.isPick/isRejected/rating` reflect the decision
- * even when no cloud project is active. Toggles are computed against the photo's
- * current state so they are idempotent (no double-toggle).
+ * even when no cloud project is active. Each idempotency check re-reads fresh
+ * state via `getState()`, so applying e.g. a pick/favorite to a currently-rejected
+ * photo works (the first toggle's side effect is observed by the second check).
  */
 export function applyAutoFlowMutation(
   id: string,
   changes: Partial<AfPhoto>,
   store: AutoFlowStoreBridge,
 ): void {
-  const photo = store.photos.find((p) => p.id === id);
-  if (!photo) return;
+  const currentPhoto = () => store.getState().photos.find((p) => p.id === id);
+  if (!currentPhoto()) return;
+  const { togglePhotoPick, togglePhotoReject, setPhotoRating } = store.getState();
   if ('isPick' in changes) {
     const wantPick = !!changes.isPick;
-    if (wantPick !== !!photo.analysis?.isPick) store.togglePhotoPick(id);
+    if (wantPick !== !!currentPhoto()?.analysis?.isPick) togglePhotoPick(id);
   }
   if ('isRejected' in changes) {
     const wantRej = !!changes.isRejected;
-    if (wantRej !== !!photo.analysis?.isRejected) store.togglePhotoReject(id);
+    if (wantRej !== !!currentPhoto()?.analysis?.isRejected) togglePhotoReject(id);
   }
   if ('rating' in changes && typeof changes.rating === 'number') {
-    store.setPhotoRating(id, changes.rating);
+    setPhotoRating(id, changes.rating);
   }
 }

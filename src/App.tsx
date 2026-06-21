@@ -281,7 +281,9 @@ function App() {
 
   /** Apply an AutoFlow mutation back to the store */
   const handleAfMutation = (id: string, changes: Partial<AfPhoto>) => {
-    applyAutoFlowMutation(id, changes, usePhotoStore.getState());
+    // Pass the store itself (not a snapshot) so applyAutoFlowMutation re-reads
+    // fresh state between interdependent toggles.
+    applyAutoFlowMutation(id, changes, usePhotoStore);
   };
 
   const handleAfDecision = (

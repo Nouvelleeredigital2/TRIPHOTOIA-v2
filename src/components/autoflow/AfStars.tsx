@@ -1,4 +1,5 @@
 import React from 'react';
+import { afColor, afOverlay, afResetButton } from './afStyles';
 
 interface AfStarsProps {
   rating: number;
@@ -15,8 +16,7 @@ interface AfStarsProps {
 export const AfStars: React.FC<AfStarsProps> = ({ rating, size = 18, onRate }) => (
   <div style={{ display: 'flex', gap: 2 }}>
     {[1, 2, 3, 4, 5].map((n) => {
-      const color =
-        n <= rating ? 'var(--af-review)' : 'rgba(var(--af-overlay-rgb),0.12)';
+      const color = n <= rating ? afColor.review : afOverlay(0.12);
       const base: React.CSSProperties = {
         fontSize: size,
         lineHeight: 1,
@@ -41,13 +41,7 @@ export const AfStars: React.FC<AfStarsProps> = ({ rating, size = 18, onRate }) =
             e.stopPropagation();
             onRate(n);
           }}
-          style={{
-            ...base,
-            background: 'none',
-            border: 'none',
-            padding: 0,
-            cursor: 'pointer',
-          }}
+          style={{ ...base, ...afResetButton }}
         >
           ★
         </button>

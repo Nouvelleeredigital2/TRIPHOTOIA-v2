@@ -56,17 +56,24 @@ export function assertProvidersAllowed(env: WorkerEnv): void {
     .trim()
     .toLowerCase();
   const face = (env.FACE_PROVIDER ?? 'deterministic').trim().toLowerCase();
+  // P0-5 : les processeurs image (miniature/qualité/hash) sont par défaut des
+  // stubs (chemin sans vraie miniature, score par défaut, hash dérivé du nom).
+  // Ils ne doivent pas compléter de jobs en production : seul un vrai moteur
+  // pixel (IMAGE_PROCESSOR=sharp, non encore câblé) est autorisé en prod.
+  const imageProcessor = (env.IMAGE_PROCESSOR ?? 'stub').trim().toLowerCase();
 
   const simulated: string[] = [];
   if (embedding === 'deterministic')
     simulated.push('EMBEDDING_PROVIDER=deterministic');
   if (face === 'deterministic') simulated.push('FACE_PROVIDER=deterministic');
+  if (imageProcessor === 'stub')
+    simulated.push('IMAGE_PROCESSOR=stub (miniature/qualité/hash simulés)');
 
   if (simulated.length > 0) {
     throw new Error(
-      `Providers simulés interdits en production : ${simulated.join(', ')}. ` +
-        'Configure des providers réels (EMBEDDING_PROVIDER=clip, FACE_PROVIDER=onnx) ' +
-        'ou, en recette uniquement, ALLOW_SIMULATED_PROVIDERS=true.'
+      `Traitements simulés interdits en production : ${simulated.join(', ')}. ` +
+        'Configure des moteurs réels (EMBEDDING_PROVIDER=clip, FACE_PROVIDER=onnx, ' +
+        'IMAGE_PROCESSOR=sharp) ou, en recette uniquement, ALLOW_SIMULATED_PROVIDERS=true.'
     );
   }
 }

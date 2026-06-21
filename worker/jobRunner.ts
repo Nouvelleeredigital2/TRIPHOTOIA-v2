@@ -73,6 +73,11 @@ const stableHash = (input: string): string => {
   return (hash >>> 0).toString(16).padStart(8, '0').repeat(2).slice(0, 16);
 };
 
+// P0-5 : processeurs image par défaut = STUBS (pas de vrai pixel) — la miniature
+// n'est qu'un chemin, la qualité vient du payload/défaut, le hash dérive du nom.
+// Acceptables en dev/test uniquement : assertProvidersAllowed() REFUSE le
+// démarrage en production tant que IMAGE_PROCESSOR n'est pas un moteur réel
+// (ex. sharp/libvips), pour ne jamais marquer un job `completed` sans artefact.
 export const createDefaultJobProcessors = (
   embedder: Embedder = createDeterministicEmbedder(),
   faceDetector: FaceDetector = createDeterministicFaceDetector()

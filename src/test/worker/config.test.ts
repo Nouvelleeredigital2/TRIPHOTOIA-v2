@@ -53,12 +53,24 @@ describe('worker config', () => {
       ).toThrow(/simulés interdits en production/);
     });
 
+    it('rejects the stub image processor in production (P0-5)', () => {
+      // Defaults: IMAGE_PROCESSOR=stub -> miniature/qualité/hash simulés.
+      expect(() =>
+        assertProvidersAllowed({
+          WORKER_ENV: 'production',
+          EMBEDDING_PROVIDER: 'clip',
+          FACE_PROVIDER: 'onnx',
+        })
+      ).toThrow(/IMAGE_PROCESSOR=stub/);
+    });
+
     it('allows real providers in production', () => {
       expect(() =>
         assertProvidersAllowed({
           WORKER_ENV: 'production',
           EMBEDDING_PROVIDER: 'clip',
           FACE_PROVIDER: 'onnx',
+          IMAGE_PROCESSOR: 'sharp',
         })
       ).not.toThrow();
     });
@@ -69,6 +81,7 @@ describe('worker config', () => {
           WORKER_ENV: 'production',
           EMBEDDING_PROVIDER: 'clip',
           FACE_PROVIDER: 'disabled',
+          IMAGE_PROCESSOR: 'sharp',
         })
       ).not.toThrow();
     });

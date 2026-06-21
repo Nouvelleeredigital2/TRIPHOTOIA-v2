@@ -111,6 +111,7 @@ export function PhotoDetailPanel({ photo, onClose }: PhotoDetailPanelProps) {
   const unflagPhoto = usePhotoStore((s) => s.unflagPhoto);
   const setColorLabel = usePhotoStore((s) => s.setColorLabel);
   const updateUserTags = usePhotoStore((s) => s.updateUserTags);
+  const updatePhotoMetadata = usePhotoStore((s) => s.updatePhotoMetadata);
   const setPhotoNote = usePhotoStore((s) => s.setPhotoNote);
   const collections = usePhotoStore((s) => s.collections);
   const collectionOrder = usePhotoStore((s) => s.collectionOrder);
@@ -560,6 +561,61 @@ export function PhotoDetailPanel({ photo, onClose }: PhotoDetailPanelProps) {
                   </table>
                 </Section>
               )}
+
+              {/* Métadonnées éditables (IPTC/XMP) — exportées en sidecar .xmp */}
+              <Section
+                icon={<Info className="h-3.5 w-3.5" />}
+                title="Métadonnées"
+                defaultOpen={false}
+              >
+                <div className="flex flex-col gap-2">
+                  <input
+                    type="text"
+                    placeholder="Titre"
+                    aria-label="Titre"
+                    className="w-full rounded-md border border-border bg-input px-2 py-1 text-xs"
+                    value={photo.metadata?.editable?.title ?? ''}
+                    onChange={(e) =>
+                      updatePhotoMetadata(photo.id, { title: e.target.value })
+                    }
+                  />
+                  <textarea
+                    placeholder="Légende"
+                    aria-label="Légende"
+                    rows={2}
+                    className="w-full resize-none rounded-md border border-border bg-input px-2 py-1 text-xs"
+                    value={photo.metadata?.editable?.caption ?? ''}
+                    onChange={(e) =>
+                      updatePhotoMetadata(photo.id, { caption: e.target.value })
+                    }
+                  />
+                  <input
+                    type="text"
+                    placeholder="Mots-clés (séparés par des virgules)"
+                    aria-label="Mots-clés"
+                    className="w-full rounded-md border border-border bg-input px-2 py-1 text-xs"
+                    value={(photo.metadata?.editable?.keywords ?? []).join(', ')}
+                    onChange={(e) =>
+                      updatePhotoMetadata(photo.id, {
+                        keywords: e.target.value
+                          .split(',')
+                          .map((k) => k.trim())
+                          .filter(Boolean),
+                      })
+                    }
+                  />
+                  <input
+                    type="text"
+                    placeholder="Copyright"
+                    aria-label="Copyright"
+                    className="w-full rounded-md border border-border bg-input px-2 py-1 text-xs"
+                    value={photo.metadata?.editable?.copyright ?? ''}
+                    onChange={(e) =>
+                      updatePhotoMetadata(photo.id, { copyright: e.target.value })
+                    }
+                  />
+                </div>
+              </Section>
 
               {/* Tags AI */}
               {hasAnalysis && analysis.tags && analysis.tags.length > 0 && (

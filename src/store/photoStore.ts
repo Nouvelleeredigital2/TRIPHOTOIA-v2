@@ -207,6 +207,10 @@ interface PhotoState {
     photoId: string,
     analysis: Partial<PhotoAnalysis>
   ) => void;
+  updatePhotoMetadata: (
+    photoId: string,
+    patch: Partial<import('../types').EditableMetadata>
+  ) => void;
   updateUserTags: (photoId: string, tags: string[]) => void;
   setPhotoNote: (photoId: string, note: string) => void;
   setBestInGroup: (groupId: string, photoId: string) => void;
@@ -868,6 +872,18 @@ export const usePhotoStore = create<PhotoState>()(
           set((state) => {
             state.selectedPhotoId = id;
           }),
+
+        updatePhotoMetadata: (photoId, patch) => {
+          set((state) => {
+            const photo = state.photos.find((p) => p.id === photoId);
+            if (!photo) return;
+            const meta = photo.metadata ?? {};
+            photo.metadata = {
+              ...meta,
+              editable: { ...(meta.editable ?? {}), ...patch },
+            };
+          });
+        },
 
         updatePhotoAnalysis: (photoId, analysis) => {
           set((state) => {

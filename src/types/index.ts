@@ -171,6 +171,15 @@ export interface RetouchPreset {
   isBuiltIn?: boolean;
 }
 
+/** Métadonnées IPTC/XMP éditables, persistées dans le catalogue. */
+export interface EditableMetadata {
+  title?: string;
+  caption?: string;
+  keywords?: string[];
+  copyright?: string;
+  creator?: string;
+}
+
 export interface Photo {
   id: string;
   file: File;
@@ -185,6 +194,8 @@ export interface Photo {
     width?: number;
     height?: number;
     exif?: unknown;
+    /** Champs IPTC/XMP éditables par l'utilisateur (titre, légende, mots-clés…). */
+    editable?: EditableMetadata;
   };
   retouch?: PhotoRetouchState;
   computerVisionAnalysis?: {

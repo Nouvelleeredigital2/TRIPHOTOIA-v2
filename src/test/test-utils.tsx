@@ -67,6 +67,7 @@ export const mockStore = {
       (mockStore.photos[idx] as { analysis?: unknown }).analysis = analysis;
     }
   }),
+  updatePhotoMetadata: vi.fn(),
   updateUserTags: vi.fn(),
   setBestInGroup: vi.fn(),
   toggleRejectPhoto: vi.fn(),

@@ -1,5 +1,26 @@
 import JSZip from 'jszip';
 import { Photo } from '../types';
+import {
+  buildXmpSidecar,
+  hasEditableMetadata,
+  metadataSidecarFilename,
+} from './metadata';
+
+/**
+ * Joint un sidecar `.xmp` (Dublin Core) à côté de l'image exportée si la photo
+ * porte des métadonnées éditables. L'export ré-encode via <canvas> et efface
+ * l'EXIF/IPTC binaire ; le sidecar préserve titre/légende/mots-clés/copyright.
+ */
+function attachMetadataSidecar(
+  bucket: JSZip,
+  imageFileName: string,
+  photo: Photo
+): void {
+  const editable = photo.metadata?.editable;
+  if (hasEditableMetadata(editable)) {
+    bucket.file(metadataSidecarFilename(imageFileName), buildXmpSidecar(editable!));
+  }
+}
 
 // ── Watermark ─────────────────────────────────────────────────────────────────
 
@@ -287,6 +308,7 @@ export async function exportPhotosAsZip(
     try {
       const processedBlob = await processImage(photo.file, options);
       zip.file(fileName, processedBlob);
+      attachMetadataSidecar(zip, fileName, photo);
       exported += 1;
     } catch (error) {
       console.error(`Failed to process ${fileName}:`, error);
@@ -338,6 +360,7 @@ export async function exportPhotoChaptersAsZip(
       try {
         const processedBlob = await processImage(photo.file, options);
         folder.file(fileName, processedBlob);
+        attachMetadataSidecar(folder, fileName, photo);
         exported += 1;
       } catch (error) {
         console.error(`Failed to process ${folderName}/${fileName}:`, error);

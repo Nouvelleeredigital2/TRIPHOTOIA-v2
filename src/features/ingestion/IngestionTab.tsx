@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { calculateFileHash, mapWithConcurrency } from '../../lib/utils';
 import { validateImportFiles } from '../../lib/import-policy';
+import { readExifMetadata } from '../../lib/exif';
 import { Photo, PhotoAnalysis } from '../../types';
 import { usePhotoStore } from '../../store/photoStore';
 import { usePhotoAnalysis } from '../../hooks/usePhotoAnalysis';
@@ -118,7 +119,7 @@ function IngestionTab() {
     );
     const seen = new Set<string>();
     let duplicates = 0;
-    const photosWithHashes = hashed
+    const photoSeeds = hashed
       .filter((h): h is { file: File; fileHash: string } => h !== null)
       .filter(({ fileHash }) => {
         if (existingIds.has(fileHash) || seen.has(fileHash)) {
@@ -127,8 +128,11 @@ function IngestionTab() {
         }
         seen.add(fileHash);
         return true;
-      })
-      .map(({ file, fileHash }) => ({
+      });
+
+    // Lecture EXIF réelle en parallèle (non bloquante : undefined si absent).
+    const photosWithHashes = await Promise.all(
+      photoSeeds.map(async ({ file, fileHash }) => ({
         // A-14 : ID = SHA-256 du contenu.
         id: fileHash,
         file,
@@ -137,7 +141,9 @@ function IngestionTab() {
         analysis: {
           fileHash,
         } as Partial<PhotoAnalysis>,
-      }));
+        metadata: await readExifMetadata(file),
+      }))
+    );
 
     if (rejections.length > 0) {
       const sample = rejections

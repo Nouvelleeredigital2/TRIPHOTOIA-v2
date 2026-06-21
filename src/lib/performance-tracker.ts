@@ -20,6 +20,8 @@ interface CacheEntry<T> {
 }
 
 export class PerformanceTracker {
+  /** P1-3 : borne haute de l'historique des métriques (éviction FIFO au-delà). */
+  private static readonly MAX_METRICS = 500;
   private metrics: PerformanceMetric[] = [];
   private activeOperations = new Map<string, PerformanceMetric>();
 
@@ -56,6 +58,10 @@ export class PerformanceTracker {
     metric.success = success;
 
     this.metrics.push(metric);
+    // P1-3 : plafonner l'historique pour ne pas croître indéfiniment en session.
+    if (this.metrics.length > PerformanceTracker.MAX_METRICS) {
+      this.metrics.splice(0, this.metrics.length - PerformanceTracker.MAX_METRICS);
+    }
     this.activeOperations.delete(id);
 
     return metric;
@@ -198,9 +204,16 @@ export class AnalysisCache {
   ): void {
     const key = this.generateCacheKey(file, options);
 
-    // Clean up old entries if cache is full
-    if (this.cache.size >= this.maxSize) {
-      this.cleanup();
+    // D'abord purger les entrées expirées.
+    this.cleanup();
+    // Ré-insertion en fin pour marquer comme « récemment utilisé » (LRU).
+    this.cache.delete(key);
+    // P1-3 : éviction LRU stricte — on retire les plus anciennes (début de Map)
+    // tant que le cache est plein, garantissant size <= maxSize en permanence.
+    while (this.cache.size >= this.maxSize) {
+      const oldest = this.cache.keys().next().value;
+      if (oldest === undefined) break;
+      this.cache.delete(oldest);
     }
 
     this.cache.set(key, {
@@ -225,6 +238,9 @@ export class AnalysisCache {
       return null;
     }
 
+    // LRU : marquer comme récemment utilisé (réinsertion en fin).
+    this.cache.delete(key);
+    this.cache.set(key, entry);
     return entry.data as T;
   }
 

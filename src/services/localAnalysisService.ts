@@ -24,6 +24,8 @@ function localPixelProvenance(): AnalysisProvenance {
 export class LocalAnalysisService {
   private imageProcessor: ImageProcessor;
   private analysisCache: Map<string, PhotoAnalysis> = new Map();
+  /** P1-3 : borne du cache d'analyse (éviction du plus ancien au-delà). */
+  private readonly maxCacheEntries = 500;
 
   constructor() {
     this.imageProcessor = new ImageProcessor();
@@ -80,7 +82,11 @@ export class LocalAnalysisService {
         provenance: localPixelProvenance(),
       };
 
-      // Mettre en cache
+      // Mettre en cache (borné : éviction du plus ancien au-delà de la limite).
+      if (this.analysisCache.size >= this.maxCacheEntries) {
+        const oldest = this.analysisCache.keys().next().value;
+        if (oldest !== undefined) this.analysisCache.delete(oldest);
+      }
       this.analysisCache.set(fileKey, photoAnalysis);
 
       return photoAnalysis;

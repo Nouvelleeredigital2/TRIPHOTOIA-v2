@@ -1,5 +1,43 @@
 import JSZip from 'jszip';
 import { Photo } from '../types';
+
+// ── P1-8 : garde-fou taille d'export ZIP ─────────────────────────────────────
+// Le ZIP est construit intégralement en mémoire (JSZip generateAsync). Sur de
+// gros volumes, l'onglet peut saturer/planter. On estime le volume et on avertit
+// avant de lancer (l'export vers DOSSIER, lui, streame sur disque et n'est pas
+// concerné).
+
+export interface ZipExportAssessment {
+  totalBytes: number;
+  count: number;
+  level: 'ok' | 'warn' | 'high';
+  message?: string;
+}
+
+const GB = 1024 ** 3;
+
+export function assessZipExport(
+  photos: { file?: { size?: number } }[]
+): ZipExportAssessment {
+  const count = photos.length;
+  const totalBytes = photos.reduce((s, p) => s + (p.file?.size ?? 0), 0);
+  const gb = totalBytes / GB;
+
+  let level: ZipExportAssessment['level'] = 'ok';
+  if (totalBytes > 2 * GB || count > 800) level = 'high';
+  else if (totalBytes > GB || count > 300) level = 'warn';
+
+  let message: string | undefined;
+  if (level !== 'ok') {
+    const head = `Export volumineux : ${count} photos, ~${gb.toFixed(1)} Go. Le ZIP est assemblé en mémoire et peut faire planter l'onglet.`;
+    message =
+      level === 'high'
+        ? `${head} Fortement déconseillé dans le navigateur — préférez l'export vers un dossier. Continuer quand même ?`
+        : `${head} Continuer ?`;
+  }
+
+  return { totalBytes, count, level, message };
+}
 import {
   buildXmpSidecar,
   hasEditableMetadata,

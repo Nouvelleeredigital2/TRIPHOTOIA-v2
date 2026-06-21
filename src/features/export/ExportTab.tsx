@@ -26,6 +26,7 @@ import {
   exportPhotosAsZip,
   exportPhotosToDirectory,
   supportsDirectoryExport,
+  assessZipExport,
   downloadBlob,
   generateZipFileName,
   WatermarkPosition,
@@ -353,6 +354,15 @@ function ExportTab() {
       return;
     }
 
+    // P1-8 : avertir avant un ZIP volumineux construit en mémoire (l'export
+    // vers dossier streame sur disque, donc non concerné).
+    if (!fsaAvailable) {
+      const assessment = assessZipExport(photosToExport);
+      if (assessment.message && !window.confirm(assessment.message)) {
+        return;
+      }
+    }
+
     setIsExporting(true);
     setExportProgress(0);
 
@@ -423,6 +433,12 @@ function ExportTab() {
 
     if (chapters.length === 0) {
       toast.error('Aucun chapitre à exporter');
+      return;
+    }
+
+    // P1-8 : l'export par chapitres assemble toujours un ZIP en mémoire.
+    const assessment = assessZipExport(chapters.flatMap((c) => c.photos));
+    if (assessment.message && !window.confirm(assessment.message)) {
       return;
     }
 

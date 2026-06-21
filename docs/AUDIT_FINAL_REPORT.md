@@ -22,8 +22,10 @@ Date : 2026-06-21 · Branche : `codex/autoflow-local-foundation`
 > `projects.created_by` référence `auth.users` sans `ON DELETE CASCADE` — les
 > orphelins ont été nettoyés manuellement ; durcir le `finally` (supprimer l'org
 > avant le user) reste à faire.
-> Restant pour 100% : auth UI réelle + déploiement Vercel ; advisors sécurité
-> WARN (leaked-password protection, EXECUTE sur fonctions internes).
+> Auth vérifiée le 2026-06-21 : sign-in réel (user de test) sur le projet live,
+> session persistée après refresh navigateur. Advisors perf corrigés ; advisor
+> sécurité : RPC worker révoquées de `authenticated`. Restant pour 100% :
+> déploiement Vercel réel ; toggle « leaked password protection » (dashboard Auth).
 
 > Note environnement : ce dépôt est imbriqué sous un `pnpm-workspace.yaml` parent.
 > Installer **toujours** avec `--ignore-workspace` (cf. RELEASE_CHECKLIST / READMEs).

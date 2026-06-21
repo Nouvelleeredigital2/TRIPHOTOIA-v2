@@ -24,10 +24,11 @@
 
 - [x] Supabase migrations applied on staging (21 migrations)
 - [x] Private bucket `project-photos` exists (privé)
-- [ ] Auth sign-in works (UI réelle — non testée)
+- [x] Auth sign-in works (UI réelle — user de test, session stockée)
 - [x] Project create/open works (via smoke RPC)
 - [x] Upload creates `photos` rows (via smoke)
-- [ ] AutoFlow decisions persist after refresh (UI réelle — non testée)
+- [x] Session persiste après refresh navigateur (UI réelle)
+- [ ] Décision AutoFlow persistée après refresh via l'UI complète (décision OK via smoke ; chaîne UI complète non rejouée)
 - [x] `TREEPHOTO_SMOKE_CONFIRM=1 pnpm smoke:cloud` → `cloud smoke: ok`
 
 ## Worker Verification

@@ -12,7 +12,7 @@ import {
   getSharedPhotos,
   getShareApprovals,
   setShareApproval,
-  getSharedPhotoUrl,
+  fetchSharedGalleryUrls,
 } from '../lib/sync-utils';
 import type {
   DbShareLink,
@@ -82,6 +82,7 @@ export function ShareView({ token }: ShareViewProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [approvals, setApprovals] = useState<ApprovalMap>({});
+  const [urls, setUrls] = useState<Record<string, string>>({});
   const [savingHash, setSavingHash] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -101,11 +102,13 @@ export function ShareView({ token }: ShareViewProps) {
           return;
         }
         setLink(l);
-        const [p, serverApprovals] = await Promise.all([
+        const [p, serverApprovals, galleryUrls] = await Promise.all([
           getSharedPhotos(l),
           getShareApprovals(token),
+          fetchSharedGalleryUrls(token),
         ]);
         setPhotos(p);
+        setUrls(galleryUrls);
         if (serverApprovals.length > 0) {
           const map: ApprovalMap = {};
           serverApprovals.forEach((a) => {
@@ -247,7 +250,7 @@ export function ShareView({ token }: ShareViewProps) {
                   {/* Vraie image (bucket public) — repli placeholder si indisponible */}
                   <div className="relative flex aspect-[4/3] items-center justify-center bg-white/5">
                     <SharedThumb
-                      url={getSharedPhotoUrl(photo.user_id, photo.file_hash)}
+                      url={urls[photo.file_hash] ?? null}
                       label={photo.file_name}
                     />
                     {isApproved && (

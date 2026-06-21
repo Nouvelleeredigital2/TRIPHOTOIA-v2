@@ -249,6 +249,33 @@ export function getSharedPhotoUrl(
 }
 
 /**
+ * P1-1 : récupère les URLs signées des photos d'un partage pour un visiteur
+ * ANONYME, via l'Edge Function `shared-gallery` (token validé serveur, URLs
+ * signées courtes du bucket privé). Retourne une map { fileHash -> url }.
+ * Robuste : map vide en cas d'erreur (la galerie retombe alors sur le placeholder).
+ */
+export async function fetchSharedGalleryUrls(
+  token: string
+): Promise<Record<string, string>> {
+  if (!supabase) return {};
+  try {
+    const { data, error } = await supabase.functions.invoke('shared-gallery', {
+      body: { token },
+    });
+    const photos = (data as { photos?: { hash: string; url: string | null }[] })
+      ?.photos;
+    if (error || !Array.isArray(photos)) return {};
+    const map: Record<string, string> = {};
+    for (const p of photos) {
+      if (p?.hash && p.url) map[p.hash] = p.url;
+    }
+    return map;
+  } catch {
+    return {};
+  }
+}
+
+/**
  * Génère une URL signée courte pour un objet partagé. Ne fonctionne que pour le
  * PROPRIÉTAIRE authentifié (policy `shared_photos_owner_select`) — utile pour sa
  * propre prévisualisation. Retourne null pour un visiteur anonyme ou en cas

@@ -296,7 +296,7 @@ export const AutoFlowMode: React.FC<AutoFlowModeProps> = ({
         const titles: Record<AfClass, string> = {
           keep: 'Picks automatiques',
           review: 'A revoir',
-          reject: 'Rejets IA',
+          reject: 'Rejets auto',
         };
         setScreen({ type: 'gallery', cls, title: titles[cls] });
       }}

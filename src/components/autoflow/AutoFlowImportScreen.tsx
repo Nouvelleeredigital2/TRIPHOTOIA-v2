@@ -18,10 +18,10 @@ const ACCEPT_ATTR = [...ALLOWED_IMAGE_MIME, ...ALLOWED_IMAGE_EXTENSIONS].join(
 );
 
 const FEATURE_PILLS = [
-  { icon: '⚡', label: 'Classification IA 3 piles', col: 'var(--af-review)' },
+  { icon: '⚡', label: 'Classement auto 3 piles', col: 'var(--af-review)' },
   { icon: '↔', label: 'Mode Swipe ultra-rapide', col: 'var(--af-pick)' },
   { icon: '⊕', label: 'Détection doublons', col: 'var(--af-ai)' },
-  { icon: '◎', label: 'Score netteté IA', col: 'var(--af-reject)' },
+  { icon: '◎', label: 'Score netteté (heuristique)', col: 'var(--af-reject)' },
 ];
 
 export const AutoFlowImportScreen: React.FC<AutoFlowImportScreenProps> = ({

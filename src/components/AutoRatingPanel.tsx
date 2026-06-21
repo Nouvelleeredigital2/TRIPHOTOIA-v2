@@ -96,7 +96,7 @@ export function AutoRatingPanel() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
-          Notation automatique IA
+          Notation automatique (heuristique)
           <Badge variant="secondary" className="ml-2">
             {analyzedPhotos.length} photo{analyzedPhotos.length > 1 ? 's' : ''}
           </Badge>

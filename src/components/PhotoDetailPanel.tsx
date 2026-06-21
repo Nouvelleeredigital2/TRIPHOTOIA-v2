@@ -514,10 +514,12 @@ export function PhotoDetailPanel({ photo, onClose }: PhotoDetailPanelProps) {
                       {analysis.hasOpenEyes !== undefined && (
                         <tr>
                           <td className="py-0.5 pr-3 text-muted-foreground">
-                            Yeux
+                            Yeux (est. heuristique)
                           </td>
                           <td className="font-medium">
-                            {analysis.hasOpenEyes ? '✅ Ouverts' : '⚠️ Fermés'}
+                            {analysis.hasOpenEyes
+                              ? 'Probablement ouverts'
+                              : 'À vérifier'}
                           </td>
                         </tr>
                       )}

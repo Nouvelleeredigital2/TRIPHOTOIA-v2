@@ -10,6 +10,24 @@ and `face_detection` jobs.
 pnpm worker
 ```
 
+## Smoke check
+
+End-to-end check that the worker drains real jobs to a terminal state:
+
+```bash
+# dry-run (prints the plan, touches nothing):
+pnpm smoke:worker
+# live (disposable staging only — writes then deletes smoke rows):
+TREEPHOTO_SMOKE_CONFIRM=1 pnpm smoke:worker
+```
+
+It seeds a temporary user + project + photo, inserts the three core pending jobs
+(`generate_thumbnail`, `quality_analysis`, `perceptual_hash`), drains them through
+the job runner, and asserts every job ends `completed` — or `failed` **with** an
+`error_message` (never stuck in `processing`). Cleanup cascades from the temp user.
+A job with an unknown `job_type` fails with an explicit `Unknown job type "..."`
+message instead of a cryptic runtime error.
+
 Required environment (worker/VPS only — never expose the service-role key to the browser):
 
 | Variable | Purpose |

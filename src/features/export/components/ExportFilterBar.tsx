@@ -1,4 +1,3 @@
-import React from 'react';
 import { ExportFilterMode } from '../exportSelection';
 
 export type FilterMode = ExportFilterMode;

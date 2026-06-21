@@ -16,7 +16,6 @@ export class LSHDuplicateDetector {
   private readonly bitPositions: number[][];
   private readonly hashMap: Map<string, string> = new Map(); // id → hash
   private readonly L: number;
-  private readonly K: number;
 
   /**
    * @param hashLength  Longueur du pHash en caractères (ex: 64)
@@ -25,7 +24,6 @@ export class LSHDuplicateDetector {
    */
   constructor(hashLength = 64, L = 10, K = 6) {
     this.L = L;
-    this.K = K;
     this.tables = Array.from({ length: L }, () => new Map<string, string[]>());
 
     // Positions de bits aléatoires — fixes pour la durée de vie de l'instance

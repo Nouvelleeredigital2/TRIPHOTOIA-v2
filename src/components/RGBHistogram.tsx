@@ -5,7 +5,7 @@
  * - Calcule 64 bins par canal R/G/B
  * - Affiche les barres en overlay screen-blending
  */
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface HistData {
   r: number[];

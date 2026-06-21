@@ -32,7 +32,6 @@ type PendingWorkerRequest =
 export class GPURetouchProcessor {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
-  private offscreenCanvas: OffscreenCanvas | null = null;
   private worker: Worker | null = null;
   private workerRequestId = 0;
   private pendingWorkerRequests = new Map<number, PendingWorkerRequest>();
@@ -43,14 +42,6 @@ export class GPURetouchProcessor {
     this.ctx = this.canvas.getContext('2d', { willReadFrequently: true })!;
     this.webgl = new WebGLRetouchProcessor();
 
-    // Try to create OffscreenCanvas for better performance (if supported)
-    if (typeof OffscreenCanvas !== 'undefined') {
-      try {
-        this.offscreenCanvas = new OffscreenCanvas(1, 1);
-      } catch (e) {
-        console.log('OffscreenCanvas not supported, using regular canvas');
-      }
-    }
 
     this.initializeWorker();
   }

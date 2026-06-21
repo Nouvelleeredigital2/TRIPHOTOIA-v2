@@ -185,10 +185,31 @@ function IngestionTab() {
           void queryClient.invalidateQueries({
             queryKey: ['cloud-project-photos', activeCloudProject.id],
           });
-          toast.success(
-            `${result.uploaded} photo${result.uploaded > 1 ? 's' : ''} uploadée${result.uploaded > 1 ? 's' : ''} dans le projet cloud`,
-            { id: toastId }
-          );
+
+          // P1-9 : retour structuré (success/partial/failed) — on informe
+          // l'utilisateur des photos partielles ou échouées sans tout bloquer.
+          const plural = (n: number) => (n > 1 ? 's' : '');
+          if (result.uploaded === 0) {
+            toast.error(
+              `Aucune photo uploadée (${result.failed} échec${plural(result.failed)})`,
+              { id: toastId }
+            );
+            return;
+          }
+          let message = `${result.uploaded} photo${plural(result.uploaded)} uploadée${plural(result.uploaded)} dans le projet cloud`;
+          const extras: string[] = [];
+          if (result.partial > 0) {
+            extras.push(`${result.partial} sans détection visages`);
+          }
+          if (result.failed > 0) {
+            extras.push(`${result.failed} échec${plural(result.failed)}`);
+          }
+          if (extras.length > 0) {
+            message += ` (${extras.join(', ')})`;
+            toast(message, { id: toastId, icon: '⚠️' });
+          } else {
+            toast.success(message, { id: toastId });
+          }
         })
         .catch((error) => {
           const message =

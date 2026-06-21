@@ -58,9 +58,18 @@ describe('cloud upload helpers', () => {
 
     expect(result).toEqual({
       uploaded: 1,
+      partial: 0,
+      failed: 0,
       photoIds: ['photo-generated-1'],
       mappings: [
         { localPhotoId: 'local-photo-1', cloudPhotoId: 'photo-generated-1' },
+      ],
+      results: [
+        {
+          localPhotoId: 'local-photo-1',
+          cloudPhotoId: 'photo-generated-1',
+          status: 'success',
+        },
       ],
     });
     expect(client.storage.from).toHaveBeenCalledWith('project-photos');
@@ -116,7 +125,7 @@ describe('cloud upload helpers', () => {
     });
   });
 
-  it('compense (supprime l’objet uploadé) si register_cloud_photo échoue (P1-D)', async () => {
+  it('compense (supprime l’objet uploadé) et marque la photo échouée si register_cloud_photo échoue (P1-D + P1-9)', async () => {
     const upload = vi
       .fn()
       .mockResolvedValue({ data: { path: 'ok' }, error: null });
@@ -131,23 +140,98 @@ describe('cloud upload helpers', () => {
       rpc,
     };
 
-    await expect(
-      uploadPhotosToCloud({
-        activeProject: {
-          id: 'project-1',
-          organizationId: 'org-1',
-          name: 'Mariage',
-        },
-        files: [createFile('photo.jpg')],
-        client: client as never,
-        createPhotoId: () => 'photo-1',
-      })
-    ).rejects.toThrow('db fail');
+    // P1-9 : ne lève plus — retourne un statut structuré `failed`.
+    const result = await uploadPhotosToCloud({
+      activeProject: {
+        id: 'project-1',
+        organizationId: 'org-1',
+        name: 'Mariage',
+      },
+      files: [createFile('photo.jpg')],
+      localPhotoIds: ['local-1'],
+      client: client as never,
+      createPhotoId: () => 'photo-1',
+    });
+
+    expect(result.uploaded).toBe(0);
+    expect(result.failed).toBe(1);
+    expect(result.photoIds).toEqual([]);
+    expect(result.results[0]).toMatchObject({
+      localPhotoId: 'local-1',
+      status: 'failed',
+      error: 'db fail',
+    });
 
     // L'objet orphelin a été supprimé (compensation), au bon chemin.
     expect(remove).toHaveBeenCalledWith([
       'organizations/org-1/projects/project-1/originals/photo-1-photo.jpg',
     ]);
+  });
+
+  it('marque la photo `partial` (et ne lève pas) si le job visage échoue après enregistrement (P1-9)', async () => {
+    const upload = vi
+      .fn()
+      .mockResolvedValue({ data: { path: 'ok' }, error: null });
+    // register OK, mais enqueue_face_detection_job échoue.
+    const rpc = vi.fn((name: string) =>
+      Promise.resolve(
+        name === 'enqueue_face_detection_job'
+          ? { data: null, error: new Error('queue down') }
+          : { data: null, error: null }
+      )
+    );
+
+    const client = { storage: { from: vi.fn(() => ({ upload })) }, rpc };
+
+    const result = await uploadPhotosToCloud({
+      activeProject: { id: 'project-1', organizationId: 'org-1', name: 'M' },
+      files: [createFile('photo.jpg')],
+      client: client as never,
+      createPhotoId: () => 'photo-1',
+      faceAnalysisEnabled: true,
+    });
+
+    // La photo est bien créée malgré l'échec du job secondaire.
+    expect(result.uploaded).toBe(1);
+    expect(result.partial).toBe(1);
+    expect(result.failed).toBe(0);
+    expect(result.photoIds).toEqual(['photo-1']);
+    expect(result.results[0]).toMatchObject({
+      cloudPhotoId: 'photo-1',
+      status: 'partial',
+    });
+    expect(result.results[0].error).toContain('queue down');
+  });
+
+  it('isole les échecs : une photo échoue, l’autre réussit (P1-9)', async () => {
+    const upload = vi
+      .fn()
+      .mockResolvedValueOnce({ data: null, error: new Error('storage 500') })
+      .mockResolvedValueOnce({ data: { path: 'ok' }, error: null });
+    const remove = vi.fn().mockResolvedValue({ data: null, error: null });
+    const rpc = vi.fn().mockResolvedValue({ data: null, error: null });
+
+    const client = {
+      storage: { from: vi.fn(() => ({ upload, remove })) },
+      rpc,
+    };
+
+    let photoSeq = 0;
+    const result = await uploadPhotosToCloud({
+      activeProject: { id: 'project-1', organizationId: 'org-1', name: 'M' },
+      files: [createFile('a.jpg'), createFile('b.jpg')],
+      localPhotoIds: ['local-a', 'local-b'],
+      client: client as never,
+      createPhotoId: () => `photo-${++photoSeq}`,
+    });
+
+    expect(result.uploaded).toBe(1);
+    expect(result.failed).toBe(1);
+    expect(result.results.map((r) => r.status)).toEqual(['failed', 'success']);
+    // register_cloud_photo n'est appelé que pour la photo dont l'upload a réussi.
+    expect(
+      rpc.mock.calls.filter((c: unknown[]) => c[0] === 'register_cloud_photo')
+    ).toHaveLength(1);
   });
 
   it('does not call enqueue_face_detection_job when opt-in is off (default)', async () => {

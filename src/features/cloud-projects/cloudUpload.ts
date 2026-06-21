@@ -54,10 +54,25 @@ export interface CloudPhotoUploadMapping {
   cloudPhotoId: string;
 }
 
+// P1-9 : statut par photo. `success` = photo + jobs OK ; `partial` = photo créée
+// mais un job secondaire (ex. détection visages) n'a pas été programmé ;
+// `failed` = upload ou enregistrement principal échoué (objet orphelin nettoyé).
+export type CloudUploadStatus = 'success' | 'partial' | 'failed';
+
+export interface CloudPhotoUploadOutcome {
+  localPhotoId?: string;
+  cloudPhotoId?: string;
+  status: CloudUploadStatus;
+  error?: string;
+}
+
 interface UploadPhotosToCloudResult {
-  uploaded: number;
+  uploaded: number; // photos réellement créées (success + partial)
+  partial: number;
+  failed: number;
   photoIds: string[];
   mappings: CloudPhotoUploadMapping[];
+  results: CloudPhotoUploadOutcome[];
 }
 
 export function buildProjectPhotoStoragePath({
@@ -91,8 +106,21 @@ export async function uploadPhotosToCloud({
 
   const photoIds: string[] = [];
   const mappings: CloudPhotoUploadMapping[] = [];
+  const results: CloudPhotoUploadOutcome[] = [];
+  let partial = 0;
+  let failed = 0;
+
+  const errMessage = (e: unknown): string =>
+    e instanceof Error
+      ? e.message
+      : typeof e === 'string'
+        ? e
+        : 'Échec inconnu';
+  const reportProgress = (index: number) =>
+    onProgress?.(Math.round(((index + 1) / files.length) * 100));
 
   for (const [index, file] of files.entries()) {
+    const localPhotoId = localPhotoIds[index];
     const photoId = createPhotoId();
     const storagePath = buildProjectPhotoStoragePath({
       organizationId: activeProject.organizationId,
@@ -101,16 +129,27 @@ export async function uploadPhotosToCloud({
       filename: file.name,
     });
 
+    // 1) Upload Storage. P1-9 : un échec n'interrompt plus tout le lot — la photo
+    // est marquée `failed` et on passe à la suivante.
     const { error: uploadError } = await client.storage
       .from(PROJECT_PHOTOS_BUCKET)
       .upload(storagePath, file, { cacheControl: '3600', upsert: false });
 
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      failed++;
+      results.push({
+        localPhotoId,
+        status: 'failed',
+        error: errMessage(uploadError),
+      });
+      reportProgress(index);
+      continue;
+    }
 
-    // Sur les nouvelles instances Supabase ES256/JWKS, PostgREST n'effectue pas la
-    // bascule de rôle anon→authenticated, ce qui bloque les INSERTs directs via RLS.
-    // On passe par la RPC register_cloud_photo (SECURITY DEFINER) qui insère la photo
-    // et ses jobs côté serveur, avec vérification auth.uid() + is_project_member.
+    // 2) Enregistrement principal (RPC register_cloud_photo, SECURITY DEFINER).
+    // Sur les nouvelles instances ES256/JWKS, PostgREST n'effectue pas la bascule
+    // de rôle anon→authenticated ; la RPC insère la photo + ses jobs côté serveur
+    // avec vérification auth.uid() + is_project_member.
     const { error: photoError } = await (client.rpc('register_cloud_photo', {
       p_project_id: activeProject.id,
       p_photo_id: photoId,
@@ -122,42 +161,62 @@ export async function uploadPhotosToCloud({
     }) as Promise<{ error: unknown }>);
 
     if (photoError) {
-      // P1-D : compensation. L'upload Storage a réussi mais l'enregistrement DB
-      // a échoué → on supprime l'objet uploadé pour ne pas laisser d'orphelin,
-      // avant de propager l'erreur d'origine (suppression best-effort).
+      // P1-D : compensation. L'upload a réussi mais l'enregistrement a échoué →
+      // on supprime l'objet orphelin (best-effort) puis on marque la photo échouée.
       try {
         await client.storage.from(PROJECT_PHOTOS_BUCKET).remove([storagePath]);
       } catch {
-        // on ne masque pas l'erreur initiale si le nettoyage échoue
+        // nettoyage best-effort : ne pas masquer l'erreur d'origine
       }
-      throw photoError;
+      failed++;
+      results.push({
+        localPhotoId,
+        status: 'failed',
+        error: errMessage(photoError),
+      });
+      reportProgress(index);
+      continue;
     }
 
-    // Opt-in face detection : enfilé séparément si activé, car la RPC principale
-    // n'inclut pas ce job (opt-in par projet).
-    if (faceAnalysisEnabled) {
-      const faceJobInsert = client.rpc('enqueue_face_detection_job', {
-        p_project_id: activeProject.id,
-        p_photo_id: photoId,
-        p_storage_path: storagePath,
-        p_delay_ms: FACE_DETECTION_DELAY_MS,
-      }) as Promise<{ error: unknown }>;
-      const { error: faceError } = await faceJobInsert;
-      if (faceError) throw faceError;
-    }
-
+    // La photo est créée : on l'enregistre (id + mapping) AVANT les jobs
+    // secondaires, pour ne pas la « perdre » si l'un d'eux échoue.
     photoIds.push(photoId);
-    const localPhotoId = localPhotoIds[index];
     if (localPhotoId) {
       mappings.push({ localPhotoId, cloudPhotoId: photoId });
     }
-    onProgress?.(Math.round(((index + 1) / files.length) * 100));
+
+    // 3) Job secondaire opt-in (détection visages). P1-9 : NON bloquant — son
+    // échec ne doit pas faire échouer une photo déjà enregistrée → statut `partial`.
+    let status: CloudUploadStatus = 'success';
+    let outcomeError: string | undefined;
+    if (faceAnalysisEnabled) {
+      const { error: faceError } = await (client.rpc(
+        'enqueue_face_detection_job',
+        {
+          p_project_id: activeProject.id,
+          p_photo_id: photoId,
+          p_storage_path: storagePath,
+          p_delay_ms: FACE_DETECTION_DELAY_MS,
+        }
+      ) as Promise<{ error: unknown }>);
+      if (faceError) {
+        status = 'partial';
+        partial++;
+        outcomeError = `Détection visages non programmée: ${errMessage(faceError)}`;
+      }
+    }
+
+    results.push({ localPhotoId, cloudPhotoId: photoId, status, error: outcomeError });
+    reportProgress(index);
   }
 
   return {
     uploaded: photoIds.length,
+    partial,
+    failed,
     photoIds,
     mappings,
+    results,
   };
 }
 

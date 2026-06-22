@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { calculateFileHash, mapWithConcurrency } from '../../lib/utils';
 import { validateImportFiles } from '../../lib/import-policy';
+import { isRawFilename, rawFileToProxyFile } from '../../lib/raw/raw-decoder';
 import { readExifMetadata } from '../../lib/exif';
 import { Photo, PhotoAnalysis } from '../../types';
 import { usePhotoStore } from '../../store/photoStore';
@@ -130,19 +131,46 @@ function IngestionTab() {
         return true;
       });
 
+    // RAW : décodage en proxy JPEG raster (LibRaw-Wasm) à concurrence bornée.
+    // L'empreinte/ID reste calculée sur les octets RAW d'origine (dédup correcte) ;
+    // l'EXIF est lu sur l'original ; seul le raster (preview + analyse) utilise le
+    // proxy. Un RAW non décodable est écarté proprement (jamais d'image fabriquée).
+    const rawCount = photoSeeds.filter((s) =>
+      isRawFilename(s.file.name)
+    ).length;
+    const rawToastId =
+      rawCount > 0 ? toast.loading(`Décodage RAW… (${rawCount})`) : null;
+
     // Lecture EXIF réelle en parallèle (non bloquante : undefined si absent).
-    const photosWithHashes = await Promise.all(
-      photoSeeds.map(async ({ file, fileHash }) => ({
-        // A-14 : ID = SHA-256 du contenu.
-        id: fileHash,
-        file,
-        fileHash, // niveau Photo — clé cross-device pour le cloud
-        previewUrl: URL.createObjectURL(file),
-        analysis: {
-          fileHash,
-        } as Partial<PhotoAnalysis>,
-        metadata: await readExifMetadata(file),
-      }))
+    const built = await mapWithConcurrency(
+      photoSeeds,
+      4,
+      async ({ file, fileHash }) => {
+        let rasterFile = file;
+        if (isRawFilename(file.name)) {
+          const proxy = await rawFileToProxyFile(file);
+          if (!proxy) {
+            rejections.push({ file, reason: 'Décodage RAW impossible' });
+            return null;
+          }
+          rasterFile = proxy;
+        }
+        return {
+          // A-14 : ID = SHA-256 du contenu (original RAW pour les RAW).
+          id: fileHash,
+          file: rasterFile,
+          fileHash, // niveau Photo — clé cross-device pour le cloud
+          previewUrl: URL.createObjectURL(rasterFile),
+          analysis: {
+            fileHash,
+          } as Partial<PhotoAnalysis>,
+          metadata: await readExifMetadata(file),
+        };
+      }
+    );
+    if (rawToastId) toast.dismiss(rawToastId);
+    const photosWithHashes = built.filter(
+      (p): p is NonNullable<typeof p> => p !== null
     );
 
     if (rejections.length > 0) {

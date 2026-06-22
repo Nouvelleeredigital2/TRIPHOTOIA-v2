@@ -3,12 +3,16 @@
 // Utilisée par toutes les entrées de fichiers (Studio Grid `FileUpload` et
 // AutoFlow `AutoFlowImportScreen`, via le puits commun `handleFilesSelected`).
 // On n'accepte pas « tout `image/*` » : chaque fichier doit passer extension +
-// taille + signature réelle (magic bytes). Les formats RAW sont explicitement
-// refusés tant qu'aucun décodeur RAW n'existe. La fonction retourne la liste
-// détaillée des fichiers refusés avec leur motif.
+// taille + signature réelle (magic bytes). Les RAW sont désormais acceptés
+// (décodés via LibRaw-Wasm en proxy raster à l'ingestion) avec une limite de
+// taille dédiée et une vérification de signature RAW. La fonction retourne la
+// liste détaillée des fichiers refusés avec leur motif.
 
-/** Taille maximale par fichier (octets). */
+/** Taille maximale par fichier image standard (octets). */
 export const MAX_IMPORT_FILE_BYTES = 50 * 1024 * 1024; // 50 Mo
+
+/** Taille maximale par fichier RAW (octets) — les RAW haute résolution sont lourds. */
+export const MAX_RAW_IMPORT_FILE_BYTES = 200 * 1024 * 1024; // 200 Mo
 
 /** Nombre maximal de fichiers acceptés par lot d'import. */
 export const MAX_IMPORT_BATCH = 2000;
@@ -34,18 +38,29 @@ export const ALLOWED_IMAGE_MIME = [
   'image/avif',
 ] as const;
 
-/** Extensions RAW explicitement refusées (pas de décodeur RAW). */
-export const REJECTED_RAW_EXTENSIONS = [
+/**
+ * Extensions RAW acceptées à l'import (décodées via LibRaw-Wasm en proxy raster
+ * à l'ingestion). Le décodeur (`src/lib/raw/raw-decoder.ts`) en gère davantage ;
+ * cette liste est la surface validée par la politique d'import.
+ */
+export const RAW_IMPORT_EXTENSIONS = [
   '.raw',
   '.cr2',
   '.cr3',
   '.nef',
+  '.nrw',
   '.dng',
   '.arw',
+  '.sr2',
+  '.srf',
   '.raf',
   '.rw2',
   '.orf',
-  '.sr2',
+  '.pef',
+  '.srw',
+  '.dcr',
+  '.kdc',
+  '.gpr',
 ] as const;
 
 export interface RejectedFile {
@@ -105,6 +120,32 @@ export async function detectImageSignature(file: File): Promise<string | null> {
 }
 
 /**
+ * Détecte une signature RAW plausible (magic bytes) couvrant les grandes
+ * familles : TIFF little/big-endian (CR2/NEF/ARW/DNG/ORF/SR2/PEF/SRW/DCR/GPR),
+ * Panasonic RW2 ("IIU\0"), Fujifilm RAF ("FUJIFILM"), Canon CR3 (BMFF "ftyp"+
+ * "crx"). Couplée au contrôle d'extension, c'est un filtre suffisant à l'entrée :
+ * LibRaw tranche ensuite de façon autoritaire au décodage (un faux RAW échoue
+ * proprement et la photo est écartée).
+ */
+export async function detectRawSignature(file: File): Promise<boolean> {
+  const h = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+  const ascii = (start: number, len: number) =>
+    String.fromCharCode(...Array.from(h.slice(start, start + len)));
+
+  // TIFF little-endian : "II" 0x2A 0x00 ; Panasonic RW2 : "II" 0x55 0x00.
+  if (h[0] === 0x49 && h[1] === 0x49 && (h[2] === 0x2a || h[2] === 0x55)) {
+    return true;
+  }
+  // TIFF big-endian : "MM" 0x00 0x2A ; Olympus ORF : "MMOR".
+  if (h[0] === 0x4d && h[1] === 0x4d) return true;
+  // Fujifilm RAF.
+  if (ascii(0, 8) === 'FUJIFILM') return true;
+  // Canon CR3 (ISO BMFF) : box "ftyp" + marque "crx".
+  if (ascii(4, 4) === 'ftyp' && ascii(8, 3) === 'crx') return true;
+  return false;
+}
+
+/**
  * Valide un lot de fichiers selon la politique d'import unique.
  * Vérifie : nombre max par lot, extension autorisée, refus RAW explicite,
  * taille max, et signature réelle (magic bytes — bloque un MIME falsifié).
@@ -128,8 +169,35 @@ export async function validateImportFiles(
 
     const ext = extensionOf(file.name);
 
-    if ((REJECTED_RAW_EXTENSIONS as readonly string[]).includes(ext)) {
-      rejected.push({ file, reason: 'Format RAW non pris en charge' });
+    // Branche RAW : extension RAW connue → vérif taille (limite dédiée) +
+    // signature RAW. Accepté pour décodage proxy à l'ingestion ; non décodé ici.
+    if ((RAW_IMPORT_EXTENSIONS as readonly string[]).includes(ext)) {
+      if (file.size === 0) {
+        rejected.push({ file, reason: 'Fichier vide' });
+        continue;
+      }
+      if (file.size > MAX_RAW_IMPORT_FILE_BYTES) {
+        rejected.push({
+          file,
+          reason: `Fichier RAW trop volumineux (> ${Math.round(MAX_RAW_IMPORT_FILE_BYTES / (1024 * 1024))} Mo)`,
+        });
+        continue;
+      }
+      let isRaw = false;
+      try {
+        isRaw = await detectRawSignature(file);
+      } catch {
+        rejected.push({ file, reason: 'Lecture du fichier impossible' });
+        continue;
+      }
+      if (!isRaw) {
+        rejected.push({
+          file,
+          reason: 'Signature RAW non reconnue (fichier corrompu ?)',
+        });
+        continue;
+      }
+      accepted.push(file);
       continue;
     }
 

@@ -105,6 +105,41 @@ export async function extractRawThumbnail(file: File): Promise<Blob | null> {
   }
 }
 
+/**
+ * Décode un RAW et le ré-encode en un fichier JPEG « proxy » raster, utilisable
+ * tel quel par tout le pipeline navigateur (preview, worker d'analyse via
+ * `createImageBitmap`, pHash, export). Décodé en demi-résolution par défaut
+ * (proxy léger ; le worker redimensionne de toute façon à ≤1600px). Retourne
+ * `null` si le décodage échoue — l'appelant écarte alors le fichier proprement.
+ *
+ * L'empreinte/ID de la photo reste calculée sur les octets RAW d'origine par
+ * l'ingestion : le proxy ne sert que de représentation raster.
+ */
+export async function rawFileToProxyFile(
+  file: File,
+  halfSize = true
+): Promise<File | null> {
+  const decoded = await decodeRawToRgba(file, halfSize);
+  if (!decoded) return null;
+
+  const { width, height, data } = decoded;
+  try {
+    const canvas = new OffscreenCanvas(width, height);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.putImageData(new ImageData(data, width, height), 0, 0);
+    const blob = await canvas.convertToBlob({
+      type: 'image/jpeg',
+      quality: 0.92,
+    });
+    const proxyName = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+    return new File([blob], proxyName, { type: 'image/jpeg' });
+  } catch (error) {
+    console.warn('[raw-decoder] encodage du proxy JPEG échoué:', error);
+    return null;
+  }
+}
+
 /** Convertit un buffer RGB (ou RGBA) en RGBA 8-bit contigu. */
 function toRgba(
   src: Uint8Array | Uint16Array,

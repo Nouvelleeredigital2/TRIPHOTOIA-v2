@@ -4,13 +4,12 @@ import { motion } from 'framer-motion';
 import { Card, CardContent } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { cn } from '../../../lib/utils';
+import { RAW_IMPORT_EXTENSIONS } from '../../../lib/import-policy';
 import { FolderOpen, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-// P1-4 : uniquement les formats réellement décodés par le pipeline navigateur
-// (HTMLImageElement/Canvas). HEIC/HEIF/TIFF/RAW étaient acceptés mais échouaient
-// au preview/analyse/export — on les retire tant qu'aucun décodeur dédié n'est intégré.
-const IMAGE_EXTENSIONS = new Set([
+// Formats raster décodés directement par le navigateur (Canvas).
+const BROWSER_IMAGE_EXTENSIONS = [
   '.jpg',
   '.jpeg',
   '.png',
@@ -18,6 +17,12 @@ const IMAGE_EXTENSIONS = new Set([
   '.bmp',
   '.webp',
   '.avif',
+];
+
+// Les RAW sont désormais acceptés (décodés via LibRaw-Wasm en proxy à l'ingestion).
+const IMAGE_EXTENSIONS = new Set<string>([
+  ...BROWSER_IMAGE_EXTENSIONS,
+  ...RAW_IMPORT_EXTENSIONS,
 ]);
 
 /** Recursively collect image files from a FileSystemDirectoryHandle.
@@ -83,7 +88,7 @@ export function FileUpload({ onFilesSelected, disabled }: FileUploadProps) {
     onDrop,
     onDropRejected,
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.bmp', '.webp', '.avif'],
+      'image/*': [...BROWSER_IMAGE_EXTENSIONS, ...RAW_IMPORT_EXTENSIONS],
     },
     multiple: true,
     disabled,
@@ -183,7 +188,7 @@ export function FileUpload({ onFilesSelected, disabled }: FileUploadProps) {
                 ou cliquez pour sélectionner des fichiers
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                JPEG · PNG · WebP · GIF · BMP · AVIF
+                JPEG · PNG · WebP · GIF · BMP · AVIF · RAW (CR2/CR3/NEF/ARW/DNG…)
               </p>
             </div>
             <div className="mt-4 flex flex-col items-center justify-center gap-3 sm:flex-row">

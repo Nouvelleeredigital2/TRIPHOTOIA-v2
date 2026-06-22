@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TreePhoto · bench analyse (P1-4)</title>
+  </head>
+  <body style="font-family: system-ui, sans-serif; padding: 1rem">
+    <h1>Bench analyse pixel (chemin réel : Web Worker + OffscreenCanvas)</h1>
+    <p>
+      Sélectionnez des photos réelles, ou laissez le runner Playwright injecter
+      le dossier <code>BENCH_DIR</code>.
+    </p>
+    <input id="files" type="file" multiple accept="image/*" />
+    <pre id="out">idle</pre>
+    <script type="module" src="./bench-entry.ts"></script>
+  </body>
+</html>

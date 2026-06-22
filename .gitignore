@@ -28,3 +28,7 @@ coverage
 
 # Archives locales
 *.zip
+
+# Bench: échantillons photos locaux (ne pas committer)
+scripts/bench/samples/*
+!scripts/bench/samples/.gitkeep

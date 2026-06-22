@@ -92,6 +92,47 @@ describe('cloud upload helpers', () => {
     expect(progress).toEqual([100]);
   });
 
+  it('passe p_content_hash à register_cloud_photo quand un hash de contenu est fourni (P1-9 serveur)', async () => {
+    const upload = vi
+      .fn()
+      .mockResolvedValue({ data: { path: 'ok' }, error: null });
+    const rpc = vi.fn().mockResolvedValue({ data: null, error: null });
+    const client = { storage: { from: vi.fn(() => ({ upload })) }, rpc };
+
+    await uploadPhotosToCloud({
+      activeProject: { id: 'project-1', organizationId: 'org-1', name: 'M' },
+      files: [createFile('a.jpg')],
+      contentHashes: ['sha256-abc'],
+      client: client as never,
+      createPhotoId: () => 'photo-1',
+    });
+
+    const registerCall = rpc.mock.calls.find(
+      (c: unknown[]) => c[0] === 'register_cloud_photo'
+    );
+    expect(registerCall?.[1]).toMatchObject({ p_content_hash: 'sha256-abc' });
+  });
+
+  it('n’envoie PAS p_content_hash sans hash fourni (compat RPC legacy 7-args)', async () => {
+    const upload = vi
+      .fn()
+      .mockResolvedValue({ data: { path: 'ok' }, error: null });
+    const rpc = vi.fn().mockResolvedValue({ data: null, error: null });
+    const client = { storage: { from: vi.fn(() => ({ upload })) }, rpc };
+
+    await uploadPhotosToCloud({
+      activeProject: { id: 'project-1', organizationId: 'org-1', name: 'M' },
+      files: [createFile('a.jpg')],
+      client: client as never,
+      createPhotoId: () => 'photo-1',
+    });
+
+    const registerCall = rpc.mock.calls.find(
+      (c: unknown[]) => c[0] === 'register_cloud_photo'
+    );
+    expect(registerCall?.[1]).not.toHaveProperty('p_content_hash');
+  });
+
   it('calls enqueue_face_detection_job only when face analysis is opted in', async () => {
     const upload = vi
       .fn()

@@ -42,6 +42,12 @@ interface UploadPhotosToCloudParams {
   activeProject: ActiveCloudProject;
   files: File[];
   localPhotoIds?: string[];
+  // P1-9 (serveur) : SHA-256 de contenu par fichier, clé d'idempotence côté RPC.
+  // À ne fournir QUE lorsque la migration idempotente
+  // (20260622120000_treephoto_register_cloud_photo_idempotent.sql) est déployée :
+  // la signature actuelle de register_cloud_photo (7 args) rejetterait
+  // p_content_hash. Absent par défaut → comportement et payload inchangés.
+  contentHashes?: string[];
   client?: CloudUploadClient | null;
   createPhotoId?: () => string;
   onProgress?: (progress: number) => void;
@@ -95,6 +101,7 @@ export async function uploadPhotosToCloud({
   activeProject,
   files,
   localPhotoIds = [],
+  contentHashes = [],
   client = supabase as unknown as CloudUploadClient | null,
   createPhotoId = createUuid,
   onProgress,
@@ -150,7 +157,7 @@ export async function uploadPhotosToCloud({
     // Sur les nouvelles instances ES256/JWKS, PostgREST n'effectue pas la bascule
     // de rôle anon→authenticated ; la RPC insère la photo + ses jobs côté serveur
     // avec vérification auth.uid() + is_project_member.
-    const { error: photoError } = await (client.rpc('register_cloud_photo', {
+    const registerArgs: Record<string, unknown> = {
       p_project_id: activeProject.id,
       p_photo_id: photoId,
       p_original_filename: file.name,
@@ -158,7 +165,18 @@ export async function uploadPhotosToCloud({
       p_file_size: file.size,
       p_mime_type: file.type || null,
       p_semantic_delay_ms: SEMANTIC_EMBEDDING_DELAY_MS,
-    }) as Promise<{ error: unknown }>);
+    };
+    // P1-9 (serveur) : clé d'idempotence. Envoyée uniquement si un hash de contenu
+    // est fourni (donc migration idempotente déployée). Sinon argument omis →
+    // la RPC legacy (7 args) reste appelée à l'identique.
+    const contentHash = contentHashes[index];
+    if (contentHash) {
+      registerArgs.p_content_hash = contentHash;
+    }
+    const { error: photoError } = await (client.rpc(
+      'register_cloud_photo',
+      registerArgs
+    ) as Promise<{ error: unknown }>);
 
     if (photoError) {
       // P1-D : compensation. L'upload a réussi mais l'enregistrement a échoué →

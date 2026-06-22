@@ -44,9 +44,15 @@ export const COLOR_LABEL_KEYS = Object.keys(COLOR_LABEL_META) as ColorLabel[];
  * - `local-pixel` : analyse réelle des pixels (Canvas / Web Worker).
  * - `cloud-model` : modèle distant authentifié (non disponible actuellement).
  * - `heuristic`  : heuristique pixel non calibrée (ex. tags dérivés de mesures).
+ * - `face-landmarks` : détection visage + landmarks réels (MediaPipe), EAR calibré.
  * - `demo`       : démonstration — INTERDIT en build production.
  */
-export type AnalysisMode = 'local-pixel' | 'cloud-model' | 'heuristic' | 'demo';
+export type AnalysisMode =
+  | 'local-pixel'
+  | 'cloud-model'
+  | 'heuristic'
+  | 'face-landmarks'
+  | 'demo';
 
 /**
  * P0-B : provenance obligatoire d'un résultat d'analyse. Permet de distinguer
@@ -68,6 +74,10 @@ export interface PhotoAnalysis {
   isBlurry?: boolean;
   sharpnessScore?: number;
   hasOpenEyes?: boolean;
+  /** Nombre de visages détectés par le modèle de landmarks (face-landmarks). */
+  faceCount?: number;
+  /** Ouverture moyenne des yeux 0-1 (Eye Aspect Ratio normalisé), si visage détecté. */
+  eyeOpenness?: number;
   tags?: string[];
   perceptualHash?: string;
   fileHash?: string; // SHA-256 hash for exact duplicate detection

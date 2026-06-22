@@ -6,6 +6,7 @@ export const analysisModeSchema = z.enum([
   'local-pixel',
   'cloud-model',
   'heuristic',
+  'face-landmarks',
   'demo',
 ]);
 
@@ -23,6 +24,8 @@ export const photoAnalysisSchema = z.object({
   isBlurry: z.boolean().optional(),
   sharpnessScore: z.number().finite().min(0).max(1).optional(),
   hasOpenEyes: z.boolean().optional(),
+  faceCount: z.number().int().min(0).max(1000).optional(),
+  eyeOpenness: z.number().finite().min(0).max(1).optional(),
   tags: z.array(z.string().max(64)).max(50).optional(),
   perceptualHash: z.string().max(256).optional(),
   compositionScore: z.number().finite().min(0).max(1).optional(),

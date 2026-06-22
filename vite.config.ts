@@ -10,6 +10,12 @@ export default defineConfig(() => {
         '@': path.resolve(__dirname, './src'),
       },
     },
+    // Le Web Worker d'analyse charge MediaPipe en import dynamique (code-splitting).
+    // Le format `iife` par défaut ne supporte pas le code-splitting dans un worker ;
+    // `es` est requis (navigateurs modernes, worker `{ type: 'module' }`).
+    worker: {
+      format: 'es',
+    },
     build: {
       rollupOptions: {
         output: {

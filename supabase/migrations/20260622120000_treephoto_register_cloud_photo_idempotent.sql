@@ -1,10 +1,13 @@
 -- P1-9 (PART SERVEUR) — idempotence de l'enregistrement d'une photo cloud.
 --
--- ⚠️ NON DÉPLOYÉE PAR DÉFAUT. À appliquer puis VALIDER sur un environnement de
--- STAGING (voir le bloc « VALIDATION STAGING » en bas) avant toute mise en prod.
--- Tant qu'elle n'est pas déployée, le client NE DOIT PAS envoyer p_content_hash
--- (la signature 7-args actuelle le rejetterait). Voir le drapeau côté client :
--- src/features/ingestion/IngestionTab.tsx (passage de `contentHashes`).
+-- ✅ DÉPLOYÉE ET VALIDÉE le 2026-06-22 sur le projet cnnshwmdynggvjcxaohe.
+--    Validation (fixtures auth réels, puis nettoyés) : 1er appel → 1 photo + 4
+--    jobs ; retry même hash → 0 doublon, 0 job ajouté ; legacy sans hash → photo
+--    + jobs normaux. Advisor sécurité : fonction callable par `authenticated`
+--    uniquement (revoke anon confirmé), aucune régression.
+--    RÉTROCOMPATIBLE : le frontend actuel (7 args nommés) reste valide
+--    (p_content_hash défaut null). Idempotence RÉELLE active une fois que le
+--    client enverra `contentHashes` (cf. src/features/ingestion/IngestionTab.tsx).
 --
 -- ── Problème (audit P1-9) ────────────────────────────────────────────────────
 -- register_cloud_photo insère TOUJOURS une nouvelle ligne. Sur un retry réseau

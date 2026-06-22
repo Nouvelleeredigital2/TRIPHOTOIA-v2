@@ -57,16 +57,28 @@ class WorkerImageProcessor {
         throw new Error("Dimensions d'image invalides");
       }
 
+      // `getImageData` dessine l'image redimensionnée (≤1600px) dans this.canvas.
       const imageData = this.getImageData(bitmap);
 
       // P0-C : la métrique de flou n'est calculée qu'une seule fois.
       const blur = this.analyzeBlur(imageData);
 
       // P0-2 : vraie détection visage/landmarks (MediaPipe) → ouverture des yeux
-      // par EAR réel. Si le modèle est indisponible, `face` vaut null et l'on
-      // n'expose AUCUNE estimation d'yeux (pas de repli sur l'ancienne
-      // heuristique de pixels sombres, qui était trompeuse).
-      const face = await detectFaceEyes(bitmap);
+      // par EAR réel. IMPORTANT : on lance la détection sur le PROXY borné
+      // (≤1600px), jamais sur le bitmap pleine résolution — sur un 45MP, le
+      // modèle serait extrêmement lent / saturerait la mémoire. Si le modèle est
+      // indisponible, `face` vaut null et l'on n'expose AUCUNE estimation d'yeux
+      // (pas de repli sur l'ancienne heuristique de pixels sombres, trompeuse).
+      let proxy: ImageBitmap | undefined;
+      let face: Awaited<ReturnType<typeof detectFaceEyes>> = null;
+      try {
+        proxy = await createImageBitmap(this.canvas);
+        face = await detectFaceEyes(proxy);
+      } catch (faceError) {
+        console.warn('[worker] détection visage ignorée:', faceError);
+      } finally {
+        proxy?.close();
+      }
 
       const base: PhotoAnalysis = {
         isBlurry: blur.isBlurry,

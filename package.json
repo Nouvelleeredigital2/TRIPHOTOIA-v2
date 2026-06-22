@@ -5,7 +5,10 @@
   "type": "module",
   "packageManager": "pnpm@10.22.0",
   "scripts": {
+    "assets:mediapipe": "node scripts/copy-mediapipe-assets.mjs",
+    "predev": "node scripts/copy-mediapipe-assets.mjs",
     "dev": "vite",
+    "prebuild": "node scripts/copy-mediapipe-assets.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest",

@@ -24,19 +24,21 @@ export interface FaceEyeResult {
   confidence: number;
 }
 
-// Surcharge possible via une variable d'environnement Vite pour héberger les
-// assets en local (recommandé en prod pour ne pas dépendre d'un CDN tiers).
+// Assets servis EN LOCAL par défaut (copiés sous public/mediapipe par
+// `pnpm assets:mediapipe`, lancé en predev/prebuild). Aucune dépendance CDN à
+// l'exécution → « 100% navigateur » et pas de cold-start réseau. Surcharge
+// possible via les variables Vite (p. ex. pour pointer un CDN en secours).
 const WASM_BASE =
   (typeof import.meta !== 'undefined' &&
     (import.meta as { env?: Record<string, string> }).env
       ?.VITE_MEDIAPIPE_WASM_BASE) ||
-  'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm';
+  '/mediapipe/wasm';
 
 const MODEL_URL =
   (typeof import.meta !== 'undefined' &&
     (import.meta as { env?: Record<string, string> }).env
       ?.VITE_FACE_LANDMARKER_MODEL) ||
-  'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
+  '/mediapipe/models/face_landmarker.task';
 
 const MAX_FACES = 10;
 

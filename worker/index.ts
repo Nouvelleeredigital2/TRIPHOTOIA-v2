@@ -2,6 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import { assertProvidersAllowed, createWorkerConfig } from './config';
 import { createEmbedder } from './embedding';
 import { createFaceDetector } from './faceDetection';
+import { createImageProcessor } from './imageProcessing';
+import { createSupabaseStorage } from './storage';
 import {
   claimNextJob,
   createDefaultJobProcessors,
@@ -40,7 +42,9 @@ export async function runWorkerLoop(): Promise<void> {
   assertProvidersAllowed(process.env);
   const processors = createDefaultJobProcessors(
     createEmbedder(process.env),
-    createFaceDetector(process.env)
+    createFaceDetector(process.env),
+    // P0-5 : moteur image réel (sharp) en prod, stub en dev/test selon IMAGE_PROCESSOR.
+    createImageProcessor(process.env, createSupabaseStorage)
   );
   const client = createClient(config.supabaseUrl, config.serviceRoleKey, {
     auth: {

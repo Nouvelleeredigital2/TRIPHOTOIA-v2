@@ -173,10 +173,10 @@ function IngestionTab() {
         activeProject: activeCloudProject,
         files: photosWithHashes.map((photo) => photo.file),
         localPhotoIds: photosWithHashes.map((photo) => photo.id),
-        // P1-9 (serveur) : pour activer l'idempotence anti-doublon au retry, AJOUTER
-        // après déploiement de la migration idempotente :
-        //   contentHashes: photosWithHashes.map((photo) => photo.fileHash),
-        // (laissé désactivé tant que la RPC 7-args est en prod, sinon elle rejette.)
+        // P1-9 (serveur) : idempotence anti-doublon au retry. La RPC idempotente
+        // (migration 20260622120000) est déployée et validée → on envoie le
+        // SHA-256 de contenu, qui sert de clé de déduplication côté serveur.
+        contentHashes: photosWithHashes.map((photo) => photo.fileHash),
         onProgress: (progress) => {
           toast.loading(
             `Upload cloud ${progress} % · ${activeCloudProject.name}`,

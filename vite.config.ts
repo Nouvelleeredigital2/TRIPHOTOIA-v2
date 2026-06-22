@@ -16,6 +16,13 @@ export default defineConfig(() => {
     worker: {
       format: 'es',
     },
+    // libraw-wasm crée son propre Web Worker via `new Worker(new URL(...))`. Le
+    // pré-bundling de Vite (esbuild) casse cette résolution → le worker ne répond
+    // jamais et le décodage RAW se fige. On exclut donc le paquet de l'optimizeDeps
+    // pour qu'il soit servi tel quel (ESM d'origine), worker intact.
+    optimizeDeps: {
+      exclude: ['libraw-wasm'],
+    },
     build: {
       rollupOptions: {
         output: {

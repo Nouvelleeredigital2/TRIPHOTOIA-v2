@@ -36,3 +36,6 @@ scripts/bench/samples/*
 # Assets MediaPipe générés en local (WASM ~33 Mo + modèle ~3,8 Mo).
 # Régénérés via `pnpm assets:mediapipe` (predev/prebuild). Jamais commités.
 public/mediapipe/
+
+# Fichiers RAW de test locaux (photos privées — ne jamais committer)
+public/_rawtest/

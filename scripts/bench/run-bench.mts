@@ -121,11 +121,13 @@ async function main(): Promise<void> {
   }
 
   // 1) Démarrer Vite pour servir la page + résoudre les imports src/worker.
-  const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+  const isWin = process.platform === 'win32';
+  const npx = isWin ? 'npx.cmd' : 'npx';
   const vite: ChildProcess = spawn(
     npx,
     ['vite', '--port', String(PORT), '--strictPort'],
-    { stdio: ['ignore', 'inherit', 'inherit'], env: process.env }
+    // `shell: true` requis sous Windows pour spawn un `.cmd` (sinon EINVAL).
+    { stdio: ['ignore', 'inherit', 'inherit'], env: process.env, shell: isWin }
   );
 
   const stop = () => {

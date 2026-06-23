@@ -26,7 +26,12 @@ export interface SmokeConfig {
 type SupabaseError = { message?: string } | null;
 
 interface InsertBuilder {
-  select: (columns: string) => { single: () => PromiseLike<{ data: { id: string } | null; error: SupabaseError }> };
+  select: (columns: string) => {
+    single: () => PromiseLike<{
+      data: { id: string } | null;
+      error: SupabaseError;
+    }>;
+  };
 }
 interface MutateBuilder {
   eq: (column: string, value: string) => PromiseLike<{ error: SupabaseError }>;
@@ -43,7 +48,9 @@ export interface SmokeClient {
     };
   };
   storage: {
-    getBucket: (id: string) => PromiseLike<{ data: unknown; error: SupabaseError }>;
+    getBucket: (
+      id: string
+    ) => PromiseLike<{ data: unknown; error: SupabaseError }>;
   };
   from: (table: string) => {
     insert: (payload: Record<string, unknown>) => InsertBuilder;
@@ -73,7 +80,7 @@ export function parseSmokeConfig(env: SmokeEnv): SmokeConfig {
   const key = env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   if (!url || !key) {
     throw new Error(
-      'cloud smoke: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required.',
+      'cloud smoke: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required.'
     );
   }
   return {
@@ -85,7 +92,9 @@ export function parseSmokeConfig(env: SmokeEnv): SmokeConfig {
 }
 
 const fail = (label: string, error: SupabaseError): never => {
-  throw new Error(`cloud smoke: ${label} failed — ${error?.message ?? 'unknown error'}`);
+  throw new Error(
+    `cloud smoke: ${label} failed — ${error?.message ?? 'unknown error'}`
+  );
 };
 
 export interface RunCloudSmokeDeps {
@@ -114,7 +123,9 @@ export async function runCloudSmoke({
   };
 
   if (!config.confirmed) {
-    log('cloud smoke: DRY RUN (set TREEPHOTO_SMOKE_CONFIRM=1 to execute). Plan:');
+    log(
+      'cloud smoke: DRY RUN (set TREEPHOTO_SMOKE_CONFIRM=1 to execute). Plan:'
+    );
     PLAN.forEach((p) => log(`  - ${p}`));
     return { ok: true, dryRun: true, steps: PLAN };
   }
@@ -131,7 +142,8 @@ export async function runCloudSmoke({
       password: `Smoke-${nonce}-pw`,
       email_confirm: true,
     });
-    if (created.error || !created.data.user) fail('create temp user', created.error);
+    if (created.error || !created.data.user)
+      fail('create temp user', created.error);
     userId = created.data.user!.id;
     record('temp user created');
 
@@ -146,7 +158,11 @@ export async function runCloudSmoke({
 
     const project = await client
       .from('projects')
-      .insert({ organization_id: org.data!.id, name: `smoke-project-${nonce}`, created_by: userId })
+      .insert({
+        organization_id: org.data!.id,
+        name: `smoke-project-${nonce}`,
+        created_by: userId,
+      })
       .select('id')
       .single();
     if (project.error || !project.data) fail('insert project', project.error);
@@ -166,7 +182,11 @@ export async function runCloudSmoke({
 
     const job = await client
       .from('jobs')
-      .insert({ project_id: project.data!.id, photo_id: photo.data!.id, job_type: 'quality_analysis' })
+      .insert({
+        project_id: project.data!.id,
+        photo_id: photo.data!.id,
+        job_type: 'quality_analysis',
+      })
       .select('id')
       .single();
     if (job.error || !job.data) fail('insert job', job.error);
@@ -185,9 +205,14 @@ export async function runCloudSmoke({
     // ON DELETE CASCADE, so deleting the user while a project exists fails.
     // Removing the org cascades project/photo/job, freeing the user for deletion.
     if (orgId) {
-      const removedOrg = await client.from('organizations').delete().eq('id', orgId);
+      const removedOrg = await client
+        .from('organizations')
+        .delete()
+        .eq('id', orgId);
       if (removedOrg.error) {
-        log(`cloud smoke: WARNING cleanup of smoke org failed — ${removedOrg.error.message ?? 'unknown'}`);
+        log(
+          `cloud smoke: WARNING cleanup of smoke org failed — ${removedOrg.error.message ?? 'unknown'}`
+        );
       } else {
         record('smoke org + cascaded rows deleted');
       }
@@ -195,7 +220,9 @@ export async function runCloudSmoke({
     if (userId) {
       const removed = await client.auth.admin.deleteUser(userId);
       if (removed.error) {
-        log(`cloud smoke: WARNING cleanup of temp user failed — ${removed.error.message ?? 'unknown'}`);
+        log(
+          `cloud smoke: WARNING cleanup of temp user failed — ${removed.error.message ?? 'unknown'}`
+        );
       } else {
         record('temp user deleted');
       }
@@ -214,7 +241,12 @@ if (invokedDirectly) {
       auth: { persistSession: false, autoRefreshToken: false },
     }) as unknown as SmokeClient;
     const nonce = `${process.pid}-${process.hrtime.bigint().toString(36)}`;
-    const result = await runCloudSmoke({ config, client, log: (m) => console.log(m), nonce });
+    const result = await runCloudSmoke({
+      config,
+      client,
+      log: (m) => console.log(m),
+      nonce,
+    });
     console.log(result.dryRun ? 'cloud smoke: dry-run ok' : 'cloud smoke: ok');
   })().catch((err) => {
     console.error(err instanceof Error ? err.message : err);

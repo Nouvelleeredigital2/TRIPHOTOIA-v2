@@ -10,6 +10,19 @@ export default defineConfig(() => {
         '@': path.resolve(__dirname, './src'),
       },
     },
+    // Le Web Worker d'analyse charge MediaPipe en import dynamique (code-splitting).
+    // Le format `iife` par défaut ne supporte pas le code-splitting dans un worker ;
+    // `es` est requis (navigateurs modernes, worker `{ type: 'module' }`).
+    worker: {
+      format: 'es',
+    },
+    // libraw-wasm crée son propre Web Worker via `new Worker(new URL(...))`. Le
+    // pré-bundling de Vite (esbuild) casse cette résolution → le worker ne répond
+    // jamais et le décodage RAW se fige. On exclut donc le paquet de l'optimizeDeps
+    // pour qu'il soit servi tel quel (ESM d'origine), worker intact.
+    optimizeDeps: {
+      exclude: ['libraw-wasm'],
+    },
     build: {
       rollupOptions: {
         output: {

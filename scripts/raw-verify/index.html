@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>RAW verify</title>
+  </head>
+  <body>
+    <input id="files" type="file" multiple />
+    <pre id="out"></pre>
+    <script type="module">
+      // Page isolée (pas l'app React) : on importe uniquement le décodeur RAW et
+      // le détecteur de visages, et on expose le résultat sur window pour Playwright.
+      import { decodeRawToRgba } from '/src/lib/raw/raw-decoder.ts';
+      import { detectFaceEyes } from '/src/lib/computer-vision/face-detector.ts';
+
+      const input = document.getElementById('files');
+      input.addEventListener('change', async () => {
+        const files = Array.from(input.files || []);
+        const results = [];
+        try {
+          for (const file of files) {
+            const t0 = performance.now();
+            const decoded = await decodeRawToRgba(file, true);
+            const decodeMs = Math.round(performance.now() - t0);
+            let face = null;
+            let faceMs = null;
+            if (decoded) {
+              const c = new OffscreenCanvas(decoded.width, decoded.height);
+              c.getContext('2d').putImageData(
+                new ImageData(decoded.data, decoded.width, decoded.height),
+                0,
+                0
+              );
+              const bmp = await createImageBitmap(c);
+              const tf = performance.now();
+              face = await detectFaceEyes(bmp);
+              faceMs = Math.round(performance.now() - tf);
+              bmp.close();
+            }
+            results.push({
+              name: file.name,
+              sizeMB: +(file.size / 1e6).toFixed(1),
+              decoded: decoded
+                ? {
+                    w: decoded.width,
+                    h: decoded.height,
+                    MP: +((decoded.width * decoded.height) / 1e6).toFixed(1),
+                    sample: Array.from(decoded.data.slice(0, 6)),
+                  }
+                : null,
+              decodeMs,
+              face,
+              faceMs,
+            });
+          }
+          window.__RAW_VERIFY__ = { status: 'done', results };
+        } catch (e) {
+          window.__RAW_VERIFY__ = {
+            status: 'error',
+            error: String((e && e.stack) || e),
+          };
+        }
+        document.getElementById('out').textContent = JSON.stringify(
+          window.__RAW_VERIFY__,
+          null,
+          2
+        );
+      });
+      window.__RAW_READY__ = true;
+    </script>
+  </body>
+</html>

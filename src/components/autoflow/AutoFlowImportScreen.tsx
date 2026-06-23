@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import {
   ALLOWED_IMAGE_EXTENSIONS,
   ALLOWED_IMAGE_MIME,
+  RAW_IMPORT_EXTENSIONS,
 } from '../../lib/import-policy';
 
 interface AutoFlowImportScreenProps {
@@ -9,13 +10,15 @@ interface AutoFlowImportScreenProps {
   disabled?: boolean;
 }
 
-// P1-A : même politique d'import que Studio Grid. L'attribut `accept` ne liste
-// que les formats réellement décodables (aucune extension RAW). La validation
-// faisant autorité (extension + taille + signature réelle) est appliquée en aval
-// dans `handleFilesSelected` ; on n'écarte donc rien silencieusement ici.
-const ACCEPT_ATTR = [...ALLOWED_IMAGE_MIME, ...ALLOWED_IMAGE_EXTENSIONS].join(
-  ','
-);
+// P1-A : même politique d'import que Studio Grid. L'attribut `accept` liste les
+// formats raster navigateur + les extensions RAW (décodées en proxy à
+// l'ingestion). La validation faisant autorité (extension + taille + signature
+// réelle) est appliquée en aval dans `handleFilesSelected`.
+const ACCEPT_ATTR = [
+  ...ALLOWED_IMAGE_MIME,
+  ...ALLOWED_IMAGE_EXTENSIONS,
+  ...RAW_IMPORT_EXTENSIONS,
+].join(',');
 
 const FEATURE_PILLS = [
   { icon: '⚡', label: 'Classement auto 3 piles', col: 'var(--af-review)' },

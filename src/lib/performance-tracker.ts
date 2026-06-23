@@ -60,7 +60,10 @@ export class PerformanceTracker {
     this.metrics.push(metric);
     // P1-3 : plafonner l'historique pour ne pas croître indéfiniment en session.
     if (this.metrics.length > PerformanceTracker.MAX_METRICS) {
-      this.metrics.splice(0, this.metrics.length - PerformanceTracker.MAX_METRICS);
+      this.metrics.splice(
+        0,
+        this.metrics.length - PerformanceTracker.MAX_METRICS
+      );
     }
     this.activeOperations.delete(id);
 

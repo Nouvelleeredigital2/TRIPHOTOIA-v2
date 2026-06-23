@@ -1496,7 +1496,14 @@ export const usePhotoStore = create<PhotoState>()(
             );
 
             // Afficher distribution
-            const dist: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+            const dist: Record<number, number> = {
+              0: 0,
+              1: 0,
+              2: 0,
+              3: 0,
+              4: 0,
+              5: 0,
+            };
             photos.forEach((p) => {
               const r = p.analysis?.rating || 0;
               dist[r]++;

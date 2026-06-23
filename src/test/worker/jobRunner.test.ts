@@ -197,15 +197,15 @@ describe('worker job runner', () => {
       processWorkerJob(
         client,
         makeJob({ job_type: 'totally_unknown' as WorkerJob['job_type'] }),
-        {},
-      ),
+        {}
+      )
     ).resolves.toBeUndefined();
 
     expect(update).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 'failed',
         error_message: 'Unknown job type "totally_unknown"',
-      }),
+      })
     );
   });
 

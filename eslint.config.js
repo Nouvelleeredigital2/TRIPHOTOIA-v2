@@ -69,6 +69,7 @@ export default [
       'dist/',
       'node_modules/',
       'coverage/',
+      'public/',
       'index.tsx',
       'supabase/functions/',
     ],
@@ -76,7 +77,12 @@ export default [
   js.configs.recommended,
   {
     ...baseConfig,
-    files: ['src/**/*.{ts,tsx}', 'worker/**/*.ts', 'scripts/**/*.{ts,mts}', '*.ts'],
+    files: [
+      'src/**/*.{ts,tsx}',
+      'worker/**/*.ts',
+      'scripts/**/*.{ts,mts,mjs}',
+      '*.ts',
+    ],
     languageOptions: {
       ...baseConfig.languageOptions,
       globals: {
@@ -96,7 +102,7 @@ export default [
     },
   },
   {
-    files: ['worker/**/*.ts', 'scripts/**/*.{ts,mts}'],
+    files: ['worker/**/*.ts', 'scripts/**/*.{ts,mts,mjs}'],
     languageOptions: {
       globals: {
         ...globals.node,

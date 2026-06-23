@@ -46,11 +46,11 @@ pipeline runs in dev/CI without any model download. The stand-ins are structural
 correct (stable, normalised vectors) but not semantically meaningful — enable the
 real providers on the VPS.
 
-| `FACE_PROVIDER` | Behaviour |
-| --- | --- |
-| `deterministic` | model-free stand-in (default), stable anonymous faces |
-| `disabled` | detection off — **zero faces, nothing fabricated** (privacy/GDPR opt-out) |
-| `onnx` | real SCRFD/ArcFace via `onnxruntime-node` — documented extension point, not wired |
+| `FACE_PROVIDER` | Behaviour                                                                         |
+| --------------- | --------------------------------------------------------------------------------- |
+| `deterministic` | model-free stand-in (default), stable anonymous faces                             |
+| `disabled`      | detection off — **zero faces, nothing fabricated** (privacy/GDPR opt-out)         |
+| `onnx`          | real SCRFD/ArcFace via `onnxruntime-node` — documented extension point, not wired |
 
 > In **production** the worker refuses to start with `deterministic` providers
 > (`assertProvidersAllowed`) unless `ALLOW_SIMULATED_PROVIDERS=true`. `disabled` is a

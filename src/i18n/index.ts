@@ -33,7 +33,10 @@ export const setLanguage = (lang: Lang): void => {
   listeners.forEach((l) => l());
 };
 
-const interpolate = (str: string, vars?: Record<string, string | number>): string => {
+const interpolate = (
+  str: string,
+  vars?: Record<string, string | number>
+): string => {
   if (!vars) return str;
   return str.replace(/\{(\w+)\}/g, (_, k) =>
     k in vars ? String(vars[k]) : `{${k}}`

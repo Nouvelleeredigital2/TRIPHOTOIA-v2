@@ -17,9 +17,9 @@ de jobs traitée par un worker hors navigateur.
 
 ### Frontend (`VITE_*` — embarquées dans le bundle, donc publiques)
 
-| Variable | Rôle |
-| --- | --- |
-| `VITE_SUPABASE_URL` | URL du projet |
+| Variable                 | Rôle                                  |
+| ------------------------ | ------------------------------------- |
+| `VITE_SUPABASE_URL`      | URL du projet                         |
 | `VITE_SUPABASE_ANON_KEY` | clé anon (publique, soumise à la RLS) |
 
 > ⛔ **`VITE_SUPABASE_SERVICE_ROLE_KEY` est interdite.** `src/lib/supabaseConfig.ts`
@@ -28,13 +28,13 @@ de jobs traitée par un worker hors navigateur.
 
 ### Worker (hors navigateur — secrets serveur)
 
-| Variable | Rôle |
-| --- | --- |
-| `SUPABASE_URL` | URL du projet |
+| Variable                    | Rôle                                                  |
+| --------------------------- | ----------------------------------------------------- |
+| `SUPABASE_URL`              | URL du projet                                         |
 | `SUPABASE_SERVICE_ROLE_KEY` | clé service role (bypass RLS, **serveur uniquement**) |
-| `PROJECT_PHOTOS_BUCKET` | optionnel, défaut `project-photos` |
-| `EMBEDDING_PROVIDER` | `deterministic` (défaut) \| `clip` |
-| `FACE_PROVIDER` | voir `worker/README.md` |
+| `PROJECT_PHOTOS_BUCKET`     | optionnel, défaut `project-photos`                    |
+| `EMBEDDING_PROVIDER`        | `deterministic` (défaut) \| `clip`                    |
+| `FACE_PROVIDER`             | voir `worker/README.md`                               |
 
 ## 3. Modèle de sécurité (RLS)
 

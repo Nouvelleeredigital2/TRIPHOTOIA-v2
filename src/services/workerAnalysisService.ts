@@ -104,13 +104,17 @@ export class WorkerAnalysisService {
         isBlurry: payload.result.isBlurry,
         sharpnessScore: payload.result.sharpnessScore,
         hasOpenEyes: payload.result.hasOpenEyes,
+        faceCount: payload.result.faceCount,
+        eyeOpenness: payload.result.eyeOpenness,
         tags: payload.result.tags,
         perceptualHash: payload.result.perceptualHash,
         compositionScore: payload.result.compositionScore,
         suggestedRetouch: payload.result.suggestedRetouch,
-        // P0-1 : provenance obligatoire (sinon rejeté par validateAnalysisResult).
-        // Analyse pixel réelle via OffscreenCanvas dans le Web Worker (proxy ≤1600 px).
-        provenance: {
+        // P0-1/P0-2 : provenance obligatoire (sinon rejeté par
+        // validateAnalysisResult). Le worker l'attache désormais lui-même :
+        // `face-landmarks` quand MediaPipe a tourné, `local-pixel` sinon. On
+        // conserve cette provenance, avec repli défensif si elle manque.
+        provenance: payload.result.provenance ?? {
           engine: 'treephoto-worker-offscreen',
           model: 'pixel-heuristics',
           modelVersion: '1.0.0',

@@ -297,7 +297,14 @@ describe('AutoFlowMode', () => {
 
     render(
       <AutoFlowMode
-        photos={[makePhoto({ id: 'picked-1', cls: 'keep', name: 'PICKED.JPG', isPick: true })]}
+        photos={[
+          makePhoto({
+            id: 'picked-1',
+            cls: 'keep',
+            name: 'PICKED.JPG',
+            isPick: true,
+          }),
+        ]}
         onMutation={onMutation}
         onClose={vi.fn()}
       />

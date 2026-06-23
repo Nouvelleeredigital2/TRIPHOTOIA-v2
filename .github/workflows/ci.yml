@@ -52,6 +52,8 @@ jobs:
       - name: Gitleaks (scan de secrets)
         uses: gitleaks/gitleaks-action@v2
         env:
+          # gitleaks-action@v2 exige un GITHUB_TOKEN pour scanner les PR.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: 'false'
 
   audit:
@@ -62,11 +64,13 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 10.22.0
+      # Pas de `cache: pnpm` ici : ce job n'exécute pas `pnpm install`, donc le
+      # store pnpm n'existe pas au moment de la sauvegarde du cache → l'action
+      # de cache échouait ("Path Validation Error"). `pnpm audit` lit le lockfile.
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
       # Audit non bloquant (informatif) : signale les vulnérabilités connues
       # sans casser le pipeline pour des avis transitoires.
       - name: Dependency audit (prod)

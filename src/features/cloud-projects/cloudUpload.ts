@@ -224,7 +224,12 @@ export async function uploadPhotosToCloud({
       }
     }
 
-    results.push({ localPhotoId, cloudPhotoId: photoId, status, error: outcomeError });
+    results.push({
+      localPhotoId,
+      cloudPhotoId: photoId,
+      status,
+      error: outcomeError,
+    });
     reportProgress(index);
   }
 

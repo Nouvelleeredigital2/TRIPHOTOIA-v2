@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   validateImportFiles,
   detectImageSignature,
+  detectRawSignature,
   MAX_IMPORT_FILE_BYTES,
+  MAX_RAW_IMPORT_FILE_BYTES,
   MAX_IMPORT_BATCH,
 } from '@/lib/import-policy';
 import { calculateFileHash } from '@/lib/utils';
@@ -28,12 +30,47 @@ describe('import-policy (P1-A)', () => {
     expect(rejected).toHaveLength(0);
   });
 
-  it('rejette explicitement les RAW (extension .cr2)', async () => {
+  it('accepte un RAW avec signature TIFF valide (.cr2, décodé en aval)', async () => {
     const { accepted, rejected } = await validateImportFiles([
-      makeFile('shot.cr2', 'image/x-canon-cr2', [0x49, 0x49, 0x2a, 0x00]),
+      makeFile('shot.cr2', 'image/x-canon-cr2', [0x49, 0x49, 0x2a, 0x00, 0x10]),
+    ]);
+    expect(accepted).toHaveLength(1);
+    expect(rejected).toHaveLength(0);
+  });
+
+  it('rejette un RAW à signature non reconnue (extension RAW mais octets bidons)', async () => {
+    const { accepted, rejected } = await validateImportFiles([
+      makeFile('fake.nef', 'image/x-nikon-nef', [0x00, 0x01, 0x02, 0x03]),
     ]);
     expect(accepted).toHaveLength(0);
-    expect(rejected[0].reason).toMatch(/RAW/i);
+    expect(rejected[0].reason).toMatch(/signature RAW/i);
+  });
+
+  it('rejette un RAW trop volumineux (> limite RAW dédiée)', async () => {
+    const big = makeFile(
+      'huge.arw',
+      'image/x-sony-arw',
+      [0x49, 0x49, 0x2a, 0x00]
+    );
+    Object.defineProperty(big, 'size', {
+      value: MAX_RAW_IMPORT_FILE_BYTES + 1,
+      configurable: true,
+    });
+    const { accepted, rejected } = await validateImportFiles([big]);
+    expect(accepted).toHaveLength(0);
+    expect(rejected[0].reason).toMatch(/volumineux/i);
+  });
+
+  it('detectRawSignature reconnaît TIFF/RW2/Fuji/CR3 et rejette le reste', async () => {
+    const sig = (bytes: number[]) =>
+      detectRawSignature(makeFile('x.raw', '', bytes));
+    expect(await sig([0x49, 0x49, 0x2a, 0x00])).toBe(true); // TIFF LE (CR2/NEF/ARW/DNG)
+    expect(await sig([0x4d, 0x4d, 0x00, 0x2a])).toBe(true); // TIFF BE
+    expect(await sig([0x49, 0x49, 0x55, 0x00])).toBe(true); // Panasonic RW2
+    expect(await sig([0x46, 0x55, 0x4a, 0x49, 0x46, 0x49, 0x4c, 0x4d])).toBe(
+      true
+    ); // "FUJIFILM"
+    expect(await sig([0x00, 0x01, 0x02, 0x03])).toBe(false);
   });
 
   it('rejette un MIME falsifié (extension .png mais octets non-image)', async () => {

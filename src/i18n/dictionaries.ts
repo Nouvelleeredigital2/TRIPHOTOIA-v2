@@ -31,7 +31,10 @@ export const en: Partial<Record<TranslationKey, string>> = {
   'header.language': 'Language',
 };
 
-export const DICTIONARIES: Record<Lang, Partial<Record<TranslationKey, string>>> = {
+export const DICTIONARIES: Record<
+  Lang,
+  Partial<Record<TranslationKey, string>>
+> = {
   fr,
   en,
 };

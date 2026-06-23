@@ -17,7 +17,11 @@ export { parseSmokeConfig };
 
 type SupabaseError = { message?: string } | null;
 
-const SMOKE_JOB_TYPES = ['generate_thumbnail', 'quality_analysis', 'perceptual_hash'] as const;
+const SMOKE_JOB_TYPES = [
+  'generate_thumbnail',
+  'quality_analysis',
+  'perceptual_hash',
+] as const;
 
 interface JobRow {
   id: string;
@@ -26,13 +30,28 @@ interface JobRow {
 }
 
 interface SingleBuilder {
-  select: (columns: string) => { single: () => PromiseLike<{ data: { id: string } | null; error: SupabaseError }> };
+  select: (columns: string) => {
+    single: () => PromiseLike<{
+      data: { id: string } | null;
+      error: SupabaseError;
+    }>;
+  };
 }
 interface SelectEqBuilder {
-  select: (columns: string) => { eq: (column: string, value: string) => PromiseLike<{ data: JobRow[] | null; error: SupabaseError }> };
+  select: (columns: string) => {
+    eq: (
+      column: string,
+      value: string
+    ) => PromiseLike<{ data: JobRow[] | null; error: SupabaseError }>;
+  };
 }
 interface DeleteEqBuilder {
-  delete: () => { eq: (column: string, value: string) => PromiseLike<{ error: SupabaseError }> };
+  delete: () => {
+    eq: (
+      column: string,
+      value: string
+    ) => PromiseLike<{ error: SupabaseError }>;
+  };
 }
 
 export interface WorkerSmokeClient extends RpcCapableClient {
@@ -46,7 +65,9 @@ export interface WorkerSmokeClient extends RpcCapableClient {
     };
   };
   from: (table: string) => {
-    insert: (payload: Record<string, unknown> | Record<string, unknown>[]) => SingleBuilder & PromiseLike<{ error: SupabaseError }>;
+    insert: (
+      payload: Record<string, unknown> | Record<string, unknown>[]
+    ) => SingleBuilder & PromiseLike<{ error: SupabaseError }>;
     select: SelectEqBuilder['select'];
     delete: DeleteEqBuilder['delete'];
   };
@@ -68,7 +89,9 @@ const PLAN = [
 ];
 
 const fail = (label: string, error: SupabaseError): never => {
-  throw new Error(`worker smoke: ${label} failed — ${error?.message ?? 'unknown error'}`);
+  throw new Error(
+    `worker smoke: ${label} failed — ${error?.message ?? 'unknown error'}`
+  );
 };
 
 export interface RunWorkerSmokeDeps {
@@ -97,7 +120,9 @@ export async function runWorkerSmoke({
   };
 
   if (!config.confirmed) {
-    log('worker smoke: DRY RUN (set TREEPHOTO_SMOKE_CONFIRM=1 to execute). Plan:');
+    log(
+      'worker smoke: DRY RUN (set TREEPHOTO_SMOKE_CONFIRM=1 to execute). Plan:'
+    );
     PLAN.forEach((p) => log(`  - ${p}`));
     return { ok: true, dryRun: true, jobs: [], steps: PLAN };
   }
@@ -110,7 +135,8 @@ export async function runWorkerSmoke({
       password: `Smoke-${nonce}-pw`,
       email_confirm: true,
     });
-    if (created.error || !created.data.user) fail('create temp user', created.error);
+    if (created.error || !created.data.user)
+      fail('create temp user', created.error);
     userId = created.data.user!.id;
     record('temp user created');
 
@@ -124,7 +150,11 @@ export async function runWorkerSmoke({
 
     const project = await client
       .from('projects')
-      .insert({ organization_id: org.data!.id, name: `worker-smoke-${nonce}`, created_by: userId })
+      .insert({
+        organization_id: org.data!.id,
+        name: `worker-smoke-${nonce}`,
+        created_by: userId,
+      })
       .select('id')
       .single();
     if (project.error || !project.data) fail('insert project', project.error);
@@ -168,13 +198,21 @@ export async function runWorkerSmoke({
     if (verify.error || !verify.data) fail('verify jobs', verify.error);
     const jobs = verify.data!;
 
-    const stuck = jobs.filter((j) => j.status !== 'completed' && j.status !== 'failed');
+    const stuck = jobs.filter(
+      (j) => j.status !== 'completed' && j.status !== 'failed'
+    );
     if (stuck.length > 0) {
-      throw new Error(`worker smoke: ${stuck.length} job(s) left in a non-terminal state`);
+      throw new Error(
+        `worker smoke: ${stuck.length} job(s) left in a non-terminal state`
+      );
     }
-    const failedWithoutMessage = jobs.filter((j) => j.status === 'failed' && !j.error_message);
+    const failedWithoutMessage = jobs.filter(
+      (j) => j.status === 'failed' && !j.error_message
+    );
     if (failedWithoutMessage.length > 0) {
-      throw new Error(`worker smoke: ${failedWithoutMessage.length} failed job(s) without an error_message`);
+      throw new Error(
+        `worker smoke: ${failedWithoutMessage.length} failed job(s) without an error_message`
+      );
     }
     record('all jobs reached a terminal state with diagnostics');
 
@@ -183,9 +221,14 @@ export async function runWorkerSmoke({
     // Delete the org FIRST (cascade): projects.created_by has no ON DELETE
     // CASCADE to auth.users, so the user can't be removed while a project exists.
     if (orgId) {
-      const removedOrg = await client.from('organizations').delete().eq('id', orgId);
+      const removedOrg = await client
+        .from('organizations')
+        .delete()
+        .eq('id', orgId);
       if (removedOrg.error) {
-        log(`worker smoke: WARNING cleanup of smoke org failed — ${removedOrg.error.message ?? 'unknown'}`);
+        log(
+          `worker smoke: WARNING cleanup of smoke org failed — ${removedOrg.error.message ?? 'unknown'}`
+        );
       } else {
         record('smoke org + cascaded rows deleted');
       }
@@ -193,7 +236,9 @@ export async function runWorkerSmoke({
     if (userId) {
       const removed = await client.auth.admin.deleteUser(userId);
       if (removed.error) {
-        log(`worker smoke: WARNING cleanup of temp user failed — ${removed.error.message ?? 'unknown'}`);
+        log(
+          `worker smoke: WARNING cleanup of temp user failed — ${removed.error.message ?? 'unknown'}`
+        );
       } else {
         record('temp user deleted');
       }
@@ -212,8 +257,15 @@ if (invokedDirectly) {
       auth: { persistSession: false, autoRefreshToken: false },
     }) as unknown as WorkerSmokeClient;
     const nonce = `${process.pid}-${process.hrtime.bigint().toString(36)}`;
-    const result = await runWorkerSmoke({ config, client, nonce, log: (m) => console.log(m) });
-    console.log(result.dryRun ? 'worker smoke: dry-run ok' : 'worker smoke: ok');
+    const result = await runWorkerSmoke({
+      config,
+      client,
+      nonce,
+      log: (m) => console.log(m),
+    });
+    console.log(
+      result.dryRun ? 'worker smoke: dry-run ok' : 'worker smoke: ok'
+    );
   })().catch((err) => {
     console.error(err instanceof Error ? err.message : err);
     process.exit(1);

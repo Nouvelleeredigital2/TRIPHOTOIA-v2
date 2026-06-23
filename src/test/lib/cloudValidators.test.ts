@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  parseCloudProjectRow,
-  unwrapRpcRow,
-} from '../../lib/cloud-validators';
+import { parseCloudProjectRow, unwrapRpcRow } from '../../lib/cloud-validators';
 
 const validRow = {
   id: 'p1',
@@ -29,9 +26,9 @@ describe('cloud RPC validators (P1-7)', () => {
   it('throws on a missing/invalid payload instead of casting silently', () => {
     expect(() => parseCloudProjectRow(null)).toThrow(/invalide/i);
     expect(() => parseCloudProjectRow([])).toThrow(/invalide/i);
-    expect(() =>
-      parseCloudProjectRow({ ...validRow, id: '' })
-    ).toThrow(/invalide/i);
+    expect(() => parseCloudProjectRow({ ...validRow, id: '' })).toThrow(
+      /invalide/i
+    );
     expect(() => {
       const { id: _omit, ...noId } = validRow;
       void _omit;

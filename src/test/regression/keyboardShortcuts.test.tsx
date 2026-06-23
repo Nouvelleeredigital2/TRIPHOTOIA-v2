@@ -15,7 +15,7 @@ describe('global "?" keyboard shortcut', () => {
       expect(screen.getByText('Raccourcis clavier')).toBeInTheDocument();
     });
     expect(
-      screen.getByText(/liste des raccourcis clavier disponibles/i),
+      screen.getByText(/liste des raccourcis clavier disponibles/i)
     ).toBeInTheDocument();
   });
 

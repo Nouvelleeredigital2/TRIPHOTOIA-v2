@@ -230,18 +230,20 @@ export interface AutoFlowStoreBridge {
 export function applyAutoFlowMutation(
   id: string,
   changes: Partial<AfPhoto>,
-  store: AutoFlowStoreBridge,
+  store: AutoFlowStoreBridge
 ): void {
   const currentPhoto = () => store.getState().photos.find((p) => p.id === id);
   if (!currentPhoto()) return;
-  const { togglePhotoPick, togglePhotoReject, setPhotoRating } = store.getState();
+  const { togglePhotoPick, togglePhotoReject, setPhotoRating } =
+    store.getState();
   if ('isPick' in changes) {
     const wantPick = !!changes.isPick;
     if (wantPick !== !!currentPhoto()?.analysis?.isPick) togglePhotoPick(id);
   }
   if ('isRejected' in changes) {
     const wantRej = !!changes.isRejected;
-    if (wantRej !== !!currentPhoto()?.analysis?.isRejected) togglePhotoReject(id);
+    if (wantRej !== !!currentPhoto()?.analysis?.isRejected)
+      togglePhotoReject(id);
   }
   if ('rating' in changes && typeof changes.rating === 'number') {
     setPhotoRating(id, changes.rating);

@@ -1,4 +1,5 @@
-﻿import { PhotoAnalysis } from '../types';
+﻿import { PhotoAnalysis, AnalysisProvenance } from '../types';
+import { detectFaceEyes } from '../lib/computer-vision/face-detector';
 /**
  * Web Worker pour l'analyse d'images en arrière-plan
  * Évite de bloquer le thread principal pendant le traitement
@@ -7,6 +8,33 @@
 // P0-C : dimension d'analyse maximale. On ne crée jamais un canvas à la
 // résolution native d'une photo HD : on redimensionne en conservant le ratio.
 const MAX_ANALYSIS_DIM = 1600;
+
+// Provenance : moteur worker à base d'heuristiques pixel (netteté, pHash, tags).
+function pixelProvenance(): AnalysisProvenance {
+  return {
+    engine: 'treephoto-worker-canvas',
+    model: 'pixel-heuristics',
+    modelVersion: '1.0.0',
+    analysisMode: 'local-pixel',
+    confidence: null,
+    isFallback: false,
+    computedAt: new Date().toISOString(),
+  };
+}
+
+// Provenance enrichie quand la détection visage/landmarks (MediaPipe) a tourné :
+// l'ouverture des yeux provient alors d'un EAR réel, avec une confiance mesurée.
+function faceLandmarksProvenance(confidence: number): AnalysisProvenance {
+  return {
+    engine: 'treephoto-worker-canvas+mediapipe',
+    model: 'face_landmarker+pixel-heuristics',
+    modelVersion: 'tasks-vision-0.10.35',
+    analysisMode: 'face-landmarks',
+    confidence: Number.isFinite(confidence) ? confidence : null,
+    isFallback: false,
+    computedAt: new Date().toISOString(),
+  };
+}
 
 // Version simplifiée de ImageProcessor pour les Web Workers
 class WorkerImageProcessor {
@@ -29,15 +57,32 @@ class WorkerImageProcessor {
         throw new Error("Dimensions d'image invalides");
       }
 
+      // `getImageData` dessine l'image redimensionnée (≤1600px) dans this.canvas.
       const imageData = this.getImageData(bitmap);
 
       // P0-C : la métrique de flou n'est calculée qu'une seule fois.
       const blur = this.analyzeBlur(imageData);
 
-      return {
+      // P0-2 : vraie détection visage/landmarks (MediaPipe) → ouverture des yeux
+      // par EAR réel. IMPORTANT : on lance la détection sur le PROXY borné
+      // (≤1600px), jamais sur le bitmap pleine résolution — sur un 45MP, le
+      // modèle serait extrêmement lent / saturerait la mémoire. Si le modèle est
+      // indisponible, `face` vaut null et l'on n'expose AUCUNE estimation d'yeux
+      // (pas de repli sur l'ancienne heuristique de pixels sombres, trompeuse).
+      let proxy: ImageBitmap | undefined;
+      let face: Awaited<ReturnType<typeof detectFaceEyes>> = null;
+      try {
+        proxy = await createImageBitmap(this.canvas);
+        face = await detectFaceEyes(proxy);
+      } catch (faceError) {
+        console.warn('[worker] détection visage ignorée:', faceError);
+      } finally {
+        proxy?.close();
+      }
+
+      const base: PhotoAnalysis = {
         isBlurry: blur.isBlurry,
         sharpnessScore: blur.sharpnessScore,
-        hasOpenEyes: this.detectEyes(imageData),
         tags: this.generateTags(imageData, bitmap.width, bitmap.height),
         perceptualHash: this.generatePerceptualHash(imageData),
         suggestedRetouch: {
@@ -46,6 +91,18 @@ class WorkerImageProcessor {
           saturation: 1.0,
         },
       };
+
+      if (face) {
+        return {
+          ...base,
+          hasOpenEyes: face.hasOpenEyes,
+          faceCount: face.faceCount,
+          eyeOpenness: face.eyeOpenness,
+          provenance: faceLandmarksProvenance(face.confidence),
+        };
+      }
+
+      return { ...base, provenance: pixelProvenance() };
     } catch (error) {
       console.error('Erreur dans WorkerImageProcessor:', error);
       throw error;
@@ -118,31 +175,6 @@ class WorkerImageProcessor {
     const g = data[index + 1];
     const b = data[index + 2];
     return 0.299 * r + 0.587 * g + 0.114 * b;
-  }
-
-  private detectEyes(imageData: ImageData): boolean {
-    const { data, width, height } = imageData;
-    const centerY = Math.floor(height / 2);
-    const eyeRegionHeight = Math.floor(height * 0.3);
-    const startY = centerY - Math.floor(eyeRegionHeight / 2);
-    const endY = centerY + Math.floor(eyeRegionHeight / 2);
-
-    let darkPixels = 0;
-    let totalPixels = 0;
-
-    for (let y = startY; y < endY; y++) {
-      for (let x = 0; x < width; x++) {
-        const pixelIndex = (y * width + x) * 4;
-        const gray = this.getGrayValue(data, pixelIndex);
-
-        if (gray < 100) {
-          darkPixels++;
-        }
-        totalPixels++;
-      }
-    }
-
-    return darkPixels / totalPixels > 0.1;
   }
 
   private generateTags(

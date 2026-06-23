@@ -2,6 +2,7 @@ import JSZip from 'jszip';
 import { Photo } from '../types';
 import { getRawOriginal } from './raw/raw-originals';
 import { rawFileToProxyFile } from './raw/raw-decoder';
+import { isWideGamut } from './color/color-space';
 
 // ── P1-8 : garde-fou taille d'export ZIP ─────────────────────────────────────
 // Le ZIP est construit intégralement en mémoire (JSZip generateAsync). Sur de
@@ -212,12 +213,16 @@ export interface ExportResult {
   exported: number;
   failed: number;
   failedNames: string[];
+  /** Nb de photos large gamut dont le profil couleur a été perdu (conversion). */
+  colorProfilesDropped: number;
 }
 
 export interface DirectoryExportResult {
   exported: number;
   failed: number;
   failedNames: string[];
+  /** Nb de photos large gamut dont le profil couleur a été perdu (conversion). */
+  colorProfilesDropped: number;
 }
 
 function sanitizeZipFolderName(name: string): string {
@@ -277,6 +282,26 @@ function applyWatermark(
 
   ctx.fillText(wm.text, x, y);
   ctx.restore();
+}
+
+// ── Gestion couleur ────────────────────────────────────────────────────────────
+
+/**
+ * Vrai si l'export va PERDRE le profil couleur de la photo. Le ré-encodage
+ * `<canvas>` efface le profil ICC (et suppose sRGB) ; seul l'export `original`
+ * sans filigrane préserve les octets — donc le profil. Pertinent uniquement pour
+ * les images large gamut (Adobe RGB, Display P3…) : une image sRGB ré-encodée en
+ * sRGB ne subit pas de décalage visible.
+ */
+export function exportDropsColorProfile(
+  photo: Photo,
+  options: ExportOptions
+): boolean {
+  const cs = photo.metadata?.colorSpace;
+  if (!cs || !isWideGamut(cs)) return false;
+  const preserved =
+    options.format === 'original' && !options.watermark?.text?.trim();
+  return !preserved;
 }
 
 // ── Export RAW pleine qualité ──────────────────────────────────────────────────
@@ -406,6 +431,7 @@ export async function exportPhotosAsZip(
   const used = new Set<string>();
   const failedNames: string[] = [];
   let exported = 0;
+  let colorProfilesDropped = 0;
 
   for (let i = 0; i < photos.length; i++) {
     const photo = photos[i];
@@ -420,6 +446,7 @@ export async function exportPhotosAsZip(
       const processedBlob = await processImage(src.file, options);
       zip.file(fileName, processedBlob);
       attachMetadataSidecar(zip, fileName, photo);
+      if (exportDropsColorProfile(photo, options)) colorProfilesDropped += 1;
       exported += 1;
     } catch (error) {
       console.error(`Failed to process ${fileName}:`, error);
@@ -430,7 +457,13 @@ export async function exportPhotosAsZip(
   }
 
   const blob = await zip.generateAsync({ type: 'blob' });
-  return { blob, exported, failed: failedNames.length, failedNames };
+  return {
+    blob,
+    exported,
+    failed: failedNames.length,
+    failedNames,
+    colorProfilesDropped,
+  };
 }
 
 // ── Directory export (File System Access API) ─────────────────────────────────
@@ -447,6 +480,7 @@ export async function exportPhotoChaptersAsZip(
   );
   let processed = 0;
   let exported = 0;
+  let colorProfilesDropped = 0;
   const failedNames: string[] = [];
 
   for (let chapterIndex = 0; chapterIndex < chapters.length; chapterIndex++) {
@@ -474,6 +508,7 @@ export async function exportPhotoChaptersAsZip(
         const processedBlob = await processImage(src.file, options);
         folder.file(fileName, processedBlob);
         attachMetadataSidecar(folder, fileName, photo);
+        if (exportDropsColorProfile(photo, options)) colorProfilesDropped += 1;
         exported += 1;
       } catch (error) {
         console.error(`Failed to process ${folderName}/${fileName}:`, error);
@@ -488,7 +523,13 @@ export async function exportPhotoChaptersAsZip(
   }
 
   const blob = await zip.generateAsync({ type: 'blob' });
-  return { blob, exported, failed: failedNames.length, failedNames };
+  return {
+    blob,
+    exported,
+    failed: failedNames.length,
+    failedNames,
+    colorProfilesDropped,
+  };
 }
 
 export function supportsDirectoryExport(): boolean {
@@ -512,6 +553,7 @@ export async function exportPhotosToDirectory(
   const used = new Set<string>();
   const failedNames: string[] = [];
   let exported = 0;
+  let colorProfilesDropped = 0;
 
   for (let i = 0; i < photos.length; i++) {
     const photo = photos[i];
@@ -541,6 +583,7 @@ export async function exportPhotosToDirectory(
         await xmpWritable.write(sidecar);
         await xmpWritable.close();
       }
+      if (exportDropsColorProfile(photo, options)) colorProfilesDropped += 1;
       exported += 1;
     } catch (error) {
       console.error(`[export] failed to write ${fileName}:`, error);
@@ -549,7 +592,12 @@ export async function exportPhotosToDirectory(
     if (onProgress) onProgress(Math.round(((i + 1) / total) * 100));
   }
 
-  return { exported, failed: failedNames.length, failedNames };
+  return {
+    exported,
+    failed: failedNames.length,
+    failedNames,
+    colorProfilesDropped,
+  };
 }
 
 // ── Misc helpers ──────────────────────────────────────────────────────────────

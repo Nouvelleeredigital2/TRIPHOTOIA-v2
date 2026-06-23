@@ -58,21 +58,31 @@ async function main() {
     return;
   }
   console.log(`[mediapipe] téléchargement du modèle depuis ${MODEL_URL} …`);
-  const res = await fetch(MODEL_URL);
-  if (!res.ok) {
-    console.error(
-      `[mediapipe] échec du téléchargement (${res.status}). Le décodage retombera sur le CDN.`
+  // NON-FATAL : un échec réseau (CI hors-ligne, aléa) ne doit pas casser le build.
+  // Le modèle est un asset runtime ; à défaut, la détection visage retombe sur le
+  // CDN à l'exécution (variables VITE_FACE_LANDMARKER_MODEL surchargeables).
+  try {
+    const res = await fetch(MODEL_URL);
+    if (!res.ok) {
+      console.warn(
+        `[mediapipe] téléchargement du modèle échoué (${res.status}) — ignoré (asset runtime).`
+      );
+      return;
+    }
+    const buf = Buffer.from(await res.arrayBuffer());
+    await writeFile(modelPath, buf);
+    console.log(
+      `[mediapipe] modèle écrit (${(buf.length / 1e6).toFixed(1)} Mo) → ${path.relative(root, modelPath)}`
     );
-    process.exit(1);
+  } catch (err) {
+    console.warn(
+      `[mediapipe] téléchargement du modèle impossible (${err instanceof Error ? err.message : err}) — ignoré.`
+    );
   }
-  const buf = Buffer.from(await res.arrayBuffer());
-  await writeFile(modelPath, buf);
-  console.log(
-    `[mediapipe] modèle écrit (${(buf.length / 1e6).toFixed(1)} Mo) → ${path.relative(root, modelPath)}`
-  );
 }
 
 main().catch((err) => {
+  // Seule la copie WASM (locale) est critique ; le reste est best-effort.
   console.error('[mediapipe] erreur:', err);
   process.exit(1);
 });

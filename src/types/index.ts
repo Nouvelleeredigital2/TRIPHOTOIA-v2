@@ -181,6 +181,15 @@ export interface RetouchPreset {
   isBuiltIn?: boolean;
 }
 
+/** Espace colorimétrique détecté d'une image (EXIF + profil ICC). */
+export type ColorSpace =
+  | 'sRGB'
+  | 'Adobe RGB'
+  | 'Display P3'
+  | 'ProPhoto RGB'
+  | 'Rec. 2020'
+  | 'unknown';
+
 /** Métadonnées IPTC/XMP éditables, persistées dans le catalogue. */
 export interface EditableMetadata {
   title?: string;
@@ -204,6 +213,8 @@ export interface Photo {
     width?: number;
     height?: number;
     exif?: unknown;
+    /** Espace colorimétrique détecté (EXIF + profil ICC). */
+    colorSpace?: ColorSpace;
     /** Champs IPTC/XMP éditables par l'utilisateur (titre, légende, mots-clés…). */
     editable?: EditableMetadata;
   };

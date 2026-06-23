@@ -311,7 +311,12 @@ function ExportTab() {
 
   // A-29 : feedback honnête succès complet / partiel / échec total.
   const reportExportResult = (
-    result: { exported: number; failed: number; failedNames: string[] },
+    result: {
+      exported: number;
+      failed: number;
+      failedNames: string[];
+      colorProfilesDropped?: number;
+    },
     mode: 'ZIP' | 'dossier' | 'chapitres'
   ) => {
     // A-46 : comptabiliser les exports réussis dans les analytics.
@@ -319,6 +324,15 @@ function ExportTab() {
       const uid = useAuthStore.getState().user?.id;
       if (uid)
         trackStats(uid, { exports_count: result.exported }).catch(() => {});
+    }
+    // Gestion couleur : prévenir si des images large gamut (Adobe RGB, P3…) ont
+    // perdu leur profil au ré-encodage (le navigateur ne gère pas la conversion).
+    if (result.colorProfilesDropped && result.colorProfilesDropped > 0) {
+      const n = result.colorProfilesDropped;
+      toast(
+        `${n} image${n > 1 ? 's' : ''} large gamut ré-encodée${n > 1 ? 's' : ''} en sRGB (profil couleur perdu). Pour préserver les couleurs, exportez au format « original ».`,
+        { icon: '🎨', duration: 8000 }
+      );
     }
     if (result.failed === 0) {
       toast.success(
@@ -379,7 +393,12 @@ function ExportTab() {
     };
 
     try {
-      let result: { exported: number; failed: number; failedNames: string[] };
+      let result: {
+        exported: number;
+        failed: number;
+        failedNames: string[];
+        colorProfilesDropped?: number;
+      };
       if (fsaAvailable) {
         result = await exportPhotosToDirectory(photosToExport, options, (p) =>
           setExportProgress(p)

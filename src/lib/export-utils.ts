@@ -42,7 +42,7 @@ export function assessZipExport(
 }
 import {
   buildXmpSidecar,
-  hasEditableMetadata,
+  hasExportableMetadata,
   metadataSidecarFilename,
 } from './metadata';
 
@@ -51,14 +51,29 @@ import {
  * porte des métadonnées éditables. L'export ré-encode via <canvas> et efface
  * l'EXIF/IPTC binaire ; le sidecar préserve titre/légende/mots-clés/copyright.
  */
+/**
+ * Contenu du sidecar XMP d'une photo (Dublin Core + décisions de tri), ou `null`
+ * si rien à exporter. Décisions portables (note + label) → xmp:Rating/xmp:Label,
+ * lues par Lightroom/Bridge/Capture One.
+ */
+function sidecarContentFor(photo: Photo): string | null {
+  const editable = photo.metadata?.editable;
+  const decisions = {
+    rating: photo.analysis?.rating,
+    label: photo.analysis?.colorLabel ?? null,
+  };
+  if (!hasExportableMetadata(editable, decisions)) return null;
+  return buildXmpSidecar(editable ?? {}, decisions);
+}
+
 function attachMetadataSidecar(
   bucket: JSZip,
   imageFileName: string,
   photo: Photo
 ): void {
-  const editable = photo.metadata?.editable;
-  if (hasEditableMetadata(editable)) {
-    bucket.file(metadataSidecarFilename(imageFileName), buildXmpSidecar(editable!));
+  const content = sidecarContentFor(photo);
+  if (content) {
+    bucket.file(metadataSidecarFilename(imageFileName), content);
   }
 }
 
@@ -514,6 +529,18 @@ export async function exportPhotosToDirectory(
       const writable = await fileHandle.createWritable();
       await writable.write(blob);
       await writable.close();
+
+      // Sidecar XMP (note/label/champs éditables) à côté du fichier exporté.
+      const sidecar = sidecarContentFor(photo);
+      if (sidecar) {
+        const xmpHandle = await dirHandle.getFileHandle(
+          metadataSidecarFilename(fileName),
+          { create: true }
+        );
+        const xmpWritable = await xmpHandle.createWritable();
+        await xmpWritable.write(sidecar);
+        await xmpWritable.close();
+      }
       exported += 1;
     } catch (error) {
       console.error(`[export] failed to write ${fileName}:`, error);

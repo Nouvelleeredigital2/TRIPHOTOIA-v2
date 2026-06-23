@@ -45,6 +45,7 @@ TreePhoto is considered 100% for the audited V1 beta when all of these are true:
 ## Phase 1: Repository Hygiene And Release Baseline
 
 **Files:**
+
 - Modify: `package.json`
 - Modify: `pnpm-lock.yaml`
 - Modify: `README.md` if present
@@ -89,6 +90,7 @@ Create `docs/RELEASE_CHECKLIST.md` with:
 # TreePhoto Release Checklist
 
 ## Local Verification
+
 - [ ] `pnpm install --frozen-lockfile`
 - [ ] `pnpm type-check`
 - [ ] `pnpm lint`
@@ -96,6 +98,7 @@ Create `docs/RELEASE_CHECKLIST.md` with:
 - [ ] `pnpm build`
 
 ## Cloud Verification
+
 - [ ] Supabase migrations applied on staging
 - [ ] Private bucket `project-photos` exists
 - [ ] Auth sign-in works
@@ -104,12 +107,14 @@ Create `docs/RELEASE_CHECKLIST.md` with:
 - [ ] AutoFlow decisions persist after refresh
 
 ## Worker Verification
+
 - [ ] Worker starts with service role key
 - [ ] Pending jobs become processing
 - [ ] Jobs complete with thumbnail/quality/hash
 - [ ] Failed jobs write `error_message`
 
 ## Production Verification
+
 - [ ] Vercel build succeeds
 - [ ] Env vars configured
 - [ ] No service role key in frontend env
@@ -142,6 +147,7 @@ git commit -m "chore: document release baseline"
 ## Phase 2: Local Workflow Hardening
 
 **Files:**
+
 - Modify: `src/App.tsx`
 - Modify: `src/features/ingestion/IngestionTab.tsx`
 - Modify: `src/features/triage/TriageTab.tsx`
@@ -212,6 +218,7 @@ git commit -m "test: harden local workflow handoff"
 ## Phase 3: Supabase Migration And RLS Audit
 
 **Files:**
+
 - Modify: `supabase/migrations/20260528102000_treephoto_cloud_v1.sql`
 - Modify: `supabase/migrations/20260529120000_treephoto_embeddings_v2.sql`
 - Modify: `supabase/migrations/20260529140000_treephoto_faces_v2.sql`
@@ -295,6 +302,7 @@ git commit -m "test: audit Supabase migrations and RLS"
 ## Phase 4: Real Cloud Smoke Harness
 
 **Files:**
+
 - Create: `scripts/cloud-smoke.ts`
 - Modify: `package.json`
 - Modify: `.env.example`
@@ -374,6 +382,7 @@ git commit -m "chore: add Supabase cloud smoke check"
 ## Phase 5: Worker End-To-End Hardening
 
 **Files:**
+
 - Modify: `worker/config.ts`
 - Modify: `worker/jobRunner.ts`
 - Modify: `worker/index.ts`
@@ -448,6 +457,7 @@ git commit -m "test: add worker smoke coverage"
 ## Phase 6: Real AI Provider Boundary
 
 **Files:**
+
 - Modify: `worker/embedding.ts`
 - Modify: `worker/faceDetection.ts`
 - Modify: `worker/config.ts`
@@ -504,6 +514,7 @@ git commit -m "chore: clarify AI provider boundaries"
 ## Phase 7: Production Security Audit
 
 **Files:**
+
 - Modify: `src/lib/supabase.ts`
 - Modify: `src/lib/supabaseConfig.ts`
 - Modify: `.env.example`
@@ -559,6 +570,7 @@ git commit -m "test: enforce frontend security boundaries"
 ## Phase 8: UX Beta Pass
 
 **Files:**
+
 - Modify: `src/App.tsx`
 - Modify: `src/components/CollectionSidebar.tsx`
 - Modify: `src/components/autoflow/AutoFlowMode.tsx`
@@ -623,6 +635,7 @@ git commit -m "fix: polish beta UX and accessibility"
 ## Phase 9: Documentation Completion
 
 **Files:**
+
 - Modify: `docs/USER_GUIDE.md`
 - Create: `docs/LOCAL_MODE.md`
 - Create: `docs/CLOUD_MODE.md`
@@ -704,6 +717,7 @@ git commit -m "docs: complete beta operating guides"
 ## Phase 10: Final Production Gate
 
 **Files:**
+
 - Modify: `docs/RELEASE_CHECKLIST.md`
 - Create: `docs/AUDIT_FINAL_REPORT.md`
 
@@ -749,6 +763,7 @@ Create `docs/AUDIT_FINAL_REPORT.md`:
 # TreePhoto Final Audit Report
 
 ## Verification
+
 - type-check:
 - lint:
 - tests:
@@ -757,6 +772,7 @@ Create `docs/AUDIT_FINAL_REPORT.md`:
 - worker smoke:
 
 ## Completed
+
 - Local workflow:
 - Cloud workflow:
 - Worker:
@@ -765,11 +781,13 @@ Create `docs/AUDIT_FINAL_REPORT.md`:
 - Production:
 
 ## Known Limits
+
 - Real face model:
 - Real CLIP model:
 - Staging credentials:
 
 ## Beta Decision
+
 Ready / Not Ready
 ```
 
@@ -837,4 +855,3 @@ Cloud code and migrations: statically verified
 Cloud runtime: blocked pending staging credentials
 Worker runtime: blocked pending staging credentials/VPS
 ```
-

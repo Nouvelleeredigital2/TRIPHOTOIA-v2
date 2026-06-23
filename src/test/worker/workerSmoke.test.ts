@@ -1,5 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { runWorkerSmoke, type WorkerSmokeClient } from '../../../scripts/worker-smoke';
+import {
+  runWorkerSmoke,
+  type WorkerSmokeClient,
+} from '../../../scripts/worker-smoke';
 import type { SmokeConfig } from '../../../scripts/cloud-smoke';
 
 const baseConfig = (overrides: Partial<SmokeConfig> = {}): SmokeConfig => ({
@@ -18,20 +21,21 @@ const createFakeClient = (opts: FakeOptions = {}) => {
   const calls: string[] = [];
   let idCounter = 0;
   const nextId = () => `id-${(idCounter += 1)}`;
-  const jobRows =
-    opts.jobRows ??
-    [
-      { id: 'j1', status: 'completed', error_message: null },
-      { id: 'j2', status: 'completed', error_message: null },
-      { id: 'j3', status: 'completed', error_message: null },
-    ];
+  const jobRows = opts.jobRows ?? [
+    { id: 'j1', status: 'completed', error_message: null },
+    { id: 'j2', status: 'completed', error_message: null },
+    { id: 'j3', status: 'completed', error_message: null },
+  ];
 
   const client = {
     auth: {
       admin: {
         createUser: () => {
           calls.push('auth.createUser');
-          return Promise.resolve({ data: { user: { id: 'user-1' } }, error: null });
+          return Promise.resolve({
+            data: { user: { id: 'user-1' } },
+            error: null,
+          });
         },
         deleteUser: (id: string) => {
           calls.push(`auth.deleteUser:${id}`);
@@ -46,9 +50,11 @@ const createFakeClient = (opts: FakeOptions = {}) => {
         void payload;
         const thenable = {
           select: () => ({
-            single: () => Promise.resolve({ data: { id: nextId() }, error: null }),
+            single: () =>
+              Promise.resolve({ data: { id: nextId() }, error: null }),
           }),
-          then: (resolve: (v: { error: null }) => unknown) => resolve({ error: null }),
+          then: (resolve: (v: { error: null }) => unknown) =>
+            resolve({ error: null }),
         };
         return thenable as never;
       },
@@ -95,14 +101,21 @@ describe('runWorkerSmoke', () => {
       .mockResolvedValueOnce(true)
       .mockResolvedValue(false);
 
-    const result = await runWorkerSmoke({ config: baseConfig(), client, nonce: 'n2', runOnce });
+    const result = await runWorkerSmoke({
+      config: baseConfig(),
+      client,
+      nonce: 'n2',
+      runOnce,
+    });
 
     expect(result.ok).toBe(true);
     expect(runOnce).toHaveBeenCalledTimes(4); // 3 jobs + 1 terminating false
     // Three job inserts happened.
     expect(calls.filter((c) => c === 'insert:jobs')).toHaveLength(3);
     // Verification queried jobs by project, and cleanup ran (org first, then user).
-    expect(calls.some((c) => c.startsWith('select:jobs:project_id='))).toBe(true);
+    expect(calls.some((c) => c.startsWith('select:jobs:project_id='))).toBe(
+      true
+    );
     expect(calls).toContain('delete:organizations:id=id-1');
     expect(calls).toContain('auth.deleteUser:user-1');
   });
@@ -133,7 +146,7 @@ describe('runWorkerSmoke', () => {
         client,
         nonce: 'n4',
         runOnce: vi.fn().mockResolvedValue(false),
-      }),
+      })
     ).rejects.toThrow(/non-terminal state/);
   });
 
@@ -147,7 +160,7 @@ describe('runWorkerSmoke', () => {
         client,
         nonce: 'n5',
         runOnce: vi.fn().mockResolvedValue(false),
-      }),
+      })
     ).rejects.toThrow(/without an error_message/);
   });
 });

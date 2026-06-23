@@ -52,7 +52,6 @@ const AfIcon: React.FC<{ n: string; sz?: number; c?: string }> = ({
   );
 };
 
-
 const CardBackground: React.FC<{
   photo: AfPhoto;
   style?: React.CSSProperties;

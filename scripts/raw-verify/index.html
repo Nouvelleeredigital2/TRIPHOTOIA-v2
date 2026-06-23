@@ -55,7 +55,10 @@
           }
           window.__RAW_VERIFY__ = { status: 'done', results };
         } catch (e) {
-          window.__RAW_VERIFY__ = { status: 'error', error: String((e && e.stack) || e) };
+          window.__RAW_VERIFY__ = {
+            status: 'error',
+            error: String((e && e.stack) || e),
+          };
         }
         document.getElementById('out').textContent = JSON.stringify(
           window.__RAW_VERIFY__,

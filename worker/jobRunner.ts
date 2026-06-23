@@ -4,10 +4,7 @@ import {
   DetectedFace,
   FaceDetector,
 } from './faceDetection';
-import {
-  createStubImageProcessor,
-  ImageProcessor,
-} from './imageProcessing';
+import { createStubImageProcessor, ImageProcessor } from './imageProcessing';
 
 export type WorkerJobType =
   | 'generate_thumbnail'
@@ -73,7 +70,9 @@ export const createDefaultJobProcessors = (
   imageProcessor: ImageProcessor = createStubImageProcessor()
 ): Required<JobProcessorMap> => ({
   async generate_thumbnail(job) {
-    const { thumbnailPath } = await imageProcessor.thumbnail(storagePathOf(job));
+    const { thumbnailPath } = await imageProcessor.thumbnail(
+      storagePathOf(job)
+    );
     return {
       result: { thumbnail_path: thumbnailPath, processor: imageProcessor.kind },
       photoUpdate: {
@@ -112,7 +111,10 @@ export const createDefaultJobProcessors = (
       storagePathOf(job)
     );
     return {
-      result: { perceptual_hash: perceptualHash, processor: imageProcessor.kind },
+      result: {
+        perceptual_hash: perceptualHash,
+        processor: imageProcessor.kind,
+      },
       photoAnalysis: {
         photo_id: job.photo_id,
         perceptual_hash: perceptualHash,

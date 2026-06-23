@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { usePhotoStore } from '../../store/photoStore';
-import { applyAutoFlowMutation, type AfPhoto } from '../../components/autoflow/afUtils';
+import {
+  applyAutoFlowMutation,
+  type AfPhoto,
+} from '../../components/autoflow/afUtils';
 import { buildPhotosToExport } from '../../features/export/exportSelection';
 import type { Photo } from '../../types';
 
@@ -9,10 +12,19 @@ global.URL.revokeObjectURL = vi.fn();
 
 // Decision change-objects exactly as emitted by AutoFlowMode.handleSwipeDecision
 // (CLAUDE.md "AutoFlow V1 Contract" — Decision mapping).
-const DECISION_CHANGES: Record<'pick' | 'reject' | 'favorite', Partial<AfPhoto>> = {
+const DECISION_CHANGES: Record<
+  'pick' | 'reject' | 'favorite',
+  Partial<AfPhoto>
+> = {
   pick: { isPick: true, isRejected: false, isFavorite: false, cls: 'keep' },
   reject: { isRejected: true, isPick: false, isFavorite: false, cls: 'reject' },
-  favorite: { rating: 5, isPick: true, isRejected: false, isFavorite: true, cls: 'keep' },
+  favorite: {
+    rating: 5,
+    isPick: true,
+    isRejected: false,
+    isFavorite: true,
+    cls: 'keep',
+  },
 };
 
 const makePhoto = (id: string): Photo => ({
@@ -26,7 +38,11 @@ const makePhoto = (id: string): Photo => ({
 const seedThreePhotos = () => {
   usePhotoStore
     .getState()
-    .addPhotos([makePhoto('p-pick'), makePhoto('p-reject'), makePhoto('p-fav')]);
+    .addPhotos([
+      makePhoto('p-pick'),
+      makePhoto('p-reject'),
+      makePhoto('p-fav'),
+    ]);
   applyAutoFlowMutation('p-pick', DECISION_CHANGES.pick, usePhotoStore);
   applyAutoFlowMutation('p-reject', DECISION_CHANGES.reject, usePhotoStore);
   applyAutoFlowMutation('p-fav', DECISION_CHANGES.favorite, usePhotoStore);
@@ -43,9 +59,15 @@ describe('Local AutoFlow → Export handoff (no cloud project)', () => {
 
     expect(byId('p-pick')).toMatchObject({ isPick: true, isRejected: false });
     expect(byId('p-reject')).toMatchObject({ isPick: false, isRejected: true });
-    expect(byId('p-fav')).toMatchObject({ isPick: true, isRejected: false, rating: 5 });
+    expect(byId('p-fav')).toMatchObject({
+      isPick: true,
+      isRejected: false,
+      rating: 5,
+    });
     // reject decision must also register in the store's rejected set.
-    expect(usePhotoStore.getState().rejectedPhotoIds.has('p-reject')).toBe(true);
+    expect(usePhotoStore.getState().rejectedPhotoIds.has('p-reject')).toBe(
+      true
+    );
   });
 
   it('hands off to Export with picks-only filter selecting exactly the picked photos', () => {
@@ -86,7 +108,11 @@ describe('Local AutoFlow → Export handoff (no cloud project)', () => {
 
     // The decision must win — the prior reject must be fully cleared.
     expect(byId('p-a')).toMatchObject({ isPick: true, isRejected: false });
-    expect(byId('p-b')).toMatchObject({ isPick: true, isRejected: false, rating: 5 });
+    expect(byId('p-b')).toMatchObject({
+      isPick: true,
+      isRejected: false,
+      rating: 5,
+    });
     expect(usePhotoStore.getState().rejectedPhotoIds.has('p-a')).toBe(false);
     expect(usePhotoStore.getState().rejectedPhotoIds.has('p-b')).toBe(false);
   });
@@ -96,7 +122,9 @@ describe('Local AutoFlow → Export handoff (no cloud project)', () => {
     // Re-applying the identical pick decision must not flip the flag back off.
     applyAutoFlowMutation('p-pick', DECISION_CHANGES.pick, usePhotoStore);
 
-    const pick = usePhotoStore.getState().photos.find((p) => p.id === 'p-pick')!.analysis!;
+    const pick = usePhotoStore
+      .getState()
+      .photos.find((p) => p.id === 'p-pick')!.analysis!;
     expect(pick).toMatchObject({ isPick: true, isRejected: false });
   });
 });

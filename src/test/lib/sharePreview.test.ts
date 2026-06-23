@@ -13,9 +13,8 @@ describe('buildSharePreview (P1-1)', () => {
   });
 
   it('falls back instead of throwing when decoding fails', async () => {
-    const original = (
-      globalThis as { createImageBitmap?: unknown }
-    ).createImageBitmap;
+    const original = (globalThis as { createImageBitmap?: unknown })
+      .createImageBitmap;
     (globalThis as { createImageBitmap?: unknown }).createImageBitmap = vi
       .fn()
       .mockRejectedValue(new Error('boom'));

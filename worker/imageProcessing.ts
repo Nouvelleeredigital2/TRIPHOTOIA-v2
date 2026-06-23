@@ -96,7 +96,11 @@ export async function computeQuality(input: Buffer): Promise<QualityResult> {
     for (let x = 1; x < width - 1; x += 1) {
       const i = y * width + x;
       const lap =
-        4 * data[i] - data[i - 1] - data[i + 1] - data[i - width] - data[i + width];
+        4 * data[i] -
+        data[i - 1] -
+        data[i + 1] -
+        data[i - width] -
+        data[i + width];
       lapSum += lap;
       lapSumSq += lap * lap;
       count += 1;
@@ -180,7 +184,12 @@ export function createStubImageProcessor(): ImageProcessor {
       return stableHash(storagePath || 'unknown');
     },
     async quality() {
-      return { score: 70, sharpnessScore: 70, exposureScore: 70, isBlurry: false };
+      return {
+        score: 70,
+        sharpnessScore: 70,
+        exposureScore: 70,
+        isBlurry: false,
+      };
     },
   };
 }

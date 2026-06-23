@@ -64,7 +64,8 @@ describe('architecture: no legacy root imports', () => {
         const intoWorker =
           resolved === workerRoot || resolved.startsWith(`${workerRoot}${sep}`);
         const intoScripts =
-          resolved === scriptsRoot || resolved.startsWith(`${scriptsRoot}${sep}`);
+          resolved === scriptsRoot ||
+          resolved.startsWith(`${scriptsRoot}${sep}`);
         if (escapesSrc && !intoWorker && !intoScripts) {
           offenders.push(`${relative(repoRoot, file)} -> ${spec}`);
         }

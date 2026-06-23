@@ -60,7 +60,6 @@ const ScoreRing: React.FC<{ score: number; size?: number }> = ({
   );
 };
 
-
 export const AutoFlowGallery: React.FC<AutoFlowGalleryProps> = ({
   photos,
   title,

@@ -46,19 +46,23 @@ const seqField = (tag: string, value?: string): string | null => {
 const bagField = (tag: string, values?: string[]): string | null => {
   const items = (values ?? []).map((k) => k.trim()).filter(Boolean);
   if (items.length === 0) return null;
-  const lis = items.map((k) => `    <rdf:li>${xmlEscape(k)}</rdf:li>`).join('\n');
+  const lis = items
+    .map((k) => `    <rdf:li>${xmlEscape(k)}</rdf:li>`)
+    .join('\n');
   return `   <${tag}><rdf:Bag>\n${lis}\n   </rdf:Bag></${tag}>`;
 };
 
 /** True si au moins un champ éditable est renseigné (sinon, pas de sidecar). */
-export const hasEditableMetadata = (meta?: EditableMetadata | null): boolean => {
+export const hasEditableMetadata = (
+  meta?: EditableMetadata | null
+): boolean => {
   if (!meta) return false;
   return Boolean(
     meta.title?.trim() ||
-      meta.caption?.trim() ||
-      meta.copyright?.trim() ||
-      meta.creator?.trim() ||
-      (meta.keywords ?? []).some((k) => k.trim()),
+    meta.caption?.trim() ||
+    meta.copyright?.trim() ||
+    meta.creator?.trim() ||
+    (meta.keywords ?? []).some((k) => k.trim())
   );
 };
 

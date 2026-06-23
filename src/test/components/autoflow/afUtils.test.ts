@@ -6,7 +6,10 @@ import {
 } from '../../../components/autoflow/afUtils';
 import type { Photo, DuplicateGroup, PhotoAnalysis } from '../../../types';
 
-const makePhoto = (id: string, analysis: Partial<PhotoAnalysis> | null = {}): Photo => ({
+const makePhoto = (
+  id: string,
+  analysis: Partial<PhotoAnalysis> | null = {}
+): Photo => ({
   id,
   file: new File([''], `${id}.jpg`, { type: 'image/jpeg' }),
   previewUrl: `${id}.jpg`,
@@ -52,7 +55,9 @@ describe('AutoFlow classification — duplicate group invariant (P0-3)', () => {
 
   it('still respects a manual reject', () => {
     const a = makePhoto('a', { isRejected: true });
-    expect(classifyPhoto(a, 90, { isDuplicate: true, isGroupBest: true })).toBe('reject');
+    expect(classifyPhoto(a, 90, { isDuplicate: true, isGroupBest: true })).toBe(
+      'reject'
+    );
   });
 });
 
@@ -70,6 +75,8 @@ describe('AutoFlow suggestion is derived from metrics, not the file id (P0-4)', 
   });
 
   it('reflects the actual metric (blur)', () => {
-    expect(buildSuggestion(makePhoto('x', { isBlurry: true }))).toContain('floue');
+    expect(buildSuggestion(makePhoto('x', { isBlurry: true }))).toContain(
+      'floue'
+    );
   });
 });

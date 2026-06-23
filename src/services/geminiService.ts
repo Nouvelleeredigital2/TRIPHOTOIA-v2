@@ -53,7 +53,10 @@ export async function analyzePhotosBatch(
   options: { signal?: AbortSignal } = {}
 ): Promise<Partial<PhotoAnalysis>[]> {
   if (files.length === 0) return [];
-  const results = await workerAnalysisService.analyzePhotosBatch(files, options);
+  const results = await workerAnalysisService.analyzePhotosBatch(
+    files,
+    options
+  );
   // P0-B : validation Zod à la frontière. Un résultat invalide (NaN, hors plage,
   // sans provenance, mode `demo`…) devient une erreur structurée, jamais un score.
   return results.map((result) => validateAnalysisResult(result));

@@ -48,7 +48,11 @@ export function createSupabaseStorage(env: StorageEnv): StorageIO {
       const arrayBuffer = await (data as Blob).arrayBuffer();
       return Buffer.from(arrayBuffer);
     },
-    async upload(path: string, data: Buffer, contentType: string): Promise<void> {
+    async upload(
+      path: string,
+      data: Buffer,
+      contentType: string
+    ): Promise<void> {
       const client = await getClient();
       const { error } = await client.storage
         .from(bucket)

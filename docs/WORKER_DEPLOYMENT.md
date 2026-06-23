@@ -16,14 +16,14 @@ jamais dans le frontend.
 
 ## Variables d'environnement (serveur uniquement)
 
-| Variable | Rôle |
-| --- | --- |
-| `SUPABASE_URL` | URL du projet |
-| `SUPABASE_SERVICE_ROLE_KEY` | clé service role (**bypass RLS — secret serveur**) |
-| `WORKER_ID` | identité du worker pour le verrouillage des jobs (optionnel) |
-| `WORKER_POLL_INTERVAL_MS` | intervalle de poll à vide (défaut 5000) |
-| `EMBEDDING_PROVIDER` | `deterministic` (défaut) \| `clip` |
-| `FACE_PROVIDER` | `deterministic` \| `disabled` \| `onnx` |
+| Variable                    | Rôle                                                         |
+| --------------------------- | ------------------------------------------------------------ |
+| `SUPABASE_URL`              | URL du projet                                                |
+| `SUPABASE_SERVICE_ROLE_KEY` | clé service role (**bypass RLS — secret serveur**)           |
+| `WORKER_ID`                 | identité du worker pour le verrouillage des jobs (optionnel) |
+| `WORKER_POLL_INTERVAL_MS`   | intervalle de poll à vide (défaut 5000)                      |
+| `EMBEDDING_PROVIDER`        | `deterministic` (défaut) \| `clip`                           |
+| `FACE_PROVIDER`             | `deterministic` \| `disabled` \| `onnx`                      |
 
 > En **production**, le worker refuse de démarrer avec des providers `deterministic`
 > (garde-fou `assertProvidersAllowed`) sauf `ALLOW_SIMULATED_PROVIDERS=true`. Voir

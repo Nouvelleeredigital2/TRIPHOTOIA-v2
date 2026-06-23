@@ -96,7 +96,16 @@ describe('exportSourceFor', () => {
 
     const src = await exportSourceFor(
       photo,
-      opts({ format: 'original', watermark: { text: '©', position: 'bottom-right', size: 24, opacity: 80, color: '#fff' } })
+      opts({
+        format: 'original',
+        watermark: {
+          text: '©',
+          position: 'bottom-right',
+          size: 24,
+          opacity: 80,
+          color: '#fff',
+        },
+      })
     );
     expect(rawFileToProxyFile).toHaveBeenCalled();
     expect(src.file).toBe(fullRaster);

@@ -35,7 +35,10 @@ const IMAGE_EXT = new Set([
 const delay = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
-async function waitForServer(port: number, timeoutMs = 60_000): Promise<boolean> {
+async function waitForServer(
+  port: number,
+  timeoutMs = 60_000
+): Promise<boolean> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     try {
@@ -72,7 +75,9 @@ function printReport(report: Record<string, unknown>, dir: string): void {
   };
   console.log('\n=== TreePhoto · bench analyse pixel (chemin réel) ===');
   console.log(`dossier            : ${dir}`);
-  console.log(`images             : ${r.count} (ok=${r.ok}, échec=${r.failed})`);
+  console.log(
+    `images             : ${r.count} (ok=${r.ok}, échec=${r.failed})`
+  );
   console.log(
     `pool workers       : ${r.poolSize} (hardwareConcurrency=${r.hardwareConcurrency})`
   );
@@ -94,7 +99,9 @@ async function main(): Promise<void> {
     ({ chromium } = await import('playwright'));
   } catch {
     console.error('[bench] Playwright manquant. Installez-le :');
-    console.error('  pnpm add -D playwright && npx playwright install chromium');
+    console.error(
+      '  pnpm add -D playwright && npx playwright install chromium'
+    );
     process.exit(2);
     return;
   }
@@ -155,8 +162,7 @@ async function main(): Promise<void> {
 
     // Attente généreuse : gros lots possibles.
     await page.waitForFunction(
-      () =>
-        Boolean(window.__BENCH_RESULT__) || Boolean(window.__BENCH_ERROR__),
+      () => Boolean(window.__BENCH_RESULT__) || Boolean(window.__BENCH_ERROR__),
       undefined,
       { timeout: 10 * 60_000 }
     );

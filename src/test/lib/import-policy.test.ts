@@ -47,9 +47,11 @@ describe('import-policy (P1-A)', () => {
   });
 
   it('rejette un RAW trop volumineux (> limite RAW dédiée)', async () => {
-    const big = makeFile('huge.arw', 'image/x-sony-arw', [
-      0x49, 0x49, 0x2a, 0x00,
-    ]);
+    const big = makeFile(
+      'huge.arw',
+      'image/x-sony-arw',
+      [0x49, 0x49, 0x2a, 0x00]
+    );
     Object.defineProperty(big, 'size', {
       value: MAX_RAW_IMPORT_FILE_BYTES + 1,
       configurable: true,
@@ -65,9 +67,9 @@ describe('import-policy (P1-A)', () => {
     expect(await sig([0x49, 0x49, 0x2a, 0x00])).toBe(true); // TIFF LE (CR2/NEF/ARW/DNG)
     expect(await sig([0x4d, 0x4d, 0x00, 0x2a])).toBe(true); // TIFF BE
     expect(await sig([0x49, 0x49, 0x55, 0x00])).toBe(true); // Panasonic RW2
-    expect(
-      await sig([0x46, 0x55, 0x4a, 0x49, 0x46, 0x49, 0x4c, 0x4d])
-    ).toBe(true); // "FUJIFILM"
+    expect(await sig([0x46, 0x55, 0x4a, 0x49, 0x46, 0x49, 0x4c, 0x4d])).toBe(
+      true
+    ); // "FUJIFILM"
     expect(await sig([0x00, 0x01, 0x02, 0x03])).toBe(false);
   });
 

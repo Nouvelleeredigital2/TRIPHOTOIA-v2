@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { AnalysisCache, PerformanceTracker } from '../../lib/performance-tracker';
+import {
+  AnalysisCache,
+  PerformanceTracker,
+} from '../../lib/performance-tracker';
 
-const makeFile = (name: string) => new File(['x'], name, { type: 'image/jpeg' });
+const makeFile = (name: string) =>
+  new File(['x'], name, { type: 'image/jpeg' });
 
 describe('P1-3 — bounded caches', () => {
   it('AnalysisCache never exceeds maxSize (LRU eviction)', () => {
@@ -17,7 +21,9 @@ describe('P1-3 — bounded caches', () => {
     const cache = new AnalysisCache();
     const max = cache.getStats().maxSize;
     // Réutiliser les MÊMES instances File (la clé de cache dépend de lastModified).
-    const files = Array.from({ length: max + 10 }, (_, i) => makeFile(`f${i}.jpg`));
+    const files = Array.from({ length: max + 10 }, (_, i) =>
+      makeFile(`f${i}.jpg`)
+    );
     files.forEach((f, i) => cache.set(f, { score: i }));
     // The very first inserted entry must have been evicted.
     expect(cache.has(files[0])).toBe(false);

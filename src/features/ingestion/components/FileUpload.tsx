@@ -188,7 +188,8 @@ export function FileUpload({ onFilesSelected, disabled }: FileUploadProps) {
                 ou cliquez pour sélectionner des fichiers
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                JPEG · PNG · WebP · GIF · BMP · AVIF · RAW (CR2/CR3/NEF/ARW/DNG…)
+                JPEG · PNG · WebP · GIF · BMP · AVIF · RAW
+                (CR2/CR3/NEF/ARW/DNG…)
               </p>
             </div>
             <div className="mt-4 flex flex-col items-center justify-center gap-3 sm:flex-row">

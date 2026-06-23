@@ -63,7 +63,9 @@ beforeAll(async () => {
       grad[i + 2] = v;
     }
   }
-  gradient = await sharp(grad, { raw: { width: 256, height: 256, channels: 3 } })
+  gradient = await sharp(grad, {
+    raw: { width: 256, height: 256, channels: 3 },
+  })
     .png()
     .toBuffer();
 });
@@ -85,7 +87,10 @@ describe('computeQuality (pixels réels)', () => {
   });
 
   it('borne tous les scores entre 0 et 100', async () => {
-    for (const q of [await computeQuality(checker), await computeQuality(dark)]) {
+    for (const q of [
+      await computeQuality(checker),
+      await computeQuality(dark),
+    ]) {
       for (const v of [q.score, q.sharpnessScore, q.exposureScore]) {
         expect(v).toBeGreaterThanOrEqual(0);
         expect(v).toBeLessThanOrEqual(100);
@@ -147,7 +152,9 @@ describe('ImageProcessor — moteur sharp avec Storage en mémoire', () => {
     expect(uploads[0].type).toBe('image/webp');
     expect(uploads[0].bytes).toBeGreaterThan(0);
     // la miniature uploadée est un vrai WebP
-    expect(store.get('projects/p/photo_thumb.webp')!.slice(8, 12).toString('ascii')).toBe('WEBP');
+    expect(
+      store.get('projects/p/photo_thumb.webp')!.slice(8, 12).toString('ascii')
+    ).toBe('WEBP');
 
     const hash = await proc.perceptualHash('projects/p/photo.jpg');
     expect(hash).toMatch(/^[0-9a-f]{16}$/);
@@ -162,10 +169,16 @@ describe('ImageProcessor — moteur sharp avec Storage en mémoire', () => {
       },
       async upload() {},
     };
-    expect(createImageProcessor({ IMAGE_PROCESSOR: 'sharp' }, () => io).kind).toBe('sharp');
-    expect(createImageProcessor({ IMAGE_PROCESSOR: 'stub' }, () => io).kind).toBe('stub');
+    expect(
+      createImageProcessor({ IMAGE_PROCESSOR: 'sharp' }, () => io).kind
+    ).toBe('sharp');
+    expect(
+      createImageProcessor({ IMAGE_PROCESSOR: 'stub' }, () => io).kind
+    ).toBe('stub');
     expect(createImageProcessor({}, () => io).kind).toBe('stub'); // défaut
-    expect(() => createImageProcessor({ IMAGE_PROCESSOR: 'bogus' }, () => io)).toThrow();
+    expect(() =>
+      createImageProcessor({ IMAGE_PROCESSOR: 'bogus' }, () => io)
+    ).toThrow();
   });
 });
 
@@ -173,7 +186,9 @@ describe('stub processor (comportement dev/test conservé)', () => {
   it('ne télécharge rien et renvoie des valeurs par défaut', async () => {
     const stub = createStubImageProcessor();
     expect(stub.kind).toBe('stub');
-    expect((await stub.thumbnail('a/b.jpg')).thumbnailPath).toBe('a/b_thumb.webp');
+    expect((await stub.thumbnail('a/b.jpg')).thumbnailPath).toBe(
+      'a/b_thumb.webp'
+    );
     expect(await stub.perceptualHash('a/b.jpg')).toMatch(/^[0-9a-f]{16}$/);
     expect((await stub.quality('a/b.jpg')).score).toBe(70);
   });

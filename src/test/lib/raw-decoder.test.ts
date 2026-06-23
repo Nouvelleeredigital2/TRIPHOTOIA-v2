@@ -47,7 +47,16 @@ describe('isRawFilename', () => {
   });
 
   it('couvre les formats constructeurs majeurs', () => {
-    for (const ext of ['.cr2', '.cr3', '.nef', '.arw', '.raf', '.rw2', '.orf', '.dng']) {
+    for (const ext of [
+      '.cr2',
+      '.cr3',
+      '.nef',
+      '.arw',
+      '.raf',
+      '.rw2',
+      '.orf',
+      '.dng',
+    ]) {
       expect(RAW_EXTENSIONS).toContain(ext);
     }
   });

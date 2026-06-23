@@ -100,9 +100,7 @@ export function computeEyeOpenness(
   const earLeft = left ? eyeAspectRatio(left) : null;
   const earRight = right ? eyeAspectRatio(right) : null;
 
-  const ears = [earLeft, earRight].filter(
-    (e): e is number => e !== null
-  );
+  const ears = [earLeft, earRight].filter((e): e is number => e !== null);
   if (ears.length === 0) return null;
 
   const ear = ears.reduce((a, b) => a + b, 0) / ears.length;
@@ -124,9 +122,12 @@ export function computeEyeOpenness(
  * basse (le visage le plus incertain conditionne le résultat). Retourne `null`
  * si aucun visage exploitable.
  */
-export function aggregateFaces(
-  faces: EyeOpennessResult[]
-): { faceCount: number; eyeOpenness: number; hasOpenEyes: boolean; confidence: number } | null {
+export function aggregateFaces(faces: EyeOpennessResult[]): {
+  faceCount: number;
+  eyeOpenness: number;
+  hasOpenEyes: boolean;
+  confidence: number;
+} | null {
   if (faces.length === 0) return null;
   const hasOpenEyes = faces.every((f) => f.hasOpenEyes);
   const eyeOpenness =

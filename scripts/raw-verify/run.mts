@@ -37,7 +37,9 @@ async function main() {
   try {
     ({ chromium } = await import('playwright'));
   } catch {
-    console.error('[raw-verify] Playwright manquant: pnpm add -D playwright && npx playwright install chromium');
+    console.error(
+      '[raw-verify] Playwright manquant: pnpm add -D playwright && npx playwright install chromium'
+    );
     process.exit(2);
     return;
   }
@@ -77,9 +79,13 @@ async function main() {
       timeout: 30_000,
     });
     await page.setInputFiles('#files', files);
-    await page.waitForFunction(() => Boolean(window.__RAW_VERIFY__), undefined, {
-      timeout: 5 * 60_000,
-    });
+    await page.waitForFunction(
+      () => Boolean(window.__RAW_VERIFY__),
+      undefined,
+      {
+        timeout: 5 * 60_000,
+      }
+    );
     const result = await page.evaluate(() => window.__RAW_VERIFY__);
     console.log('\n=== Résultat décodage RAW (Chromium réel) ===');
     console.log(JSON.stringify(result, null, 2));

@@ -6,9 +6,7 @@ import {
   processWorkerJob,
   WorkerJob,
 } from '../../../worker/jobRunner';
-import {
-  createDeterministicEmbedder,
-} from '../../../worker/embedding';
+import { createDeterministicEmbedder } from '../../../worker/embedding';
 import { createDeterministicFaceDetector } from '../../../worker/faceDetection';
 import { createSharpImageProcessor } from '../../../worker/imageProcessing';
 import type { StorageIO } from '../../../worker/storage';
@@ -105,7 +103,11 @@ describe('worker end-to-end avec moteur sharp réel (Supabase en mémoire)', () 
       createDeterministicFaceDetector(),
       createSharpImageProcessor(io)
     );
-    await processWorkerJob(client, baseJob({ job_type: 'generate_thumbnail' }), processors);
+    await processWorkerJob(
+      client,
+      baseJob({ job_type: 'generate_thumbnail' }),
+      processors
+    );
 
     // une vraie miniature WebP a été uploadée
     const thumb = store.get('projects/proj-1/photo-1_thumb.webp');
@@ -131,7 +133,11 @@ describe('worker end-to-end avec moteur sharp réel (Supabase en mémoire)', () 
       createDeterministicFaceDetector(),
       createSharpImageProcessor(io)
     );
-    await processWorkerJob(client, baseJob({ job_type: 'quality_analysis' }), processors);
+    await processWorkerJob(
+      client,
+      baseJob({ job_type: 'quality_analysis' }),
+      processors
+    );
 
     const analysis = captured.find(
       (c) => c.table === 'photo_analysis' && c.op === 'upsert'
@@ -156,7 +162,11 @@ describe('worker end-to-end avec moteur sharp réel (Supabase en mémoire)', () 
       createDeterministicFaceDetector(),
       createSharpImageProcessor(io)
     );
-    await processWorkerJob(client, baseJob({ job_type: 'perceptual_hash' }), processors);
+    await processWorkerJob(
+      client,
+      baseJob({ job_type: 'perceptual_hash' }),
+      processors
+    );
 
     const analysis = captured.find(
       (c) => c.table === 'photo_analysis' && c.op === 'upsert'
@@ -178,14 +188,19 @@ describe('worker end-to-end avec moteur sharp réel (Supabase en mémoire)', () 
     // chemin inexistant → download lève → processWorkerJob bascule en échec
     await processWorkerJob(
       client,
-      baseJob({ job_type: 'quality_analysis', payload: { storage_path: 'absent.jpg' } }),
+      baseJob({
+        job_type: 'quality_analysis',
+        payload: { storage_path: 'absent.jpg' },
+      }),
       processors
     );
     const completed = captured.find(
-      (c) => c.table === 'jobs' && c.op === 'update' && c.row?.status === 'completed'
+      (c) =>
+        c.table === 'jobs' && c.op === 'update' && c.row?.status === 'completed'
     );
     const failed = captured.find(
-      (c) => c.table === 'jobs' && c.op === 'update' && c.row?.status === 'failed'
+      (c) =>
+        c.table === 'jobs' && c.op === 'update' && c.row?.status === 'failed'
     );
     expect(completed).toBeUndefined();
     expect(failed).toBeDefined(); // marqué failed (pas de RPC sur le faux client)

@@ -39,7 +39,10 @@ import { Photo } from './types';
 import toast from 'react-hot-toast';
 import { AutoFlowMode } from './components/autoflow/AutoFlowMode';
 import { AutoFlowAnalyzing } from './components/autoflow/AutoFlowAnalyzing';
-import { toAfPhotos, applyAutoFlowMutation } from './components/autoflow/afUtils';
+import {
+  toAfPhotos,
+  applyAutoFlowMutation,
+} from './components/autoflow/afUtils';
 import type { AfPhoto } from './components/autoflow/afUtils';
 import { useCloudProjectStore } from './store/cloudProjectStore';
 import {

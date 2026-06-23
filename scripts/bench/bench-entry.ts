@@ -71,7 +71,12 @@ async function run(files: File[]): Promise<void> {
       const t0 = performance.now();
       const [result] = await service.analyzePhotosBatch([file]);
       const ms = performance.now() - t0;
-      timings.push({ name: file.name, bytes: file.size, ms, ok: !isError(result) });
+      timings.push({
+        name: file.name,
+        bytes: file.size,
+        ms,
+        ok: !isError(result),
+      });
     }
 
     // 2) Débit du pool : tout le lot d'un coup (réaliste pour un import en masse).
@@ -98,8 +103,7 @@ async function run(files: File[]): Promise<void> {
       batchMs,
       batchThroughputPerSec: batchMs > 0 ? (files.length / batchMs) * 1000 : 0,
       totalBytes,
-      mbPerSec:
-        batchMs > 0 ? totalBytes / (1024 * 1024) / (batchMs / 1000) : 0,
+      mbPerSec: batchMs > 0 ? totalBytes / (1024 * 1024) / (batchMs / 1000) : 0,
       timings,
     };
 

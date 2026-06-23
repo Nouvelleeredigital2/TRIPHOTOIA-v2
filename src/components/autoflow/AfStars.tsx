@@ -13,7 +13,11 @@ interface AfStarsProps {
  * Decorative when `onRate` is omitted; clickable buttons when provided.
  * Single source of truth for SwipeMode + Gallery (previously duplicated inline).
  */
-export const AfStars: React.FC<AfStarsProps> = ({ rating, size = 18, onRate }) => (
+export const AfStars: React.FC<AfStarsProps> = ({
+  rating,
+  size = 18,
+  onRate,
+}) => (
   <div style={{ display: 'flex', gap: 2 }}>
     {[1, 2, 3, 4, 5].map((n) => {
       const color = n <= rating ? afColor.review : afOverlay(0.12);

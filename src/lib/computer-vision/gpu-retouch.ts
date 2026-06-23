@@ -42,7 +42,6 @@ export class GPURetouchProcessor {
     this.ctx = this.canvas.getContext('2d', { willReadFrequently: true })!;
     this.webgl = new WebGLRetouchProcessor();
 
-
     this.initializeWorker();
   }
 

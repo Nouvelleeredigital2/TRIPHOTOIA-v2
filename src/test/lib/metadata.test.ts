@@ -29,7 +29,9 @@ describe('metadata sidecar', () => {
       copyright: '© Studio',
     });
     expect(xmp).toContain('<?xpacket begin');
-    expect(xmp).toContain('<dc:title><rdf:Alt><rdf:li xml:lang="x-default">Cérémonie</rdf:li>');
+    expect(xmp).toContain(
+      '<dc:title><rdf:Alt><rdf:li xml:lang="x-default">Cérémonie</rdf:li>'
+    );
     expect(xmp).toContain('<rdf:li>mariage</rdf:li>');
     expect(xmp).toContain('<rdf:li>couple</rdf:li>');
     expect(xmp).toContain('<dc:rights>');

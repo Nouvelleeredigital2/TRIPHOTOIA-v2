@@ -4,15 +4,15 @@ Date : 2026-06-21 · Branche : `codex/autoflow-local-foundation`
 
 ## Vérification (dernière exécution)
 
-| Porte | Résultat |
-| --- | --- |
-| `pnpm install --ignore-workspace --frozen-lockfile` | ✅ |
-| `pnpm type-check` | ✅ |
-| `pnpm lint` | ✅ (0 erreur) |
-| `pnpm test` | ✅ **348 tests** |
-| `pnpm build` | ✅ aucun warning |
-| `pnpm smoke:cloud` (live) | ✅ **ok** — staging `cnnshwmdynggvjcxaohe` (bucket privé, org/project/photo/job, décision) |
-| `pnpm smoke:worker` (live) | ✅ **ok** — 3 jobs drainés par le runner, états terminaux avec diagnostics |
+| Porte                                               | Résultat                                                                                   |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `pnpm install --ignore-workspace --frozen-lockfile` | ✅                                                                                         |
+| `pnpm type-check`                                   | ✅                                                                                         |
+| `pnpm lint`                                         | ✅ (0 erreur)                                                                              |
+| `pnpm test`                                         | ✅ **348 tests**                                                                           |
+| `pnpm build`                                        | ✅ aucun warning                                                                           |
+| `pnpm smoke:cloud` (live)                           | ✅ **ok** — staging `cnnshwmdynggvjcxaohe` (bucket privé, org/project/photo/job, décision) |
+| `pnpm smoke:worker` (live)                          | ✅ **ok** — 3 jobs drainés par le runner, états terminaux avec diagnostics                 |
 
 > Runtime cloud **vérifié sur staging** le 2026-06-21 (projet `cnnshwmdynggvjcxaohe`) :
 > schéma + RLS + buckets privés confirmés sur le live, advisors perf corrigés
@@ -32,18 +32,18 @@ Date : 2026-06-21 · Branche : `codex/autoflow-local-foundation`
 
 ## Réalisé (phases 1 → 9)
 
-| Phase | Objet | Commit |
-| --- | --- | --- |
-| 0 | Baseline verte (install pnpm réparée) | `45065ef` |
-| 1 | Hygiène du dépôt + baseline de release | `bb238dc` |
-| 2 | Durcissement handoff workflow local AutoFlow → Export | `77df519` |
-| 3 | Audit RLS Supabase + doc cloud | `174f7e0` |
-| 4 | Harnais de smoke cloud | `942e132` |
-| 5 | Durcissement worker E2E + smoke | `070c26c` |
-| 6 | Frontière des providers IA (mode `disabled` honnête) | `7efb9a0` |
-| 7 | Audit sécurité prod (anti-exposition service-role) | `262d97b` |
-| 8 | Passe UX beta + régressions critiques | `36be17f` |
-| 9 | Guides d'exploitation beta | `60ad2e5` |
+| Phase | Objet                                                 | Commit    |
+| ----- | ----------------------------------------------------- | --------- |
+| 0     | Baseline verte (install pnpm réparée)                 | `45065ef` |
+| 1     | Hygiène du dépôt + baseline de release                | `bb238dc` |
+| 2     | Durcissement handoff workflow local AutoFlow → Export | `77df519` |
+| 3     | Audit RLS Supabase + doc cloud                        | `174f7e0` |
+| 4     | Harnais de smoke cloud                                | `942e132` |
+| 5     | Durcissement worker E2E + smoke                       | `070c26c` |
+| 6     | Frontière des providers IA (mode `disabled` honnête)  | `7efb9a0` |
+| 7     | Audit sécurité prod (anti-exposition service-role)    | `262d97b` |
+| 8     | Passe UX beta + régressions critiques                 | `36be17f` |
+| 9     | Guides d'exploitation beta                            | `60ad2e5` |
 
 - **Workflow local** : vérifié (import → analyse → AutoFlow → doublons → smart
   collections → export ZIP). Handoff `picks-only` couvert par test d'intégration.

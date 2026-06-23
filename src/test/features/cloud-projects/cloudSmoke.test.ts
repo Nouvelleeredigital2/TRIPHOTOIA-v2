@@ -32,12 +32,17 @@ const createFakeClient = (opts: FakeOptions = {}) => {
         createUser: (attrs) => {
           calls.push('auth.createUser');
           void attrs;
-          return Promise.resolve({ data: { user: { id: 'user-1' } }, error: null });
+          return Promise.resolve({
+            data: { user: { id: 'user-1' } },
+            error: null,
+          });
         },
         deleteUser: (id) => {
           calls.push(`auth.deleteUser:${id}`);
           return Promise.resolve({
-            error: opts.deleteUserError ? { message: opts.deleteUserError } : null,
+            error: opts.deleteUserError
+              ? { message: opts.deleteUserError }
+              : null,
           });
         },
       },
@@ -61,7 +66,7 @@ const createFakeClient = (opts: FakeOptions = {}) => {
               Promise.resolve(
                 opts.insertErrorFor === table
                   ? { data: null, error: { message: `boom ${table}` } }
-                  : { data: { id: nextId() }, error: null },
+                  : { data: { id: nextId() }, error: null }
               ),
           }),
         };
@@ -75,7 +80,9 @@ const createFakeClient = (opts: FakeOptions = {}) => {
         eq: (column: string, value: string) => {
           calls.push(`delete:${table}:${column}=${value}`);
           return Promise.resolve({
-            error: opts.deleteOrgError ? { message: opts.deleteOrgError } : null,
+            error: opts.deleteOrgError
+              ? { message: opts.deleteOrgError }
+              : null,
           });
         },
       }),
@@ -87,7 +94,9 @@ const createFakeClient = (opts: FakeOptions = {}) => {
 
 describe('parseSmokeConfig', () => {
   it('throws fast when required secrets are missing', () => {
-    expect(() => parseSmokeConfig({})).toThrow(/SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY/);
+    expect(() => parseSmokeConfig({})).toThrow(
+      /SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY/
+    );
     expect(() => parseSmokeConfig({ SUPABASE_URL: 'x' })).toThrow();
   });
 
@@ -126,7 +135,11 @@ describe('runCloudSmoke', () => {
 
   it('runs the full insert/update/cleanup sequence when confirmed', async () => {
     const { client, calls } = createFakeClient();
-    const result = await runCloudSmoke({ config: baseConfig(), client, nonce: 'n2' });
+    const result = await runCloudSmoke({
+      config: baseConfig(),
+      client,
+      nonce: 'n2',
+    });
 
     expect(result.ok).toBe(true);
     expect(result.dryRun).toBe(false);
@@ -147,7 +160,7 @@ describe('runCloudSmoke', () => {
   it('fails fast when the bucket is missing', async () => {
     const { client, calls } = createFakeClient({ bucketError: 'not found' });
     await expect(
-      runCloudSmoke({ config: baseConfig(), client, nonce: 'n3' }),
+      runCloudSmoke({ config: baseConfig(), client, nonce: 'n3' })
     ).rejects.toThrow(/bucket .* failed/);
     // No user was created, so no cleanup needed.
     expect(calls).not.toContain('auth.deleteUser:user-1');
@@ -156,7 +169,7 @@ describe('runCloudSmoke', () => {
   it('still deletes the temp user when a later step fails', async () => {
     const { client, calls } = createFakeClient({ insertErrorFor: 'projects' });
     await expect(
-      runCloudSmoke({ config: baseConfig(), client, nonce: 'n4' }),
+      runCloudSmoke({ config: baseConfig(), client, nonce: 'n4' })
     ).rejects.toThrow(/insert project failed/);
     // Cleanup must run despite the failure (finally block): org first, then user.
     expect(calls).toContain('delete:organizations:id=id-1');
@@ -166,9 +179,16 @@ describe('runCloudSmoke', () => {
   it('warns but does not throw when cleanup fails', async () => {
     const { client } = createFakeClient({ deleteUserError: 'cannot delete' });
     const log = vi.fn();
-    const result = await runCloudSmoke({ config: baseConfig(), client, nonce: 'n5', log });
+    const result = await runCloudSmoke({
+      config: baseConfig(),
+      client,
+      nonce: 'n5',
+      log,
+    });
 
     expect(result.ok).toBe(true);
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('cleanup of temp user failed'));
+    expect(log).toHaveBeenCalledWith(
+      expect.stringContaining('cleanup of temp user failed')
+    );
   });
 });

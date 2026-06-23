@@ -28,7 +28,10 @@ const stripComments = (sql: string): string =>
     })
     .join('\n');
 
-const allSql = rawByFile.map((m) => m.sql).join('\n').toLowerCase();
+const allSql = rawByFile
+  .map((m) => m.sql)
+  .join('\n')
+  .toLowerCase();
 const codeSql = stripComments(allSql);
 
 const matchAll = (re: RegExp, text: string): string[] =>
@@ -41,10 +44,13 @@ describe('Supabase RLS policy audit (all migrations)', () => {
 
   it('enables Row Level Security on every table it creates', () => {
     const created = new Set(
-      matchAll(/create table if not exists public\.([a-z_]+)/g, codeSql),
+      matchAll(/create table if not exists public\.([a-z_]+)/g, codeSql)
     );
     const rlsEnabled = new Set(
-      matchAll(/alter table public\.([a-z_]+) enable row level security/g, codeSql),
+      matchAll(
+        /alter table public\.([a-z_]+) enable row level security/g,
+        codeSql
+      )
     );
 
     expect(created.size).toBeGreaterThan(0);
@@ -54,7 +60,10 @@ describe('Supabase RLS policy audit (all migrations)', () => {
 
   it('covers the core user-owned business tables', () => {
     const rlsEnabled = new Set(
-      matchAll(/alter table public\.([a-z_]+) enable row level security/g, codeSql),
+      matchAll(
+        /alter table public\.([a-z_]+) enable row level security/g,
+        codeSql
+      )
     );
     [
       'organizations',
@@ -80,7 +89,9 @@ describe('Supabase RLS policy audit (all migrations)', () => {
   });
 
   it('protects share links behind a token-scoped, expiry-aware accessor', () => {
-    expect(codeSql).toContain('create or replace function public.get_shared_link');
+    expect(codeSql).toContain(
+      'create or replace function public.get_shared_link'
+    );
     expect(codeSql).toContain('security definer');
     expect(codeSql).toContain('where s.token = target_token');
     // The enumerable public-read policy must never be (re)created.

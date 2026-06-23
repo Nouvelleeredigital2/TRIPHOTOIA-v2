@@ -116,8 +116,18 @@ describe('aggregateFaces', () => {
   });
 
   it('prend la confiance la plus basse du groupe', () => {
-    const a = { ear: 0.3, eyeOpenness: 0.9, hasOpenEyes: true, confidence: 0.9 };
-    const b = { ear: 0.3, eyeOpenness: 0.9, hasOpenEyes: true, confidence: 0.4 };
+    const a = {
+      ear: 0.3,
+      eyeOpenness: 0.9,
+      hasOpenEyes: true,
+      confidence: 0.9,
+    };
+    const b = {
+      ear: 0.3,
+      eyeOpenness: 0.9,
+      hasOpenEyes: true,
+      confidence: 0.4,
+    };
     expect(aggregateFaces([a, b])!.confidence).toBe(0.4);
   });
 });

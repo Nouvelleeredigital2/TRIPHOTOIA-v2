@@ -29,13 +29,18 @@ describe('service-role exposure scan', () => {
     const srcFiles = walk(join(root, 'src'));
     const offenders = srcFiles
       .filter((f) => !isTestFile(f))
-      .filter((f) => readFileSync(f, 'utf8').includes('VITE_SUPABASE_SERVICE_ROLE_KEY'))
+      .filter((f) =>
+        readFileSync(f, 'utf8').includes('VITE_SUPABASE_SERVICE_ROLE_KEY')
+      )
       .map((f) => relative(root, f).split(sep).join('/'));
 
     // The ONLY allowed reference is the defensive guard that throws on it.
     expect(offenders).toEqual(['src/lib/supabaseConfig.ts']);
 
-    const guard = readFileSync(join(root, 'src', 'lib', 'supabaseConfig.ts'), 'utf8');
+    const guard = readFileSync(
+      join(root, 'src', 'lib', 'supabaseConfig.ts'),
+      'utf8'
+    );
     expect(guard).toMatch(/throw new Error\([^)]*service role/i);
   });
 

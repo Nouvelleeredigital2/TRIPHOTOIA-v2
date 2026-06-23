@@ -596,7 +596,9 @@ export function PhotoDetailPanel({ photo, onClose }: PhotoDetailPanelProps) {
                     placeholder="Mots-clés (séparés par des virgules)"
                     aria-label="Mots-clés"
                     className="w-full rounded-md border border-border bg-input px-2 py-1 text-xs"
-                    value={(photo.metadata?.editable?.keywords ?? []).join(', ')}
+                    value={(photo.metadata?.editable?.keywords ?? []).join(
+                      ', '
+                    )}
                     onChange={(e) =>
                       updatePhotoMetadata(photo.id, {
                         keywords: e.target.value
@@ -613,7 +615,9 @@ export function PhotoDetailPanel({ photo, onClose }: PhotoDetailPanelProps) {
                     className="w-full rounded-md border border-border bg-input px-2 py-1 text-xs"
                     value={photo.metadata?.editable?.copyright ?? ''}
                     onChange={(e) =>
-                      updatePhotoMetadata(photo.id, { copyright: e.target.value })
+                      updatePhotoMetadata(photo.id, {
+                        copyright: e.target.value,
+                      })
                     }
                   />
                 </div>

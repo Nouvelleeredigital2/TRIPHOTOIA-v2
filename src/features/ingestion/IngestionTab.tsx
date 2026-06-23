@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { calculateFileHash, mapWithConcurrency } from '../../lib/utils';
 import { validateImportFiles } from '../../lib/import-policy';
 import { isRawFilename, rawFileToProxyFile } from '../../lib/raw/raw-decoder';
+import { setRawOriginal } from '../../lib/raw/raw-originals';
 import { readExifMetadata } from '../../lib/exif';
 import { Photo, PhotoAnalysis } from '../../types';
 import { usePhotoStore } from '../../store/photoStore';
@@ -154,6 +155,9 @@ function IngestionTab() {
             return null;
           }
           rasterFile = proxy;
+          // Conserve l'octet RAW d'origine en mémoire (session) pour un export
+          // pleine qualité ultérieur. Clé = id = SHA-256 du contenu RAW.
+          setRawOriginal(fileHash, file);
         }
         return {
           // A-14 : ID = SHA-256 du contenu (original RAW pour les RAW).

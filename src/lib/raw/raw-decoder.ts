@@ -117,7 +117,8 @@ export async function extractRawThumbnail(file: File): Promise<Blob | null> {
  */
 export async function rawFileToProxyFile(
   file: File,
-  halfSize = true
+  halfSize = true,
+  quality = 0.92
 ): Promise<File | null> {
   const decoded = await decodeRawToRgba(file, halfSize);
   if (!decoded) return null;
@@ -130,7 +131,7 @@ export async function rawFileToProxyFile(
     ctx.putImageData(new ImageData(data, width, height), 0, 0);
     const blob = await canvas.convertToBlob({
       type: 'image/jpeg',
-      quality: 0.92,
+      quality,
     });
     const proxyName = file.name.replace(/\.[^.]+$/, '') + '.jpg';
     return new File([blob], proxyName, { type: 'image/jpeg' });

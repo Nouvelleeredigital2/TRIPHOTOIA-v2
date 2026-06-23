@@ -1,5 +1,7 @@
 import JSZip from 'jszip';
 import { Photo } from '../types';
+import { getRawOriginal } from './raw/raw-originals';
+import { rawFileToProxyFile } from './raw/raw-decoder';
 
 // ── P1-8 : garde-fou taille d'export ZIP ─────────────────────────────────────
 // Le ZIP est construit intégralement en mémoire (JSZip generateAsync). Sur de
@@ -149,9 +151,14 @@ function expandPattern(
 function getExportFileName(
   photo: Photo,
   options: ExportOptions,
-  index: number
+  index: number,
+  forcedExt?: string
 ): string {
   const baseName = expandPattern(options.renamePattern, photo, index);
+  // Export de l'octet RAW d'origine → on garde son extension (.arw/.cr2…).
+  if (forcedExt) {
+    return `${baseName}.${forcedExt}`;
+  }
   const watermarkedOriginal =
     options.format === 'original' && !!options.watermark?.text?.trim();
   const ext =
@@ -257,6 +264,52 @@ function applyWatermark(
   ctx.restore();
 }
 
+// ── Export RAW pleine qualité ──────────────────────────────────────────────────
+
+export interface ExportSource {
+  /** Octets à encoder (original RAW, décodage pleine résolution, ou proxy). */
+  file: File;
+  /** Extension forcée pour le nom (l'octet RAW d'origine garde son ext, ex. arw). */
+  forcedExt?: string;
+  /** true si la source est pleine qualité (original ou décodage pleine résolution). */
+  fullQuality: boolean;
+}
+
+/**
+ * Résout la source d'export d'une photo.
+ *
+ * - Photo RAW dont l'original est encore en session :
+ *   - format `original` sans filigrane → on exporte l'OCTET RAW d'origine tel quel
+ *     (pleine qualité absolue), avec son extension d'origine.
+ *   - sinon (conversion / filigrane) → décodage PLEINE RÉSOLUTION (q0.97) comme
+ *     intermédiaire haute qualité, puis `processImage` encode au format demandé.
+ * - Sinon (photo non-RAW, ou RAW dont l'original n'est plus en mémoire après un
+ *   rechargement) → le raster courant (`photo.file`, = proxy pour un RAW rechargé).
+ */
+export async function exportSourceFor(
+  photo: Photo,
+  options: ExportOptions
+): Promise<ExportSource> {
+  const original = getRawOriginal(photo.id);
+  if (!original) {
+    return { file: photo.file, fullQuality: false };
+  }
+
+  const wantOriginalBytes =
+    options.format === 'original' && !options.watermark?.text?.trim();
+  if (wantOriginalBytes) {
+    const ext = original.name.split('.').pop()?.toLowerCase() ?? 'raw';
+    return { file: original, forcedExt: ext, fullQuality: true };
+  }
+
+  // Conversion ou filigrane : décodage pleine résolution (pas le proxy demi-taille).
+  const fullRaster = await rawFileToProxyFile(original, false, 0.97);
+  if (!fullRaster) {
+    return { file: photo.file, fullQuality: false };
+  }
+  return { file: fullRaster, fullQuality: true };
+}
+
 // ── Image processing ──────────────────────────────────────────────────────────
 
 /**
@@ -341,10 +394,15 @@ export async function exportPhotosAsZip(
 
   for (let i = 0; i < photos.length; i++) {
     const photo = photos[i];
-    const fileName = dedupeFileName(getExportFileName(photo, options, i), used);
+    let fileName = getExportFileName(photo, options, i);
 
     try {
-      const processedBlob = await processImage(photo.file, options);
+      const src = await exportSourceFor(photo, options);
+      fileName = dedupeFileName(
+        getExportFileName(photo, options, i, src.forcedExt),
+        used
+      );
+      const processedBlob = await processImage(src.file, options);
       zip.file(fileName, processedBlob);
       attachMetadataSidecar(zip, fileName, photo);
       exported += 1;
@@ -390,13 +448,15 @@ export async function exportPhotoChaptersAsZip(
 
     for (let photoIndex = 0; photoIndex < chapter.photos.length; photoIndex++) {
       const photo = chapter.photos[photoIndex];
-      const fileName = dedupeFileName(
-        getExportFileName(photo, options, photoIndex),
-        used
-      );
+      let fileName = getExportFileName(photo, options, photoIndex);
 
       try {
-        const processedBlob = await processImage(photo.file, options);
+        const src = await exportSourceFor(photo, options);
+        fileName = dedupeFileName(
+          getExportFileName(photo, options, photoIndex, src.forcedExt),
+          used
+        );
+        const processedBlob = await processImage(src.file, options);
         folder.file(fileName, processedBlob);
         attachMetadataSidecar(folder, fileName, photo);
         exported += 1;
@@ -440,9 +500,14 @@ export async function exportPhotosToDirectory(
 
   for (let i = 0; i < photos.length; i++) {
     const photo = photos[i];
-    const fileName = dedupeFileName(getExportFileName(photo, options, i), used);
+    let fileName = getExportFileName(photo, options, i);
     try {
-      const blob = await processImage(photo.file, options);
+      const src = await exportSourceFor(photo, options);
+      fileName = dedupeFileName(
+        getExportFileName(photo, options, i, src.forcedExt),
+        used
+      );
+      const blob = await processImage(src.file, options);
       const fileHandle = await dirHandle.getFileHandle(fileName, {
         create: true,
       });
